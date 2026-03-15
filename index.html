@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>git4aiagents: The Post-Git Manifesto</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --white: #f0ede8;
+    --accent: #ff3d00;
+    --accent2: #00e5ff;
+    --gray: #888;
+    --dim: #333;
+    --mono: 'Space Mono', monospace;
+    --serif: 'Instrument Serif', Georgia, serif;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: var(--sans);
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--black);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem 6vw;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    right: -20%;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(255,61,0,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-label {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.2s;
+  }
+
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(3.5rem, 10vw, 9rem);
+    line-height: 0.95;
+    font-weight: 400;
+    max-width: 900px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.4s;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--gray);
+    margin-top: 2.5rem;
+    max-width: 600px;
+    line-height: 1.8;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.6s;
+  }
+
+  .hero-version {
+    position: absolute;
+    bottom: 3rem;
+    right: 6vw;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--dim);
+    letter-spacing: 0.15em;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 1s;
+  }
+
+  .scroll-indicator {
+    position: absolute;
+    bottom: 3rem;
+    left: 6vw;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 1s;
+  }
+
+  .scroll-indicator::before {
+    content: '';
+    width: 30px;
+    height: 1px;
+    background: var(--dim);
+    animation: pulse 2s ease infinite;
+  }
+
+  /* ── EPOCH ── */
+  .epoch {
+    padding: 6rem 6vw;
+    border-top: 1px solid var(--dim);
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 4rem;
+  }
+
+  @media (max-width: 768px) {
+    .epoch { grid-template-columns: 1fr; gap: 1.5rem; }
+  }
+
+  .epoch-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding-top: 0.3rem;
+  }
+
+  .epoch-content h2 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 400;
+    line-height: 1.15;
+    margin-bottom: 2rem;
+  }
+
+  .epoch-content h2 em { font-style: italic; color: var(--accent2); }
+
+  .epoch-content p {
+    font-size: 1.05rem;
+    color: #bbb;
+    max-width: 680px;
+    margin-bottom: 1.5rem;
+    font-weight: 300;
+  }
+
+  .epoch-content p strong {
+    color: var(--white);
+    font-weight: 500;
+  }
+
+  /* ── PRINCIPLES ── */
+  .principles {
+    padding: 6rem 6vw;
+    border-top: 1px solid var(--dim);
+  }
+
+  .principles-header {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 4rem;
+    margin-bottom: 4rem;
+  }
+
+  @media (max-width: 768px) {
+    .principles-header { grid-template-columns: 1fr; gap: 1rem; }
+  }
+
+  .principles-header h2 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 400;
+  }
+
+  .principle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1px;
+    background: var(--dim);
+    border: 1px solid var(--dim);
+  }
+
+  .principle {
+    background: var(--black);
+    padding: 2.5rem;
+    transition: background 0.3s ease;
+  }
+
+  .principle:hover {
+    background: #111;
+  }
+
+  .principle-num {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    margin-bottom: 1rem;
+  }
+
+  .principle h3 {
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    font-weight: 400;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+
+  .principle p {
+    font-size: 0.9rem;
+    color: #999;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* ── ARCHITECTURE ── */
+  .architecture {
+    padding: 6rem 6vw;
+    border-top: 1px solid var(--dim);
+  }
+
+  .arch-header {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 4rem;
+    margin-bottom: 4rem;
+  }
+
+  @media (max-width: 768px) {
+    .arch-header { grid-template-columns: 1fr; gap: 1rem; }
+  }
+
+  .arch-header h2 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 400;
+  }
+
+  .arch-layer {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 4rem;
+    padding: 2.5rem 0;
+    border-bottom: 1px solid #1a1a1a;
+  }
+
+  @media (max-width: 768px) {
+    .arch-layer { grid-template-columns: 1fr; gap: 0.5rem; }
+  }
+
+  .arch-layer-name {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: var(--accent2);
+    text-transform: uppercase;
+  }
+
+  .arch-layer-desc {
+    font-size: 1rem;
+    color: #bbb;
+    max-width: 680px;
+    font-weight: 300;
+    line-height: 1.7;
+  }
+
+  .arch-layer-desc code {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    background: #1a1a1a;
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    color: var(--accent);
+  }
+
+  /* ── COMPARISON ── */
+  .compare {
+    padding: 6rem 6vw;
+    border-top: 1px solid var(--dim);
+  }
+
+  .compare-header {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 4rem;
+    margin-bottom: 3rem;
+  }
+
+  @media (max-width: 768px) {
+    .compare-header { grid-template-columns: 1fr; gap: 1rem; }
+  }
+
+  .compare table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .compare th {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 1rem 1.5rem;
+    border-bottom: 2px solid var(--dim);
+    color: var(--gray);
+    font-weight: 400;
+  }
+
+  .compare th:last-child { color: var(--accent); }
+
+  .compare td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #1a1a1a;
+    color: #999;
+    font-weight: 300;
+    vertical-align: top;
+  }
+
+  .compare td:last-child {
+    color: var(--white);
+    font-weight: 400;
+  }
+
+  /* ── CTA ── */
+  .cta-section {
+    padding: 8rem 6vw;
+    border-top: 1px solid var(--dim);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    bottom: -40%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(0,229,255,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-section h2 {
+    font-family: var(--serif);
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 400;
+    margin-bottom: 1.5rem;
+    line-height: 1.1;
+  }
+
+  .cta-section h2 em { font-style: italic; color: var(--accent); }
+
+  .cta-section p {
+    font-size: 1.05rem;
+    color: var(--gray);
+    max-width: 500px;
+    margin: 0 auto 3rem;
+    font-weight: 300;
+  }
+
+  .cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    padding: 1rem 2.5rem;
+    border: 1px solid var(--white);
+    color: var(--white);
+    background: transparent;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+  }
+
+  .btn:hover {
+    background: var(--white);
+    color: var(--black);
+  }
+
+  .btn--primary {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .btn--primary:hover {
+    background: var(--accent);
+    color: var(--black);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 3rem 6vw;
+    border-top: 1px solid #1a1a1a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  footer span {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 0.15em;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="hero-label">An Open Manifesto</div>
+  <h1>Git was for <em>humans.</em><br>We need something else.</h1>
+  <div class="hero-sub">
+    Everyone nowadays runs engineering teams where agents write more code than engineers do. The old workflow (checkout, branch, push, PR, wait for review, rebase, pray) was designed for human speed. It's breaking. Not slowly. Right now. This is a first attempt at figuring out what replaces it.
+  </div>
+  <div class="scroll-indicator">SCROLL TO READ</div>
+  <div class="hero-version">GIT4AIAGENTS / v0.0.1 / MARCH 2026</div>
+</section>
+
+<!-- ══ EPOCH: THE PROBLEM ══ -->
+<section class="epoch reveal">
+  <div class="epoch-label">01 / The Collapse</div>
+  <div class="epoch-content">
+    <h2>The filesystem is a <em>terrible primitive</em> for agentic code</h2>
+    <p>
+      Think about what Git actually assumes. One person. One machine. One local copy of the codebase. You work on it, you push it, someone reviews it. That was elegant when the bottleneck was how fast a human could think and type.
+    </p>
+    <p>
+      Now picture 50 agents modifying the same codebase at the same time. You don't get "merge conflicts." You get chaos. <strong>Branch-per-agent gives you thousands of divergent realities.</strong> Filesystem locks are too blunt. And PR review? That's the single-threaded bottleneck choking a massively parallel system. Your fastest engineer is now your slowest reviewer.
+    </p>
+    <p>
+      Here's the thing most people haven't internalized yet: <strong>code is no longer something humans carefully craft and contemplate. Code is high-velocity data.</strong> It should be stored, synchronized, and validated like data, with write atomicity, real-time subscriptions, conflict resolution, and continuous validation baked into the storage layer. Not bolted on through CI pipelines that run 20 minutes after the fact.
+    </p>
+  </div>
+</section>
+
+<!-- ══ EPOCH: THE THESIS ══ -->
+<section class="epoch reveal">
+  <div class="epoch-label">02 / The Thesis</div>
+  <div class="epoch-content">
+    <h2>Store code in a <em>database,</em> not a filesystem</h2>
+    <p>
+      This is the core idea. Treat the codebase as a live, transactional, event-sourced data system. Not a tree of files that get synchronized through patches and diffs.
+    </p>
+    <p>
+      <strong>Every write is a transaction.</strong> An agent acquires a fine-grained lock at the function level or the block level, not the whole file, makes its change, and it's immediately visible to every other agent. No more "push and pray." No more rebasing a 78-commit branch against a target that moved while you were working.
+    </p>
+    <p>
+      <strong>Every mutation is replayable.</strong> This is the part that matters most. Humans couldn't externalize their thought process while coding. They just... wrote code and left a commit message. Agents can capture everything: the reasoning, the alternatives they considered, the context they consumed, the confidence level. Your version history stops being a flat diff log and becomes a complete decision graph. That was never possible before.
+    </p>
+    <p>
+      <strong>Review happens continuously, not at a gate.</strong> Real-time validation (lint, format, type-check, test, security scan) runs on every single transaction. Not in some CI pipeline that fires 20 minutes later. Review shifts from "human sitting in the critical path" to "continuous automated attestation with human oversight on the things that actually matter."
+    </p>
+  </div>
+</section>
+
+<!-- ══ EPOCH: WHAT DIES ══ -->
+<section class="epoch reveal">
+  <div class="epoch-label">03 / What Dies</div>
+  <div class="epoch-content">
+    <h2>Concepts that don't survive the transition</h2>
+    <p>
+      <strong>The Branch.</strong> Branching exists because workers are disconnected from each other. When all agents operate against a shared transactional store, you don't need branches for daily work. You might still branch for experimentation, like trying a radically different approach in isolation, but it stops being the default mode for getting anything done.
+    </p>
+    <p>
+      <strong>The Pull Request.</strong> A PR is basically a batch review of accumulated work. When every mutation gets validated in real-time and the full reasoning chain is captured alongside it, the whole "request permission to merge" ceremony becomes unnecessary. Humans set the policies. The system enforces them. Done.
+    </p>
+    <p>
+      <strong>The Merge Conflict.</strong> Conflicts exist because of disconnected state. Period. A transactional system with fine-grained locking and CRDTs resolves conflicts at write-time. Two agents editing the same function negotiate in real-time instead of discovering the problem three days later through a three-way diff.
+    </p>
+    <p>
+      <strong>The Local Checkout.</strong> There is no "local." The codebase is a shared distributed store. Agents read and write directly. Humans interact through views (IDE integrations, dashboards, policy consoles) that project the live state. The mental model shifts from "I have my copy" to "I have my view."
+    </p>
+  </div>
+</section>
+
+<!-- ══ PRINCIPLES ══ -->
+<section class="principles reveal">
+  <div class="principles-header">
+    <div class="epoch-label">04 / Principles</div>
+    <h2>The 9 principles of agent-native version control</h2>
+  </div>
+  <div class="principle-grid">
+    <div class="principle">
+      <div class="principle-num">01</div>
+      <h3>Code is data, not files</h3>
+      <p>The codebase is a structured, queryable, transactional data store. Files are a projection, not the source of truth. Think Postgres, not ext4.</p>
+    </div>
+    <div class="principle">
+      <div class="principle-num">02</div>
+      <h3>Write-level atomicity</h3>
+      <p>Every code mutation, from a single-line change to a multi-file refactor, is an atomic transaction with ACID guarantees. No partial states. No broken intermediaries.</p>
+    </div>
+    <div class="principle">
+      <div class="principle-num">03</div>
+      <h3>Fine-grained coordination</h3>
+      <p>Lock at the function, block, or symbol level. Not the file. Agents negotiate concurrent access through the storage layer, not through merge resolution after the fact.</p>
+    </div>
+    <div class="principle">
+      <div class="principle-num">04</div>
+      <h3>Real-time subscriptions</h3>
+      <p>Agents and tools subscribe to codebase state changes. When agent A modifies a function signature, agent B (working on a caller) is notified instantly and can adapt.</p>
+    </div>
+    <div class="principle">
+      <div class="principle-num">05</div>
+      <h3>Continuous validation</h3>
+      <p>Lint, format, type-check, test, and security scan run on every transaction. Not in a CI pipeline minutes later. Invalid code is rejected at write-time.</p>
+    </div>
+    <div class="principle">
+      <div class="principle-num">06</div>
+      <h3>Captured reasoning</h3>
+      <p>Every mutation carries structured metadata: the agent's intent, alternatives considered, context consumed, confidence level. The version history is a decision graph, not a diff log.</p>
+    </div>
+    <div class="principle">
+      <div class="principle-num">07</div>
+      <h3>Policy, not process</h3>
+      <p>Humans define policies (security boundaries, architectural constraints, review thresholds). The system enforces them continuously. The human role shifts from reviewer to governor.</p>
+    </div>
+    <div class="principle">
+      <div class="principle-num">08</div>
+      <h3>Full replayability</h3>
+      <p>Any codebase state, including the reasoning and context that produced it, can be reconstructed at any point. Time-travel debugging across the entire project history, including agent thought processes.</p>
+    </div>
+    <div class="principle">
+      <div class="principle-num">09</div>
+      <h3>Human-legible views</h3>
+      <p>The underlying store is agent-optimized. Humans interact through projections: IDE integrations, dashboards, policy consoles, natural language queries against the codebase.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ARCHITECTURE ══ -->
+<section class="architecture reveal">
+  <div class="arch-header">
+    <div class="epoch-label">05 / Architecture</div>
+    <h2>A strawman stack</h2>
+  </div>
+
+  <div class="arch-layer">
+    <div class="arch-layer-name">Storage Layer</div>
+    <div class="arch-layer-desc">
+      A transactional database (Postgres, CockroachDB, or a purpose-built store) holding the codebase as structured data. Tables for <code>files</code>, <code>symbols</code>, <code>dependencies</code>, <code>mutations</code>. Every write is a transaction with row-level or finer locking. Event log (WAL-inspired) for full replayability.
+    </div>
+  </div>
+
+  <div class="arch-layer">
+    <div class="arch-layer-name">Coordination Layer</div>
+    <div class="arch-layer-desc">
+      Manages agent sessions, lock acquisition, conflict detection, and real-time subscriptions. Implements operational transforms or CRDTs for concurrent edits to the same region. Pub/sub for codebase state change notifications. Think: a multiplayer engine for code.
+    </div>
+  </div>
+
+  <div class="arch-layer">
+    <div class="arch-layer-name">Validation Layer</div>
+    <div class="arch-layer-desc">
+      Runs continuously on every committed transaction. Pluggable pipeline: <code>parse → lint → format → typecheck → test → security</code>. Invalid transactions are rejected or flagged. Replaces CI/CD for the inner loop entirely.
+    </div>
+  </div>
+
+  <div class="arch-layer">
+    <div class="arch-layer-name">Reasoning Layer</div>
+    <div class="arch-layer-desc">
+      Captures and indexes agent intent, alternatives, context, and confidence alongside every mutation. Enables queries like: <em>"Why was this function rewritten?"</em> or <em>"Show me every change made with confidence below 0.7."</em> This is what humans couldn't produce but agents can, and it's transformative for auditing and debugging.
+    </div>
+  </div>
+
+  <div class="arch-layer">
+    <div class="arch-layer-name">Policy Layer</div>
+    <div class="arch-layer-desc">
+      Human-defined rules enforced at write-time. Architectural boundaries (<code>"no direct DB calls from the API layer"</code>), security policies, review thresholds (<code>"changes to auth require human approval"</code>), resource budgets. The governance plane for agentic codebases.
+    </div>
+  </div>
+
+  <div class="arch-layer">
+    <div class="arch-layer-name">Projection Layer</div>
+    <div class="arch-layer-desc">
+      Translates the live data store into human-friendly views. IDE plugins that render the current state as a familiar file tree. Dashboards showing agent activity, validation status, policy compliance. Natural language interfaces for querying codebase history and intent.
+    </div>
+  </div>
+</section>
+
+<!-- ══ COMPARISON ══ -->
+<section class="compare reveal">
+  <div class="compare-header">
+    <div class="epoch-label">06 / Contrast</div>
+    <h2>Git vs. what comes next</h2>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Dimension</th>
+        <th>Git (2005–2025)</th>
+        <th>git4aiagents (2026→)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Storage</td>
+        <td>Filesystem + DAG of snapshots</td>
+        <td>Transactional database</td>
+      </tr>
+      <tr>
+        <td>Unit of work</td>
+        <td>Commit (batch of diffs)</td>
+        <td>Transaction (atomic mutation)</td>
+      </tr>
+      <tr>
+        <td>Coordination</td>
+        <td>Branch + merge</td>
+        <td>Fine-grained locks + OT/CRDTs</td>
+      </tr>
+      <tr>
+        <td>Conflict resolution</td>
+        <td>After the fact (merge/rebase)</td>
+        <td>At write-time (real-time)</td>
+      </tr>
+      <tr>
+        <td>Validation</td>
+        <td>CI pipeline (minutes later)</td>
+        <td>Continuous (per-transaction)</td>
+      </tr>
+      <tr>
+        <td>Review</td>
+        <td>Human gate (PR)</td>
+        <td>Continuous automated + policy</td>
+      </tr>
+      <tr>
+        <td>History</td>
+        <td>Diff log + commit messages</td>
+        <td>Decision graph + reasoning traces</td>
+      </tr>
+      <tr>
+        <td>Human role</td>
+        <td>Writer + reviewer</td>
+        <td>Governor + architect</td>
+      </tr>
+      <tr>
+        <td>Optimized for</td>
+        <td>1–20 humans</td>
+        <td>10–1000 agents + humans</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ══ CTA ══ -->
+<section class="cta-section reveal">
+  <h2>This is <em>draft zero.</em></h2>
+  <p>
+    Deliberately incomplete. Probably wrong about some things. But someone has to start writing down what comes after Git. Fork it. Fight it. Build on it. Let's figure this out together.
+  </p>
+  <div class="cta-buttons">
+    <a href="https://github.com/lcbasu/git4aiagents" class="btn btn--primary" target="_blank">GitHub → git4aiagents</a>
+    <a href="#" class="btn" onclick="navigator.clipboard.writeText(window.location.href); this.textContent='COPIED'; setTimeout(()=>this.textContent='SHARE THIS',2000); return false;">Share This</a>
+  </div>
+</section>
+
+<footer>
+  <span>GIT4AIAGENTS MANIFESTO / OPEN SOURCE / CC-BY-4.0</span>
+  <span>MARCH 2026</span>
+</footer>
+
+<script>
+  // Intersection Observer for reveal animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
