@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0a0a0a"/>
+
+  <!-- Subtle radial glow -->
+  <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#ff3d00" stop-opacity="0.06"/>
+    <stop offset="100%" stop-color="#ff3d00" stop-opacity="0"/>
+  </radialGradient>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <!-- Logo icon (scaled up) -->
+  <g transform="translate(80, 180)">
+    <circle cx="60" cy="200" r="22" fill="#ff3d00"/>
+    <circle cx="15" cy="15" r="18" fill="#00e5ff"/>
+    <circle cx="60" cy="15" r="18" fill="#00e5ff"/>
+    <circle cx="105" cy="15" r="18" fill="#00e5ff"/>
+    <line x1="15" y1="33" x2="60" y2="178" stroke="#00e5ff" stroke-width="5" stroke-linecap="round"/>
+    <line x1="60" y1="33" x2="60" y2="178" stroke="#00e5ff" stroke-width="5" stroke-linecap="round"/>
+    <line x1="105" y1="33" x2="60" y2="178" stroke="#00e5ff" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Title text -->
+  <text x="320" y="260" font-family="Georgia, serif" font-size="82" fill="#f0ede8" font-weight="400">git4aiagents</text>
+
+  <!-- Tagline -->
+  <text x="320" y="330" font-family="monospace" font-size="26" fill="#ff3d00" letter-spacing="0.15em">THE POST-GIT MANIFESTO</text>
+
+  <!-- Subtitle -->
+  <text x="320" y="395" font-family="sans-serif" font-size="24" fill="#888">Git was for humans. Agents need</text>
+  <text x="320" y="430" font-family="sans-serif" font-size="24" fill="#888">something fundamentally different.</text>
+
+  <!-- Bottom bar -->
+  <rect x="0" y="590" width="1200" height="40" fill="#111"/>
+  <text x="80" y="617" font-family="monospace" font-size="14" fill="#333" letter-spacing="0.15em">OPEN MANIFESTO / CC-BY-4.0 / 2026</text>
+  <text x="1000" y="617" font-family="monospace" font-size="14" fill="#333" letter-spacing="0.15em">v0.0.1</text>
+</svg>

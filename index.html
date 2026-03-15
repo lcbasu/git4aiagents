@@ -4,6 +4,30 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>git4aiagents: The Post-Git Manifesto</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="apple-touch-icon" href="logo.svg">
+
+<!-- Open Graph / Social Sharing -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://lcbasu.github.io/git4aiagents/">
+<meta property="og:title" content="git4aiagents: The Post-Git Manifesto">
+<meta property="og:description" content="Git was for humans. Agents need a transactional database, not a filesystem. 9 principles for agent-native version control.">
+<meta property="og:image" content="https://lcbasu.github.io/git4aiagents/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="git4aiagents: The Post-Git Manifesto">
+<meta name="twitter:description" content="Git was for humans. Agents need a transactional database, not a filesystem. 9 principles for agent-native version control.">
+<meta name="twitter:image" content="https://lcbasu.github.io/git4aiagents/og-image.png">
+<meta name="twitter:creator" content="@lcbasu">
+
+<!-- General Meta -->
+<meta name="description" content="Git was for humans. Agents need a transactional database, not a filesystem. 9 principles for agent-native version control.">
+<meta name="author" content="Lokesh Basu">
+<meta name="theme-color" content="#0a0a0a">
+
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -57,15 +81,30 @@
     pointer-events: none;
   }
 
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.1s;
+  }
+
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+  }
+
   .hero-label {
     font-family: var(--mono);
     font-size: 0.75rem;
     letter-spacing: 0.3em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 2rem;
-    opacity: 0;
-    animation: fadeUp 0.8s ease forwards 0.2s;
+    margin-bottom: 0;
+    opacity: 1;
+    animation: none;
   }
 
   .hero h1 {
@@ -468,7 +507,10 @@
 
 <!-- ══ HERO ══ -->
 <section class="hero">
-  <div class="hero-label">An Open Manifesto</div>
+  <div class="logo-row">
+    <img src="logo.svg" alt="git4aiagents logo" class="logo-icon">
+    <div class="hero-label">An Open Manifesto</div>
+  </div>
   <h1>Git was for <em>humans.</em><br>We need something else.</h1>
   <div class="hero-sub">
     Everyone nowadays runs engineering teams where agents write more code than engineers do. The old workflow (checkout, branch, push, PR, wait for review, rebase, pray) was designed for human speed. It's breaking. Not slowly. Right now. This is a first attempt at figuring out what replaces it.
@@ -716,7 +758,7 @@
 </section>
 
 <footer>
-  <span>GIT4AIAGENTS MANIFESTO / OPEN SOURCE / CC-BY-4.0</span>
+  <span style="display:flex;align-items:center;gap:0.6rem;"><img src="logo.svg" alt="" width="20" height="20"> GIT4AIAGENTS MANIFESTO / OPEN SOURCE / CC-BY-4.0</span>
   <span>MARCH 2026</span>
 </footer>
 
