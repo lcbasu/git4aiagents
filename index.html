@@ -355,6 +355,16 @@
   @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
   @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  .tw-cursor {
+    display: inline-block;
+    width: 0.55em;
+    height: 1.1em;
+    background: var(--green);
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+    margin-left: 1px;
+  }
+
   .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease, transform 0.5s ease; }
   .reveal.visible { opacity: 1; transform: translateY(0); }
 </style>
@@ -370,9 +380,7 @@
     <div class="hero-label">// an open manifesto</div>
   </div>
   <h1>Git was for <em>humans.</em><br>We need something else.</h1>
-  <div class="hero-sub">
-    Picture 250,000 agents writing code across a monorepo the size of Google's. Every few seconds, a function changes. Every few milliseconds, a dependency shifts. Git can't even tell you what broke, let alone prevent it. Branches? You'd have a quarter million divergent realities. PRs? Your entire engineering org becomes a review bottleneck. CI? It would never finish running. This is not a hypothetical. This is where every company with serious AI investment is headed within the next 12 months. The cracks are already showing everywhere. <b>Git was built for a world where humans were the bottleneck. That world is over. Someone has to write down what comes next. This is that attempt.</b>
-  </div>
+  <div class="hero-sub" id="typewriter"></div>
   <div class="scroll-indicator">SCROLL TO READ</div>
   <div class="hero-version">GIT4AIAGENTS / v0.0.1 / MARCH 2026</div>
 </header>
@@ -622,6 +630,61 @@
 </footer>
 
 <script>
+  // Typewriter effect
+  (function() {
+    const el = document.getElementById('typewriter');
+    const text = 'Picture 250,000 agents writing code across a monorepo the size of Google\'s. Every few seconds, a function changes. Every few milliseconds, a dependency shifts. Git can\'t even tell you what broke, let alone prevent it. Branches? You\'d have a quarter million divergent realities. PRs? Your entire engineering org becomes a review bottleneck. CI? It would never finish running. This is not a hypothetical. This is where every company with serious AI investment is headed within the next 12 months. The cracks are already showing everywhere. ';
+    const bold = 'Git was built for a world where humans were the bottleneck. That world is over. Someone has to write down what comes next. This is that attempt.';
+    let i = 0;
+    const total = text.length + bold.length;
+    const baseSpeed = 45;
+
+    el.style.opacity = '1';
+    el.style.animation = 'none';
+    el.innerHTML = '<span class="tw-cursor"></span>';
+
+    function jitter() {
+      // Simulate human typing rhythm: variable speed, occasional pauses
+      const r = Math.random();
+      if (r < 0.03) return baseSpeed + Math.random() * 300; // rare long pause (thinking)
+      if (r < 0.15) return baseSpeed + Math.random() * 120; // occasional pause
+      return baseSpeed + Math.random() * 40; // normal variation
+    }
+
+    function pauseAfter(char) {
+      // Pause after punctuation like a real person would
+      if (char === '.' || char === '?') return 350 + Math.random() * 200;
+      if (char === ',') return 150 + Math.random() * 100;
+      return 0;
+    }
+
+    function type() {
+      const cursor = el.querySelector('.tw-cursor');
+      if (i < text.length) {
+        cursor.insertAdjacentText('beforebegin', text[i]);
+        const extra = pauseAfter(text[i]);
+        i++;
+        setTimeout(type, extra > 0 ? extra : jitter());
+      } else if (i < total) {
+        const bi = i - text.length;
+        if (bi === 0) {
+          const b = document.createElement('b');
+          b.id = 'tw-bold';
+          cursor.before(b);
+        }
+        document.getElementById('tw-bold').textContent += bold[bi];
+        const extra = pauseAfter(bold[bi]);
+        i++;
+        setTimeout(type, extra > 0 ? extra : jitter());
+      } else {
+        cursor.remove();
+      }
+    }
+
+    setTimeout(type, 1200);
+  })();
+
+  // Reveal animations
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
   }, { threshold: 0.1 });
