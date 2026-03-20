@@ -8,7 +8,7 @@
 
 Picture 250,000 agents writing code across a monorepo the size of Google's. Every few seconds, a function changes. Every few milliseconds, a dependency shifts. Git can't even tell you what broke, let alone prevent it. Branches? You'd have a quarter million divergent realities. PRs? Your entire engineering org becomes a review bottleneck. CI? It would never finish running.
 
-This is not a hypothetical. This is where every company with serious AI investment is headed within the next 12 months. The cracks are already showing everywhere. Git was built for a world where humans were the bottleneck. That world is over.
+This is not a hypothetical. This is where every company with serious AI investment is headed within the next 12 months. The cracks are already showing everywhere. Git was optimized for the high-latency, low-throughput human brain. That world is over. Agents are low-latency, massively parallel, and they never stop. The bottleneck has shifted. Moving from filesystem-based version control to semantic transactional codebases is the logical leap. Someone has to write down what will be the version control for the Agentic World. This is that attempt.
 
 ## The real problem
 
