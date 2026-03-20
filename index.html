@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <link rel="apple-touch-icon" href="logo.svg">
 <link rel="canonical" href="https://www.git4aiagents.com/">
+<link rel="alternate" hreflang="en" href="https://www.git4aiagents.com/">
 
 <!-- Open Graph -->
 <meta property="og:type" content="article">
@@ -41,6 +42,7 @@
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 <meta name="theme-color" content="#0c0c0c">
 <link rel="alternate" type="text/plain" href="https://www.git4aiagents.com/llms.txt" title="LLM-readable summary">
+<link rel="alternate" type="text/plain" href="https://www.git4aiagents.com/llms-full.txt" title="LLM-readable full content">
 
 <!-- JSON-LD Structured Data: WebSite -->
 <script type="application/ld+json">
@@ -203,6 +205,41 @@
         "@type": "Answer",
         "text": "Named snapshots with semantic guarantees. A release is a point where all tests pass, no policy violations, no open flags. Environments are snapshot pointers. Promoting is moving a pointer. Every release carries full provenance: which tasks, which agents, what reasoning, what validated it."
       }
+    }
+  ]
+}
+</script>
+
+<!-- JSON-LD: SoftwareSourceCode -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "git4aiagents",
+  "description": "An open manifesto and design spec for agent-native version control. 14 foundational decisions for what replaces Git when AI agents write the code.",
+  "codeRepository": "https://github.com/lcbasu/git4aiagents",
+  "programmingLanguage": "Conceptual / Language-agnostic",
+  "author": {
+    "@type": "Person",
+    "name": "Lokesh Basu",
+    "url": "https://twitter.com/lcbasu"
+  },
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "url": "https://www.git4aiagents.com/"
+}
+</script>
+
+<!-- JSON-LD: BreadcrumbList -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "git4aiagents",
+      "item": "https://www.git4aiagents.com/"
     }
   ]
 }
@@ -422,7 +459,10 @@
   </div>
   <h1>Git was for <em>humans.</em><br>We need something else.</h1>
   <div class="terminal-sim" id="terminal-sim"></div>
-  <div class="hero-sub" id="typewriter"></div>
+  <div class="hero-sub" id="typewriter">
+    <!-- Visible to crawlers/noscript, replaced by JS animation for users -->
+    <noscript>Picture 250,000 agents writing code across a monorepo the size of Google's. Every few seconds, a function changes. Every few milliseconds, a dependency shifts. Git can't even tell you what broke, let alone prevent it. Branches? You'd have a quarter million divergent realities. PRs? Your entire engineering org becomes a review bottleneck. CI? It would never finish running. This is not a hypothetical. This is where every company with serious AI investment is headed within the next 12 months. The cracks are already showing everywhere. <b>Git was built for a world where humans were the bottleneck. That world is over. Someone has to write down what comes next. This is that attempt.</b></noscript>
+  </div>
   <div class="scroll-indicator">SCROLL TO READ</div>
   <div class="hero-version">GIT4AIAGENTS / v0.0.1 / MARCH 2026</div>
 </header>
