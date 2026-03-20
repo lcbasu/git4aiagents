@@ -391,6 +391,112 @@
     font-weight: 400;
   }
 
+  /* ── DESIGN DECISIONS ── */
+  .design {
+    padding: 6rem 6vw;
+    border-top: 1px solid var(--dim);
+  }
+
+  .design-header {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 4rem;
+    margin-bottom: 4rem;
+  }
+
+  @media (max-width: 768px) {
+    .design-header { grid-template-columns: 1fr; gap: 1rem; }
+  }
+
+  .design-header h2 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 400;
+  }
+
+  .design-header h2 em { font-style: italic; color: var(--accent2); }
+
+  .design-item {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 4rem;
+    padding: 3rem 0;
+    border-bottom: 1px solid #1a1a1a;
+  }
+
+  @media (max-width: 768px) {
+    .design-item { grid-template-columns: 1fr; gap: 1rem; }
+  }
+
+  .design-item-name {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: var(--accent2);
+    text-transform: uppercase;
+    padding-top: 0.3rem;
+  }
+
+  .design-item-content h3 {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    font-weight: 400;
+    margin-bottom: 1.2rem;
+    line-height: 1.2;
+    color: var(--white);
+  }
+
+  .design-item-content p {
+    font-size: 1rem;
+    color: #bbb;
+    max-width: 680px;
+    margin-bottom: 1.2rem;
+    font-weight: 300;
+    line-height: 1.7;
+  }
+
+  .design-item-content p strong {
+    color: var(--white);
+    font-weight: 500;
+  }
+
+  .design-item-content code {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    background: #1a1a1a;
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    color: var(--accent);
+  }
+
+  .design-item-content ul {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 1.2rem;
+  }
+
+  .design-item-content ul li {
+    font-size: 0.95rem;
+    color: #bbb;
+    max-width: 680px;
+    font-weight: 300;
+    line-height: 1.7;
+    padding-left: 1.2rem;
+    position: relative;
+    margin-bottom: 0.5rem;
+  }
+
+  .design-item-content ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.7em;
+    width: 5px;
+    height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
   /* ── CTA ── */
   .cta-section {
     padding: 8rem 6vw;
@@ -719,7 +825,7 @@
     <thead>
       <tr>
         <th>Dimension</th>
-        <th>Git (2005–2025)</th>
+        <th>Git (2005-2025)</th>
         <th>git4aiagents (2026→)</th>
       </tr>
     </thead>
@@ -737,7 +843,7 @@
       <tr>
         <td>Coordination</td>
         <td>Branch + merge</td>
-        <td>Fine-grained locks + OT/CRDTs</td>
+        <td>SSI + semantic dependency graph</td>
       </tr>
       <tr>
         <td>Conflict resolution</td>
@@ -766,11 +872,177 @@
       </tr>
       <tr>
         <td>Optimized for</td>
-        <td>1–20 humans</td>
-        <td>10–1000 agents + humans</td>
+        <td>1-20 humans</td>
+        <td>10-1000 agents + humans</td>
       </tr>
     </tbody>
   </table>
+</section>
+
+<!-- ══ DESIGN DECISIONS ══ -->
+<section class="design reveal">
+  <div class="design-header">
+    <div class="epoch-label">08 / The Design</div>
+    <h2>Seven foundational <em>decisions</em></h2>
+  </div>
+
+  <div class="design-item">
+    <div class="design-item-name">01 / Unit of Work</div>
+    <div class="design-item-content">
+      <h3>Two primitives, not one</h3>
+      <p>
+        Git's "commit" is a snapshot of the entire repo. That made sense when a human would spend 30 minutes making a coherent set of changes. For agents, this is absurd. An agent might change one line in one function, or refactor 40 files in 3 seconds. The commit is either too coarse or too fine.
+      </p>
+      <p>
+        The <strong>atomic unit</strong> is the <em>semantic mutation</em>. A single meaningful change to a single semantic element. Not "line 47 changed from X to Y" but "function <code>calculateTotal</code> signature changed from <code>(items: Item[]) -> int</code> to <code>(items: Item[], currency: Currency) -> Decimal</code>." Each mutation is a node in a graph with a type (create, modify, delete, rename, move) and a target (function, type, interface, constant, import).
+      </p>
+      <p>
+        The <strong>logical unit</strong> is the <em>task</em>. A directed acyclic graph of semantic mutations that together accomplish something. "Implement multi-currency support" is a task of 15 mutations across 8 files. Tasks are what agents get assigned, what humans review, and what gets rolled back if something breaks. Like a PR, but a first-class entity in the data model, not a diff between two branch tips.
+      </p>
+      <p>
+        Why two levels matters: the system can accept or reject individual mutations based on semantic conflicts, while humans reason about tasks. An agent's task might have 14 clean mutations and 1 conflicting one. Instead of rejecting the whole thing, the system pinpoints exactly which mutation conflicts and why. The agent fixes just that one.
+      </p>
+      <p>
+        <strong>The thing Git gets catastrophically wrong:</strong> a commit bundles unrelated changes into one blob. "Fixed the bug AND ran the linter AND renamed that variable" as one unit. Need to revert just the bug fix? Good luck. In this system, those are three separate mutations inside one task, independently addressable.
+      </p>
+    </div>
+  </div>
+
+  <div class="design-item">
+    <div class="design-item-name">02 / Coordination</div>
+    <div class="design-item-content">
+      <h3>Serializable Snapshot Isolation over a semantic dependency graph</h3>
+      <p>
+        <strong>Step 1, Task assignment.</strong> An agent gets a task. The system computes the <em>likely impact zone</em>, the set of semantic elements the agent will probably touch, based on the task description and the dependency graph. This is an estimate, not a lock.
+      </p>
+      <p>
+        <strong>Step 2, Snapshot.</strong> The agent gets a consistent snapshot of the impact zone plus its transitive dependencies. Not the whole repo, just the subgraph it needs. Cheap because you're querying a database, not cloning a repo.
+      </p>
+      <p>
+        <strong>Step 3, Work.</strong> The agent works against its snapshot. Generates semantic mutations. No coordination overhead. Fully independent.
+      </p>
+      <p>
+        <strong>Step 4, Commit validation.</strong> Three layers:
+      </p>
+      <ul>
+        <li><strong>Structural conflict.</strong> Did another agent modify the same semantic element since our snapshot? Hard conflict. First-writer-wins or priority-based.</li>
+        <li><strong>Interface contract.</strong> Did any element I <em>depend on</em> change its interface? If I'm calling <code>formatPrice(amount)</code> but another agent changed it to <code>formatPrice(amount, locale)</code>, the dependency graph catches this instantly. No compile needed.</li>
+        <li><strong>Behavioral validation.</strong> Does the combined state pass relevant tests? Expensive, so it runs on task completion. Because you have the dependency graph, you run <em>targeted</em> tests, not the full suite.</li>
+      </ul>
+      <p>
+        <strong>Why this beats the alternatives:</strong> Locks serialize agents. CRDTs can't work because code merges aren't commutative (<code>addParameter(x)</code> and <code>removeFunction(x)</code> don't compose). OT at the character level spends more compute on transforms than on writing code, and still misses semantic conflicts.
+      </p>
+      <p>
+        <strong>The throughput math:</strong> 1000 semantic elements, 20 agents, each task touching about 10 elements. Probability of structural conflict per commit is roughly 19%. Interface conflicts are slightly higher due to transitive dependencies, but detection is O(edges) not O(codebase). Near-linear scaling until the dependency graph becomes so interconnected that most impact zones overlap. At that point you have an architecture problem, not a tooling problem.
+      </p>
+    </div>
+  </div>
+
+  <div class="design-item">
+    <div class="design-item-name">03 / Consistency</div>
+    <div class="design-item-content">
+      <h3>Strong where it matters, eventual where it doesn't</h3>
+      <p>
+        The knee-jerk answer is "strong consistency, obviously, code has to be correct." That's wrong at the scale we're targeting.
+      </p>
+      <p>
+        <strong>Strong consistency within a dependency subgraph, eventual consistency across independent subgraphs.</strong> If Agent A is working on payments and Agent B is working on the onboarding flow, and those two subgraphs share no semantic dependencies, they don't need to see each other's changes in real-time. They're working in effectively different codebases that happen to live in the same repo.
+      </p>
+      <p>
+        But if Agent A changes a shared utility function that Agent B depends on, Agent B needs to know <em>before it commits</em>, not after. The dependency graph naturally partitions into clusters of tightly-coupled code connected by thinner edges. Within a cluster, strong consistency. Across clusters, eventual consistency with conflict detection at commit time.
+      </p>
+      <p>
+        <strong>The tricky edge case: shared utilities.</strong> Every codebase has a <code>utils.ts</code> that everything depends on. If you make that a single serialization point, it becomes a bottleneck. The fix: decompose at function-level granularity. <code>utils.formatDate</code> and <code>utils.formatCurrency</code> are independent semantic elements. Two agents can modify different utility functions concurrently because the graph tracks dependencies at the function level, not the file level.
+      </p>
+      <p>
+        <strong>Streaming validation:</strong> instead of discovering conflicts at commit time (wasting 5 minutes of work), the system continuously checks whether an agent's snapshot dependencies are still valid. If something changes, the agent gets an interrupt mid-task and can adapt. This is a massive advantage over Git where you only discover conflicts when you try to merge.
+      </p>
+    </div>
+  </div>
+
+  <div class="design-item">
+    <div class="design-item-name">04 / Reasoning Traces</div>
+    <div class="design-item-content">
+      <h3>Code that knows why it exists</h3>
+      <p>
+        This is the moat. Every other part of this system is hard engineering. The reasoning trace is what makes this genuinely new.
+      </p>
+      <p>
+        <strong>The problem with "just store the LLM's reasoning":</strong> an agent producing 100 mutations per minute, each with a paragraph of reasoning, generates gigabytes of unstructured text per day. Nobody will read it. Unsearchable. Mostly noise.
+      </p>
+      <p>
+        <strong>Tier 1, Structured metadata (always stored, machine-readable).</strong> Compact and queryable: <code>intent</code> (feature, bugfix, refactor, optimize, adapt-to-dependency-change), <code>confidence</code> (float), <code>alternatives_considered</code> (count), <code>dependencies_read</code>, <code>constraints_applied</code>. About 200 bytes per mutation. At 1000 mutations/min, that's roughly 288MB/day. Trivial.
+      </p>
+      <p>
+        <strong>Tier 2, Structured rationale (stored for non-trivial mutations).</strong> 1-2 sentences for why this approach, why not alternatives, and explicit assumptions. About 500 bytes per mutation, stored for roughly 30% of mutations. About 100MB/day.
+      </p>
+      <p>
+        <strong>Tier 3, Full reasoning dump (ephemeral, garbage-collected).</strong> The raw LLM chain. Useful for forensics when things go badly wrong. About 5KB per mutation, 7-day retention. Roughly 49GB rolling. Manageable in cold storage.
+      </p>
+      <p>
+        <strong>The killer query:</strong> "Why does this function exist?" No human codebase can answer that today. You grep commit messages, PR descriptions, Slack threads, Jira tickets. In this system, you traverse the reasoning trace: created by Task X, because of reasoning Y, depends on A and B, assumptions are C. Transformative for onboarding, debugging, and refactoring.
+      </p>
+    </div>
+  </div>
+
+  <div class="design-item">
+    <div class="design-item-name">05 / Human Interaction</div>
+    <div class="design-item-content">
+      <h3>Humans govern. Agents execute.</h3>
+      <p>
+        This is where most "AI-first" tools fail. They build for the machine and bolt on a human interface as an afterthought. But humans are the principal. Agents are the executors.
+      </p>
+      <p>
+        <strong>At 1000+ mutations per minute, line-by-line code review is dead.</strong> Humans operate at three levels instead:
+      </p>
+      <ul>
+        <li><strong>Policy definition.</strong> Before any agent writes code, humans define machine-enforceable constraints. "All API endpoints validate input with Zod schemas." "No new dependencies over 100KB." "No changes to <code>auth</code> without human approval." The system checks these on every mutation.</li>
+        <li><strong>Task-level review.</strong> Humans review completed tasks, not individual mutations. Presented as: what changed (semantic summary, not a diff), why (aggregated reasoning traces), test results, confidence scores, assumptions. This is PR review at the right abstraction level.</li>
+        <li><strong>Anomaly-driven intervention.</strong> The system surfaces risk: low confidence mutations, tasks with too many retries, architectural violations that pass tests, cascading dependency changes. Humans jump in when flagged, not on a fixed cadence.</li>
+      </ul>
+      <p>
+        <strong>The UI is not a diff viewer.</strong> It's an air traffic control dashboard: active tasks, agent utilization, conflict rates, test health, policy violations, attention queue. Humans direct traffic, not read every line.
+      </p>
+      <p>
+        <strong>Escalation granularity matters:</strong> hard blocks (agent cannot proceed), soft warnings (proceed but flagged), async follow-ups (create a task to fix it later). Getting this right is what makes the system usable instead of either too permissive or too rigid.
+      </p>
+    </div>
+  </div>
+
+  <div class="design-item">
+    <div class="design-item-name">06 / Migration</div>
+    <div class="design-item-content">
+      <h3>A bridge to Git, not a wall</h3>
+      <p>
+        Every potential user has an existing Git repo. If the system requires a clean-room start, adoption is dead.
+      </p>
+      <p>
+        <strong>The bridge:</strong> ingest from and export to Git as an I/O adapter. Import a Git repo, parse into semantic graph (tree-sitter + LSP for the AST, build dependency graph from there). Export back, generate conventional Git commits with readable diffs and commit messages synthesized from reasoning traces. Teams adopt incrementally: agents work in the new system, but compliance/legal still sees a Git repo updated via the bridge.
+      </p>
+      <p>
+        <strong>The long-term play:</strong> once teams see semantic conflict detection, reasoning traces, and task-level review, they stop looking at the Git export. It becomes an artifact for backward compatibility, like PDF invoices in a digital-first company. Eventually, the new system <em>is</em> the source of record.
+      </p>
+    </div>
+  </div>
+
+  <div class="design-item">
+    <div class="design-item-name">07 / Recovery</div>
+    <div class="design-item-content">
+      <h3>Semantic rollback, not diff reversal</h3>
+      <p>
+        <strong>Agent-level failure:</strong> an agent crashes mid-task. Every mutation is individually recorded, so there's no "half-committed" state. The completed mutations are valid. The task is marked incomplete. Another agent picks it up, reads the existing mutations and reasoning traces, and continues. Try doing that with a half-finished Git branch from a developer who left.
+      </p>
+      <p>
+        <strong>Semantic regression:</strong> changes pass all validation but cause a production issue. The system traces the causal chain: this task, these mutations, these semantic elements, these code paths. Rollback is targeted. Revert the specific mutations, not "revert the whole commit and the 5 commits after it because Git made them sequential."
+      </p>
+      <p>
+        <strong>Cascading failure:</strong> Agent A makes a change, agents B, C, D adapt to it, then A's change gets rolled back. B, C, D's adaptations are now orphaned. The dependency graph detects this immediately: A's rollback invalidates downstream mutations with <code>adapt_to_dependency_change</code> intent linked to A's mutation. Flagged for re-evaluation automatically.
+      </p>
+      <p>
+        <strong>The key insight:</strong> in Git, rollback is "reverse the diff." Here, rollback is "undo this decision and everything downstream of it." That's the difference between text-aware and semantics-aware version control.
+      </p>
+    </div>
+  </div>
 </section>
 
 <!-- ══ CTA ══ -->
