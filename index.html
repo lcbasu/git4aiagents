@@ -371,8 +371,7 @@
   </div>
   <h1>Git was for <em>humans.</em><br>We need something else.</h1>
   <div class="hero-sub">
-    I was building an open source agentic operating system. Eight repos. Multiple Claude Code instances running in parallel. And I was spending more time fighting Git than building the product. Merge conflicts. PR bottlenecks. Rebasing nightmares. The same story everywhere I looked. Then it hit me. This isn't an agent problem. This is a Git problem. Agents just made it impossible to ignore.
-    <b>I am not rebuilding Git. I am building a <u>new primitive for how code gets written in a world where the writers are machines.</u></b>
+    Picture 250,000 agents writing code across a monorepo the size of Google's. Every few seconds, a function changes. Every few milliseconds, a dependency shifts. Git can't even tell you what broke, let alone prevent it. Branches? You'd have a quarter million divergent realities. PRs? Your entire engineering org becomes a review bottleneck. CI? It would never finish running. This is not a hypothetical. This is where every company with serious AI investment is headed within the next 12 months. The cracks are already showing everywhere. <b>Git was built for a world where humans were the bottleneck. That world is over. Someone has to write down what comes next. This is that attempt.</b>
   </div>
   <div class="scroll-indicator">SCROLL TO READ</div>
   <div class="hero-version">GIT4AIAGENTS / v0.0.1 / MARCH 2026</div>
@@ -380,7 +379,7 @@
 
 <!-- ══ THE REAL PROBLEM ══ -->
 <article class="epoch reveal">
-  <div class="epoch-label">cat the_real_problem.md</div>
+  <div class="epoch-label">01 / The Real Problem</div>
   <div class="epoch-content">
     <h2>Git has <em>always</em> been broken for code</h2>
     <p>Every developer has lived this. Green CI. No merge conflicts. You merge confidently. Production breaks. Because someone else changed what a function returns, and Git never noticed. <strong>Git checks lines, not meaning.</strong></p>
@@ -390,10 +389,146 @@
   </div>
 </article>
 
+<!-- ══ THE COLLAPSE ══ -->
+<article class="epoch reveal">
+  <div class="epoch-label">02 / The Collapse</div>
+  <div class="epoch-content">
+    <h2>The filesystem is a <em>terrible primitive</em> for agentic code</h2>
+    <p>Think about what Git actually assumes. One person. One machine. One local copy of the codebase. You work on it. You push it. Someone reviews it. That was elegant when the bottleneck was how fast a human could think and type.</p>
+    <p>Now picture 100s of agents modifying the same codebase at the same time. You don't get "merge conflicts." You get chaos. <strong>Branch-per-agent gives you thousands of divergent realities.</strong> Filesystem locks are too blunt. And PR review? That's a single-threaded bottleneck choking a massively parallel system. The fastest engineer becomes the slowest reviewer.</p>
+    <p>Here's the thing most people haven't internalized yet: <strong>code is no longer something humans carefully craft and contemplate. Code is high-velocity data.</strong> It should be stored, synchronized, and validated like data. Write atomicity, real-time subscriptions, conflict resolution, and continuous validation baked into the storage layer. Not bolted on through CI pipelines that run 20 minutes after the fact.</p>
+    <p>If that sounds obvious, ask yourself: why is every tool in the market still built on top of Git?</p>
+  </div>
+</article>
+
+<!-- ══ THE THESIS ══ -->
+<article class="epoch reveal">
+  <div class="epoch-label">03 / The Thesis</div>
+  <div class="epoch-content">
+    <h2>Store code in a <em>database,</em> not a filesystem</h2>
+    <p>This is the core idea. Treat the codebase as a live, transactional, event-sourced data system. Not a tree of files that get synchronized through patches and diffs.</p>
+    <p><strong>Every write is a transaction.</strong> An agent acquires a fine-grained lock at the function level or the block level, not the whole file, makes its change, and it's immediately visible to every other agent. No more "push and pray." No more rebasing a 78-commit branch against a target that moved while you were working.</p>
+    <p><strong>Every mutation is replayable.</strong> This is the part that excites me most. Humans couldn't externalize their thought process while coding. They just wrote code and left a commit message. Agents can capture everything: the reasoning, the alternatives they considered, the context they consumed, the confidence level. Your version history stops being a flat diff log and becomes a complete decision graph. That was literally never possible before.</p>
+    <p><strong>Review happens continuously, not at a gate.</strong> Real-time validation (lint, format, type-check, test, security scan) runs on every single transaction. Not in some CI pipeline that fires 20 minutes later. Review shifts from "human sitting in the critical path" to "continuous automated validation with human oversight on the things that actually matter." Engineers stop being bottlenecks and start being governors.</p>
+  </div>
+</article>
+
+<!-- ══ WHAT DIES ══ -->
+<article class="epoch reveal">
+  <div class="epoch-label">04 / What Dies</div>
+  <div class="epoch-content">
+    <h2>Concepts that don't <em>survive</em> the transition</h2>
+    <p><strong>The Branch.</strong> Branching exists because workers are disconnected from each other. When all agents operate against a shared transactional store, you don't need branches for daily work. You might still branch for experimentation, like trying a radically different approach in isolation, but it stops being the default mode for getting anything done.</p>
+    <p><strong>The Pull Request.</strong> A PR is basically a batch review of accumulated work. When every mutation gets validated in real-time and the full reasoning chain is captured alongside it, the whole "request permission to merge" ceremony becomes unnecessary. Humans set the policies. The system enforces them. Done.</p>
+    <p><strong>The Merge Conflict.</strong> Conflicts exist because of disconnected state. Period. A transactional system with fine-grained locking and SSI resolves conflicts at write-time. Two agents editing the same function negotiate in real-time instead of discovering the problem three days later through a three-way diff.</p>
+    <p><strong>The Local Checkout.</strong> There is no "local." The codebase is a shared distributed store. Agents read and write directly. Humans interact through views (IDE integrations, dashboards, policy consoles) that project the live state. The mental model shifts from "I have my copy" to "I have my view."</p>
+  </div>
+</article>
+
+<!-- ══ PRINCIPLES ══ -->
+<section class="design reveal">
+  <div class="design-header">
+    <div class="epoch-label">05 / Principles</div>
+    <h2>The 9 principles of agent-native <em>version control</em></h2>
+  </div>
+
+  <div class="design-item"><div class="design-item-name">01 / Data</div><div class="design-item-content">
+    <h3>Code is data, not files</h3>
+    <p>The codebase is a structured, queryable, transactional data store. Files are a projection, not the source of truth. Think Postgres, not ext4.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">02 / Atomicity</div><div class="design-item-content">
+    <h3>Write-level atomicity</h3>
+    <p>Every code mutation, from a single-line change to a multi-file refactor, is an atomic transaction with ACID guarantees. No partial states. No broken intermediaries.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">03 / Coordination</div><div class="design-item-content">
+    <h3>Fine-grained coordination</h3>
+    <p>Lock at the function, block, or symbol level. Not the file. Agents negotiate concurrent access through the storage layer, not through merge resolution after the fact.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">04 / Subscriptions</div><div class="design-item-content">
+    <h3>Real-time subscriptions</h3>
+    <p>Agents and tools subscribe to codebase state changes. When agent A modifies a function signature, agent B (working on a caller) is notified instantly and can adapt.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">05 / Validation</div><div class="design-item-content">
+    <h3>Continuous validation</h3>
+    <p>Lint, format, type-check, test, and security scan run on every transaction. Not in a CI pipeline minutes later. Invalid code is rejected at write-time.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">06 / Reasoning</div><div class="design-item-content">
+    <h3>Captured reasoning</h3>
+    <p>Every mutation carries structured metadata: the agent's intent, alternatives considered, context consumed, confidence level. The version history is a decision graph, not a diff log.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">07 / Policy</div><div class="design-item-content">
+    <h3>Policy, not process</h3>
+    <p>Humans define policies (security boundaries, architectural constraints, review thresholds). The system enforces them continuously. The human role shifts from reviewer to governor.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">08 / Replay</div><div class="design-item-content">
+    <h3>Full replayability</h3>
+    <p>Any codebase state, including the reasoning and context that produced it, can be reconstructed at any point. Time-travel debugging across the entire project history, including agent thought processes.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">09 / Views</div><div class="design-item-content">
+    <h3>Human-legible views</h3>
+    <p>The underlying store is agent-optimized. Humans interact through projections: IDE integrations, dashboards, policy consoles, natural language queries against the codebase.</p>
+  </div></div>
+</section>
+
+<!-- ══ ARCHITECTURE ══ -->
+<section class="design reveal">
+  <div class="design-header">
+    <div class="epoch-label">06 / Architecture</div>
+    <h2>A strawman <em>stack</em></h2>
+  </div>
+
+  <div class="design-item"><div class="design-item-name">Layer 01</div><div class="design-item-content">
+    <h3>Storage Layer</h3>
+    <p>A transactional database (Postgres, CockroachDB, or a purpose-built store) holding the codebase as structured data. Tables for <code>files</code>, <code>symbols</code>, <code>dependencies</code>, <code>mutations</code>. Every write is a transaction with row-level or finer locking. Event log (WAL-inspired) for full replayability.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">Layer 02</div><div class="design-item-content">
+    <h3>Coordination Layer</h3>
+    <p>Manages agent sessions, lock acquisition, conflict detection, and real-time subscriptions. Implements SSI for concurrent access with semantic conflict detection. Pub/sub for codebase state change notifications. A multiplayer engine for code.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">Layer 03</div><div class="design-item-content">
+    <h3>Validation Layer</h3>
+    <p>Runs continuously on every committed transaction. Pluggable pipeline: <code>parse &rarr; lint &rarr; format &rarr; typecheck &rarr; test &rarr; security</code>. Invalid transactions are rejected or flagged. Replaces CI/CD for the inner loop entirely.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">Layer 04</div><div class="design-item-content">
+    <h3>Reasoning Layer</h3>
+    <p>Captures and indexes agent intent, alternatives, context, and confidence alongside every mutation. Enables queries like: "Why was this function rewritten?" or "Show me every change made with confidence below 0.7." This is what humans couldn't produce but agents can.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">Layer 05</div><div class="design-item-content">
+    <h3>Policy Layer</h3>
+    <p>Human-defined rules enforced at write-time. Architectural boundaries (<code>"no direct DB calls from the API layer"</code>), security policies, review thresholds (<code>"changes to auth require human approval"</code>), resource budgets. The governance plane for agentic codebases.</p>
+  </div></div>
+  <div class="design-item"><div class="design-item-name">Layer 06</div><div class="design-item-content">
+    <h3>Projection Layer</h3>
+    <p>Translates the live data store into human-friendly views. IDE plugins that render the current state as a familiar file tree. Dashboards showing agent activity, validation status, policy compliance. Natural language interfaces for querying codebase history and intent.</p>
+  </div></div>
+</section>
+
+<!-- ══ COMPARISON ══ -->
+<section class="compare reveal">
+  <div class="compare-header">
+    <div class="epoch-label">07 / Contrast</div>
+    <h2>Git vs. what comes next</h2>
+  </div>
+  <table>
+    <thead><tr><th>Dimension</th><th>Git (2005-2025)</th><th>git4aiagents (2026+)</th></tr></thead>
+    <tbody>
+      <tr><td>Storage</td><td>Filesystem + DAG of snapshots</td><td>Transactional database</td></tr>
+      <tr><td>Unit of work</td><td>Commit (batch of diffs)</td><td>Transaction (atomic mutation)</td></tr>
+      <tr><td>Coordination</td><td>Branch + merge</td><td>SSI + semantic dependency graph</td></tr>
+      <tr><td>Conflict resolution</td><td>After the fact (merge/rebase)</td><td>At write-time (real-time)</td></tr>
+      <tr><td>Validation</td><td>CI pipeline (minutes later)</td><td>Continuous (per-transaction)</td></tr>
+      <tr><td>Review</td><td>Human gate (PR)</td><td>Continuous automated + policy</td></tr>
+      <tr><td>History</td><td>Diff log + commit messages</td><td>Decision graph + reasoning traces</td></tr>
+      <tr><td>Human role</td><td>Writer + reviewer</td><td>Governor + architect</td></tr>
+      <tr><td>Optimized for</td><td>1-20 humans</td><td>10-1000 agents + humans</td></tr>
+    </tbody>
+  </table>
+</section>
+
 <!-- ══ 14 QUESTIONS ══ -->
 <section class="design reveal">
   <div class="design-header">
-    <div class="epoch-label">cat design_decisions.md</div>
+    <div class="epoch-label">08 / The Design</div>
     <h2>14 questions I had to <em>answer</em></h2>
   </div>
   <div class="design-intro"><p>I sat down and asked myself: if I were building version control from scratch for a world where 100s of agents write code simultaneously, what would I need to get right?</p></div>
@@ -467,33 +602,6 @@
     <h3>How do you version and release?</h3>
     <p>Named snapshots with semantic guarantees. A "release" is a point where all tests pass, no policy violations, no open flags. Environments are snapshot pointers. Promoting staging to production is moving a pointer. Every release carries full provenance: which tasks, which agents, what reasoning, what validated it.</p>
   </div></div>
-</section>
-
-<!-- ══ SUMMARY ══ -->
-<section class="compare reveal">
-  <div class="compare-header">
-    <div class="epoch-label">cat summary.md</div>
-    <h2>At a glance</h2>
-  </div>
-  <table>
-    <thead><tr><th>#</th><th>Question</th><th>Answer</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>Unit of work</td><td>Semantic mutation + task DAG</td></tr>
-      <tr><td>2</td><td>Coordination</td><td>SSI over dependency graph</td></tr>
-      <tr><td>3</td><td>Consistency</td><td>Strong within clusters, eventual across</td></tr>
-      <tr><td>4</td><td>Reasoning</td><td>3-tier: metadata, rationale, full dump</td></tr>
-      <tr><td>5</td><td>Humans</td><td>Policy + task review + anomaly flags</td></tr>
-      <tr><td>6</td><td>Migration</td><td>Git bridge (import/export adapter)</td></tr>
-      <tr><td>7</td><td>Recovery</td><td>Dependency-aware targeted rollback</td></tr>
-      <tr><td>8</td><td>Trust</td><td>Crypto identity + capabilities + scoring</td></tr>
-      <tr><td>9</td><td>Parsing</td><td>tree-sitter + agent declarations</td></tr>
-      <tr><td>10</td><td>Dependencies</td><td>Multi-signal graph (imports, refs, tests)</td></tr>
-      <tr><td>11</td><td>Planning</td><td>Planner agent + task DAG + scheduler</td></tr>
-      <tr><td>12</td><td>Observability</td><td>Event streaming to 3 surfaces</td></tr>
-      <tr><td>13</td><td>Testing</td><td>3-tier: syntax, targeted, integration</td></tr>
-      <tr><td>14</td><td>Releases</td><td>Named snapshots with guarantees</td></tr>
-    </tbody>
-  </table>
 </section>
 
 <!-- ══ CTA ══ -->

@@ -6,9 +6,9 @@
 
 ## Why this exists
 
-I was building an open source agentic operating system. Eight repos. Multiple Claude Code instances running in parallel. And I was spending more time fighting Git than building the product. Merge conflicts. PR bottlenecks. Rebasing nightmares. The same story everywhere I looked.
+Picture 250,000 agents writing code across a monorepo the size of Google's. Every few seconds, a function changes. Every few milliseconds, a dependency shifts. Git can't even tell you what broke, let alone prevent it. Branches? You'd have a quarter million divergent realities. PRs? Your entire engineering org becomes a review bottleneck. CI? It would never finish running.
 
-Then it hit me. This isn't an agent problem. This is a Git problem. Agents just made it impossible to ignore.
+This is not a hypothetical. This is where every company with serious AI investment is headed within the next 12 months. The cracks are already showing everywhere. Git was built for a world where humans were the bottleneck. That world is over.
 
 ## The real problem
 
@@ -18,7 +18,77 @@ We built an entire industry of band-aids around this: CI pipelines, merge queues
 
 **Git has always been broken for code. Humans were just slow enough to work around it.**
 
+## The collapse at scale
+
+Think about what Git actually assumes. One person. One machine. One local copy of the codebase. You work on it. You push it. Someone reviews it. That was elegant when the bottleneck was how fast a human could think and type.
+
+Now picture 100s of agents modifying the same codebase at the same time. You don't get "merge conflicts." You get chaos. **Branch-per-agent gives you thousands of divergent realities.** Filesystem locks are too blunt. And PR review? That's a single-threaded bottleneck choking a massively parallel system. The fastest engineer becomes the slowest reviewer.
+
+**Code is no longer something humans carefully craft and contemplate. Code is high-velocity data.** It should be stored, synchronized, and validated like data. Not bolted on through CI pipelines that run 20 minutes after the fact.
+
 If that sounds obvious, ask yourself: why is every tool in the market still built on top of Git?
+
+## The thesis
+
+**Store code in a database, not a filesystem.** Treat the codebase as a live, transactional, event-sourced data system. Not a tree of files synchronized through patches and diffs.
+
+**Every write is a transaction.** An agent acquires a fine-grained lock at the function level or block level, not the whole file, and that change is immediately visible to every other agent. No more rebasing a 78-commit branch against a target that moved while you were working.
+
+**Every mutation is replayable.** This is the part that excites me most. Humans couldn't externalize their thought process while coding. They just wrote code and left a commit message. Agents can capture everything: the reasoning, the alternatives they considered, the context they consumed, the confidence level. Your version history becomes a decision graph, not a diff log. That was literally never possible before.
+
+**Review happens continuously, not at a gate.** Real-time validation runs on every single transaction. Not in some CI pipeline that fires 20 minutes later. Engineers stop being bottlenecks and start being governors.
+
+## What dies
+
+**The Branch.** Branching exists because workers are disconnected. With a shared transactional store, it becomes optional isolation for experimentation, not the default.
+
+**The Pull Request.** A batch review ceremony. Unnecessary when every mutation is validated in real-time with full reasoning captured. Humans set policies. The system enforces them.
+
+**The Merge Conflict.** Artifact of disconnected state. SSI + fine-grained locking resolves conflicts at write-time. Two agents negotiate in real-time instead of discovering problems three days later.
+
+**The Local Checkout.** There is no "local." Agents read/write directly. Humans interact through views. The mental model shifts from "I have my copy" to "I have my view."
+
+## The 9 Principles
+
+1. **Code is data, not files**: The codebase is a structured, queryable, transactional data store. Files are a projection, not the truth.
+2. **Write-level atomicity**: Every mutation is an atomic transaction with ACID guarantees. No partial states.
+3. **Fine-grained coordination**: Lock at the function or symbol level, not the file.
+4. **Real-time subscriptions**: When agent A modifies a function signature, agent B knows instantly and can adapt.
+5. **Continuous validation**: Lint, format, typecheck, test on every transaction. Not in a CI pipeline 20 minutes later.
+6. **Captured reasoning**: Every mutation carries intent, alternatives, context, confidence. The version history becomes a decision graph.
+7. **Policy, not process**: Humans define rules. The system enforces them continuously. The human role shifts from reviewer to governor.
+8. **Full replayability**: Any codebase state, including the reasoning that produced it, can be reconstructed at any point.
+9. **Human-legible views**: The underlying store is agent-optimized. Humans interact through projections: IDE plugins, dashboards, NL queries.
+
+## Architecture
+
+A strawman stack, bottom to top.
+
+**Storage Layer.** Transactional database holding code as structured data. Tables for files, symbols, dependencies, mutations. Row-level locking. WAL-inspired event log for replayability.
+
+**Coordination Layer.** Agent sessions, lock acquisition, conflict detection, real-time subscriptions. SSI for concurrent access. Pub/sub for state change notifications. A multiplayer engine for code.
+
+**Validation Layer.** Runs on every committed transaction. Pluggable pipeline: parse, lint, format, typecheck, test, security. Replaces CI/CD for the inner loop entirely.
+
+**Reasoning Layer.** Captures agent intent, alternatives, context, confidence alongside every mutation. Enables queries like "Why was this function rewritten?" or "Show me every change with confidence below 0.7."
+
+**Policy Layer.** Human-defined rules enforced at write-time. Architectural boundaries, security policies, review thresholds, resource budgets. The governance plane for agentic codebases.
+
+**Projection Layer.** Human-friendly views: IDE plugins, dashboards, NL interfaces for querying codebase history and intent.
+
+## Git vs. what comes next
+
+| Dimension | Git (2005-2025) | git4aiagents (2026+) |
+|---|---|---|
+| Storage | Filesystem + DAG of snapshots | Transactional database |
+| Unit of work | Commit (batch of diffs) | Transaction (atomic mutation) |
+| Coordination | Branch + merge | SSI + semantic dependency graph |
+| Conflict resolution | After the fact (merge/rebase) | At write-time (real-time) |
+| Validation | CI pipeline (minutes later) | Continuous (per-transaction) |
+| Review | Human gate (PR) | Continuous automated + policy |
+| History | Diff log + commit messages | Decision graph + reasoning traces |
+| Human role | Writer + reviewer | Governor + architect |
+| Optimized for | 1-20 humans | 10-1000 agents + humans |
 
 ## 14 questions I had to answer
 
@@ -52,26 +122,6 @@ I sat down and asked myself: if I were building version control from scratch for
 
 **14. How do you version and release?** Named snapshots with semantic guarantees. A "release" is a point where all tests pass, no policy violations, no open flags. Environments are snapshot pointers. Promoting staging to production is moving a pointer. Every release carries full provenance: which tasks, which agents, what reasoning, what validated it.
 
-## At a glance
-
-| # | Question | Answer |
-|---|---|---|
-| 1 | Unit of work | Semantic mutation + task DAG |
-| 2 | Coordination | SSI over dependency graph |
-| 3 | Consistency | Strong within clusters, eventual across |
-| 4 | Reasoning | 3-tier: metadata, rationale, full dump |
-| 5 | Humans | Policy + task review + anomaly flags |
-| 6 | Migration | Git bridge (import/export adapter) |
-| 7 | Recovery | Dependency-aware targeted rollback |
-| 8 | Trust | Crypto identity + capabilities + scoring |
-| 9 | Parsing | tree-sitter + agent declarations |
-| 10 | Dependencies | Multi-signal graph (imports, refs, tests) |
-| 11 | Planning | Planner agent + task DAG + scheduler |
-| 12 | Observability | Event streaming to 3 surfaces |
-| 13 | Testing | 3-tier: syntax, targeted, integration |
-| 14 | Releases | Named snapshots with guarantees |
-
-
 ## What's still open
 
 - Cross-repo dependencies in a database-native model?
@@ -89,4 +139,4 @@ CC-BY-4.0
 
 *Started March 2026 by [Lokesh Basu](https://twitter.com/lcbasu)*
 
-**Website:** [lcbasu.github.io/git4aiagents](https://lcbasu.github.io/git4aiagents)
+**Website:** [www.git4aiagents.com](https://www.git4aiagents.com)
