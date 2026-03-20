@@ -524,9 +524,32 @@
   <div class="hero-version">GIT4AIAGENTS / v0.0.1 / MARCH 2026</div>
 </section>
 
+<!-- ══ EPOCH: THE REAL PROBLEM ══ -->
+<section class="epoch reveal">
+  <div class="epoch-label">01 / The Real Problem</div>
+  <div class="epoch-content">
+    <h2>Git has <em>always</em> been broken for code</h2>
+    <p>
+      Agents didn't create this problem. They just made it impossible to ignore.
+    </p>
+    <p>
+      Every developer has lived this: you open a PR, CI is green, no merge conflicts, you merge confidently — and you break production. Because someone else's PR, also green, also conflict-free, changed a function signature or shifted what a return value means in something you depend on. Git told you everything was fine because <strong>Git checks lines, not meaning.</strong>
+    </p>
+    <p>
+      Look at the whole ecosystem of band-aids we've built. CI pipelines, required status checks, "rebase on main before merge" policies, integration branches, merge queues — all of these exist because Git's merge model is semantically blind and everyone knows it. We've just normalized the pain. When a senior dev "knows" which files to check after a merge, that's a human doing semantic dependency resolution in their head because the tool won't do it.
+    </p>
+    <p>
+      The difference with agents is purely scale. A human team merges maybe 5–10 PRs a day, and the odds of a semantic collision are low enough that CI catches most of it. When 20 agents are committing every few minutes, the combinatorial explosion of potential semantic conflicts makes the band-aid approach collapse. You can't run full CI on every commit at that velocity, and you can't have a human reviewer eyeballing each merge for subtle dependency breaks.
+    </p>
+    <p>
+      So the framing shifts. This isn't "Git is broken for agents." It's something more fundamental: <strong>version control that treats code as text was always the wrong abstraction.</strong> We tolerated it because at human velocity, the failure rate was manageable. Agents just removed that safety margin.
+    </p>
+  </div>
+</section>
+
 <!-- ══ EPOCH: THE PROBLEM ══ -->
 <section class="epoch reveal">
-  <div class="epoch-label">01 / The Collapse</div>
+  <div class="epoch-label">02 / The Collapse</div>
   <div class="epoch-content">
     <h2>The filesystem is a <em>terrible primitive</em> for agentic code</h2>
     <p>
@@ -543,7 +566,7 @@
 
 <!-- ══ EPOCH: THE THESIS ══ -->
 <section class="epoch reveal">
-  <div class="epoch-label">02 / The Thesis</div>
+  <div class="epoch-label">03 / The Thesis</div>
   <div class="epoch-content">
     <h2>Store code in a <em>database,</em> not a filesystem</h2>
     <p>
@@ -563,7 +586,7 @@
 
 <!-- ══ EPOCH: WHAT DIES ══ -->
 <section class="epoch reveal">
-  <div class="epoch-label">03 / What Dies</div>
+  <div class="epoch-label">04 / What Dies</div>
   <div class="epoch-content">
     <h2>Concepts that don't survive the transition</h2>
     <p>
@@ -584,7 +607,7 @@
 <!-- ══ PRINCIPLES ══ -->
 <section class="principles reveal">
   <div class="principles-header">
-    <div class="epoch-label">04 / Principles</div>
+    <div class="epoch-label">05 / Principles</div>
     <h2>The 9 principles of agent-native version control</h2>
   </div>
   <div class="principle-grid">
@@ -639,7 +662,7 @@
 <!-- ══ ARCHITECTURE ══ -->
 <section class="architecture reveal">
   <div class="arch-header">
-    <div class="epoch-label">05 / Architecture</div>
+    <div class="epoch-label">06 / Architecture</div>
     <h2>A strawman stack</h2>
   </div>
 
@@ -689,7 +712,7 @@
 <!-- ══ COMPARISON ══ -->
 <section class="compare reveal">
   <div class="compare-header">
-    <div class="epoch-label">06 / Contrast</div>
+    <div class="epoch-label">07 / Contrast</div>
     <h2>Git vs. what comes next</h2>
   </div>
   <table>
