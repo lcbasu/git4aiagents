@@ -262,6 +262,9 @@
     position: relative;
     overflow: hidden;
   }
+  @media (max-width: 768px) {
+    .hero { min-height: auto; padding: 3rem 5vw; padding-bottom: 8rem; justify-content: flex-start; padding-top: 4rem; }
+  }
   .hero::before {
     content: '';
     position: absolute;
@@ -281,7 +284,41 @@
     opacity: 0; animation: fadeUp 0.6s ease forwards 0.3s;
   }
   .hero h1 em { font-style: normal; color: var(--green); text-shadow: 0 0 20px rgba(57,255,20,0.3); }
-  .hero h1::after { content: '\2588'; animation: blink 1s step-end infinite; color: var(--green); font-weight: 400; margin-left: 0.1em; }
+  .hero h1.has-cursor::after { content: '\2588'; animation: blink 1s step-end infinite; color: var(--green); font-weight: 400; margin-left: 0.1em; }
+  .terminal-sim {
+    margin-top: 2rem;
+    max-width: 620px;
+    background: #050505;
+    border: 1px solid #1a1a1a;
+    border-radius: 4px;
+    padding: 1.2rem 1.5rem;
+    font-size: 0.7rem;
+    line-height: 1.9;
+    color: #666;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards 0.8s;
+    position: relative;
+  }
+  .terminal-sim::before {
+    content: '\2022  \2022  \2022';
+    display: block;
+    color: #333;
+    font-size: 0.9rem;
+    letter-spacing: 0.3em;
+    margin-bottom: 0.8rem;
+    line-height: 1;
+  }
+  .terminal-sim .line { opacity: 0; white-space: nowrap; overflow: hidden; }
+  .terminal-sim .line.visible { opacity: 1; }
+  .terminal-sim .prompt { color: #555; }
+  .terminal-sim .cmd { color: #999; }
+  .terminal-sim .fail { color: #ff3d00; }
+  .terminal-sim .warn { color: #ff6600; }
+  .terminal-sim .dim { color: #444; }
+  .terminal-sim .counter { color: var(--cyan); }
+  .terminal-sim .ok { color: var(--green); }
+
   .hero-sub {
     font-size: 0.8rem; color: var(--gray); margin-top: 2.5rem; max-width: 640px; line-height: 1.9;
     opacity: 0; animation: fadeUp 0.6s ease forwards 0.5s;
@@ -299,6 +336,10 @@
     opacity: 0; animation: fadeUp 0.6s ease forwards 0.8s;
   }
   .scroll-indicator::before { content: ''; width: 30px; height: 1px; background: var(--dim-green); animation: pulse 2s ease infinite; }
+  @media (max-width: 768px) {
+    .scroll-indicator { display: none; }
+    .hero-version { display: none; }
+  }
 
   .epoch {
     padding: 5rem 6vw; border-top: 1px solid var(--dim);
@@ -380,6 +421,7 @@
     <div class="hero-label">// an open manifesto</div>
   </div>
   <h1>Git was for <em>humans.</em><br>We need something else.</h1>
+  <div class="terminal-sim" id="terminal-sim"></div>
   <div class="hero-sub" id="typewriter"></div>
   <div class="scroll-indicator">SCROLL TO READ</div>
   <div class="hero-version">GIT4AIAGENTS / v0.0.1 / MARCH 2026</div>
@@ -630,39 +672,122 @@
 </footer>
 
 <script>
-  // Typewriter effect
-  (function() {
+  // Auto-scroll control
+  let userScrolled = false;
+  setTimeout(function() {
+    window.addEventListener('touchmove', function() { userScrolled = true; }, { once: true, passive: true });
+    window.addEventListener('wheel', function() { userScrolled = true; }, { once: true, passive: true });
+  }, 2500);
+
+  function autoScroll(el) {
+    if (userScrolled || !el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight - 120) {
+      window.scrollBy({ top: rect.bottom - window.innerHeight + 160, behavior: 'smooth' });
+    }
+  }
+
+  // Single cursor that flows: h1 -> terminal -> typewriter
+  const cursor = document.createElement('span');
+  cursor.className = 'tw-cursor';
+  const h1 = document.querySelector('.hero h1');
+  h1.classList.add('has-cursor');
+
+  function plainText(html) {
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    return d.textContent;
+  }
+
+  // Phase 2: Terminal typing at machine speed
+  setTimeout(function() {
+    h1.classList.remove('has-cursor');
+    const sim = document.getElementById('terminal-sim');
+    sim.style.opacity = '1';
+    sim.style.animation = 'none';
+
+    const termLines = [
+      { html: '<span class="prompt">$</span> <span class="cmd">agents --status</span>', pause: 100 },
+      { html: '<span class="counter">1,000,000 agents active</span>  <span class="dim">|</span>  <span class="counter">47,293 mutations/sec</span>  <span class="dim">|</span>  <span class="counter">8,491 repos</span>', pause: 300 },
+      { html: '<span class="prompt">$</span> <span class="cmd">git merge --no-ff agent-84729</span>', pause: 150 },
+      { html: '<span class="fail">CONFLICT (content): Merge conflict in src/payments/checkout.ts</span>', pause: 60 },
+      { html: '<span class="fail">CONFLICT (content): Merge conflict in src/utils/format.ts</span>', pause: 40 },
+      { html: '<span class="fail">CONFLICT (modify/delete): src/auth/session.ts</span>', pause: 30 },
+      { html: '<span class="prompt">$</span> <span class="cmd">git merge --no-ff agent-11038</span>', pause: 150 },
+      { html: '<span class="fail">CONFLICT (content): 14 files changed upstream since snapshot</span>', pause: 60 },
+      { html: '<span class="prompt">$</span> <span class="cmd">ci --queue-depth</span>', pause: 150 },
+      { html: '<span class="warn">CI queue: 847,291 jobs pending</span>  <span class="dim">|</span>  <span class="warn">estimated drain: 14.7 hours</span>', pause: 200 },
+      { html: '<span class="prompt">$</span> <span class="cmd">pr --review-status</span>', pause: 150 },
+      { html: '<span class="warn">PR review queue: 293,847 open</span>  <span class="dim">|</span>  <span class="warn">reviewers available: 12</span>', pause: 200 },
+      { html: '<span class="prompt">$</span> <span class="cmd">conflicts --semantic --undetected</span>', pause: 150 },
+      { html: '<span class="fail">semantic conflicts missed by git: 12,847</span>  <span class="dim">// git checked lines, not meaning</span>', pause: 200 },
+      { html: '<span class="fail">production incidents from blind merges: 847 in last 24h</span>', pause: 150 },
+      { html: '&nbsp;', pause: 300 },
+      { html: '<span class="dim">// git was not built for this.</span>', pause: 400 },
+    ];
+
+    let lineIdx = 0;
+    function typeTermLine() {
+      if (lineIdx >= termLines.length) {
+        cursor.remove();
+        setTimeout(startTypewriter, 600);
+        return;
+      }
+      const data = termLines[lineIdx];
+      const plain = plainText(data.html);
+      const div = document.createElement('div');
+      div.className = 'line visible';
+      sim.appendChild(div);
+      div.appendChild(cursor);
+      autoScroll(cursor);
+
+      let ci = 0;
+      function typeChar() {
+        if (ci >= plain.length) {
+          cursor.remove();
+          div.innerHTML = data.html;
+          autoScroll(div);
+          lineIdx++;
+          setTimeout(typeTermLine, data.pause || 100);
+          return;
+        }
+        cursor.insertAdjacentText('beforebegin', plain[ci]);
+        ci++;
+        setTimeout(typeChar, 3);
+      }
+      typeChar();
+    }
+    typeTermLine();
+  }, 1400);
+
+  // Phase 3: Typewriter at human speed
+  function startTypewriter() {
     const el = document.getElementById('typewriter');
     const text = 'Picture 250,000 agents writing code across a monorepo the size of Google\'s. Every few seconds, a function changes. Every few milliseconds, a dependency shifts. Git can\'t even tell you what broke, let alone prevent it. Branches? You\'d have a quarter million divergent realities. PRs? Your entire engineering org becomes a review bottleneck. CI? It would never finish running. This is not a hypothetical. This is where every company with serious AI investment is headed within the next 12 months. The cracks are already showing everywhere. ';
     const bold = 'Git was built for a world where humans were the bottleneck. That world is over. Someone has to write down what comes next. This is that attempt.';
     let i = 0;
     const total = text.length + bold.length;
-    const baseSpeed = 45;
+    const baseSpeed = 3;
 
     el.style.opacity = '1';
     el.style.animation = 'none';
-    el.innerHTML = '<span class="tw-cursor"></span>';
+    el.appendChild(cursor);
 
     function jitter() {
-      // Simulate human typing rhythm: variable speed, occasional pauses
-      const r = Math.random();
-      if (r < 0.03) return baseSpeed + Math.random() * 300; // rare long pause (thinking)
-      if (r < 0.15) return baseSpeed + Math.random() * 120; // occasional pause
-      return baseSpeed + Math.random() * 40; // normal variation
+      return baseSpeed + Math.random() * 4;
     }
 
     function pauseAfter(char) {
-      // Pause after punctuation like a real person would
-      if (char === '.' || char === '?') return 350 + Math.random() * 200;
-      if (char === ',') return 150 + Math.random() * 100;
+      if (char === '.' || char === '?') return 40 + Math.random() * 30;
+      if (char === ',') return 20 + Math.random() * 15;
       return 0;
     }
 
     function type() {
-      const cursor = el.querySelector('.tw-cursor');
       if (i < text.length) {
         cursor.insertAdjacentText('beforebegin', text[i]);
         const extra = pauseAfter(text[i]);
+        autoScroll(cursor);
         i++;
         setTimeout(type, extra > 0 ? extra : jitter());
       } else if (i < total) {
@@ -674,15 +799,76 @@
         }
         document.getElementById('tw-bold').textContent += bold[bi];
         const extra = pauseAfter(bold[bi]);
+        autoScroll(cursor);
         i++;
         setTimeout(type, extra > 0 ? extra : jitter());
       } else {
-        cursor.remove();
+        // Typing done. Move cursor back to h1 like pressing left arrow.
+        setTimeout(moveCursorBack, 800);
       }
     }
+    setTimeout(type, 300);
+  }
 
-    setTimeout(type, 1200);
-  })();
+  // Phase 4: Move cursor back to h1, character by character, without erasing
+  function moveCursorBack() {
+    const tw = document.getElementById('typewriter');
+    const sim = document.getElementById('terminal-sim');
+
+    // Count total characters to traverse
+    const boldEl = document.getElementById('tw-bold');
+    let totalChars = 0;
+
+    // Typewriter bold text
+    if (boldEl) totalChars += boldEl.textContent.length;
+
+    // Typewriter regular text nodes (before bold)
+    for (const node of tw.childNodes) {
+      if (node === boldEl || node === cursor) break;
+      if (node.nodeType === 3) totalChars += node.textContent.length;
+    }
+
+    // Terminal lines
+    const termLineEls = Array.from(sim.querySelectorAll('.line'));
+    for (let li = termLineEls.length - 1; li >= 0; li--) {
+      totalChars += termLineEls[li].textContent.length;
+    }
+
+    // We don't actually move through each char visually (text stays).
+    // Instead we jump the cursor line by line at a speed proportional to char count.
+
+    // Build line stops in reverse: typewriter -> terminal lines bottom to top
+    const stops = [];
+    stops.push({ el: tw }); // typewriter as one stop
+    for (let li = termLineEls.length - 1; li >= 0; li--) {
+      stops.push({ el: termLineEls[li], chars: termLineEls[li].textContent.length });
+    }
+
+    let stopIdx = 0;
+    // Speed per hop based on chars in that line (feels like arrow key traversal)
+    const msPerChar = 0.8;
+
+    function hop() {
+      if (stopIdx >= stops.length) {
+        cursor.remove();
+        h1.classList.add('has-cursor');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      const stop = stops[stopIdx];
+      cursor.remove();
+      stop.el.appendChild(cursor);
+
+      const chars = stop.chars || 50;
+      const hopTime = Math.max(chars * msPerChar, 15);
+
+      stopIdx++;
+      setTimeout(hop, hopTime);
+    }
+
+    hop();
+  }
 
   // Reveal animations
   const observer = new IntersectionObserver((entries) => {
