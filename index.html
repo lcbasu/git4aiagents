@@ -735,7 +735,7 @@
 <section class="design reveal">
   <div class="design-header">
     <div class="epoch-label">cat design_decisions.md</div>
-    <h2>14 foundational <em>decisions</em></h2>
+    <h2>14 questions I had to <em>answer</em></h2>
   </div>
   <div data-content="design-decisions"></div>
 </section>
@@ -744,7 +744,7 @@
 <section class="compare reveal">
   <div class="compare-header">
     <div class="epoch-label">cat summary.md</div>
-    <h2>The 14 questions at a glance</h2>
+    <h2>At a glance</h2>
   </div>
   <div data-content="summary"></div>
 </section>
@@ -805,32 +805,35 @@
 
   // Design decisions (14 questions)
   const designEl = document.querySelector('[data-content="design-decisions"]');
-  if (designEl && sections['14 foundational design decisions']) {
-    const content = sections['14 foundational design decisions'];
-    const subParts = content.split(/^### /gm);
-    const intro = subParts[0].trim();
+  if (designEl && sections['14 questions I had to answer']) {
+    const content = sections['14 questions I had to answer'];
     const labels = [
       'Unit of Work', 'Coordination', 'Consistency',
-      'Reasoning Traces', 'Human Interaction', 'Migration', 'Recovery',
-      'Identity & Trust', 'Semantic Parsing', 'Dependency Graph',
-      'Task Decomposition', 'Observability', 'Testing', 'Versioning'
+      'Reasoning', 'Humans', 'Migration', 'Recovery',
+      'Trust', 'Parsing', 'Dependencies',
+      'Planning', 'Observability', 'Testing', 'Releases'
     ];
+
+    // Split on **N. Question?** pattern
+    const parts = content.split(/\*\*(\d+)\.\s+(.+?\?)\*\*/g);
+    const intro = parts[0].trim();
 
     let html = '';
     if (intro) {
       html += `<div class="design-intro">${md(intro)}</div>`;
     }
 
-    for (let i = 1; i < subParts.length; i++) {
-      const lines = subParts[i].split('\n');
-      const title = lines[0].replace(/^\d+\.\s*/, '').trim();
-      const body = lines.slice(1).join('\n').trim();
-      const label = labels[i - 1] || '';
+    // parts: [intro, "1", "What is the unit of work?", "answer...", "2", "How do agents coordinate?", "answer...", ...]
+    for (let i = 1; i < parts.length; i += 3) {
+      const num = parseInt(parts[i]);
+      const question = parts[i + 1];
+      const body = (parts[i + 2] || '').trim();
+      const label = labels[num - 1] || '';
 
       html += `<div class="design-item">
-        <div class="design-item-name">${String(i).padStart(2, '0')} / ${label}</div>
+        <div class="design-item-name">${String(num).padStart(2, '0')} / ${label}</div>
         <div class="design-item-content">
-          <h3>${title}</h3>
+          <h3>${question}</h3>
           ${md(body)}
         </div>
       </div>`;
@@ -840,8 +843,8 @@
 
   // Summary table
   const summaryEl = document.querySelector('[data-content="summary"]');
-  if (summaryEl && sections['Summary']) {
-    summaryEl.innerHTML = md(sections['Summary']);
+  if (summaryEl && sections['At a glance']) {
+    summaryEl.innerHTML = md(sections['At a glance']);
   }
 
   // Reveal animations
