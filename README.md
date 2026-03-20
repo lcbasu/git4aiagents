@@ -32,7 +32,7 @@ So the framing shifts. This isn't "Git is broken for agents." It's something mor
 
 Think about what Git actually assumes. One person. One machine. One local copy of the codebase. You work on it. You push it. Someone reviews it. That was elegant when the bottleneck was how fast a human could think and type.
 
-Now picture what I see every day. Dozens of agents modifying the same codebase at the same time. You don't get "merge conflicts." You get chaos. **Branch-per-agent gives you thousands of divergent realities.** Filesystem locks are too blunt. And PR review? That's a single-threaded bottleneck choking a massively parallel system. The fastest engineer becomes the slowest reviewer. I've watched brilliant engineers spend their entire day reviewing agent-generated PRs instead of thinking about architecture and product. That's not engineering. That's bureaucracy.
+Now picture what I see every day. 100s of agents modifying the same codebase at the same time. You don't get "merge conflicts." You get chaos. **Branch-per-agent gives you thousands of divergent realities.** Filesystem locks are too blunt. And PR review? That's a single-threaded bottleneck choking a massively parallel system. The fastest engineer becomes the slowest reviewer. I've watched brilliant engineers spend their entire day reviewing agent-generated PRs instead of thinking about architecture and product. That's not engineering. That's bureaucracy.
 
 Here's the thing most people haven't internalized yet: **code is no longer something humans carefully craft and contemplate. Code is high-velocity data.** It should be stored, synchronized, and validated like data. Write atomicity, real-time subscriptions, conflict resolution, and continuous validation baked into the storage layer. Not bolted on through CI pipelines that run 20 minutes after the fact.
 
@@ -64,30 +64,29 @@ Review happens continuously, not at a gate. Real-time validation (lint, format, 
 
 ## What dies
 
-| Concept | Why it dies | What replaces it |
-|---|---|---|
-| **Branch** | Exists because workers are disconnected. When agents share a transactional store, branching becomes optional isolation, not the default. | Shared store + optional isolation for experimentation |
-| **Pull Request** | Batch review of accumulated work. Unnecessary when every mutation is validated in real-time with full reasoning captured. | Continuous validation + policy enforcement |
-| **Merge Conflict** | Artifact of disconnected state. Period. | Write-time resolution via SSI + semantic dependency graph |
-| **Local Checkout** | There is no "local." Agents read/write directly. Humans get views. | Direct store access + projection layer for humans |
+**The Branch.** Branching exists because workers are disconnected from each other. When all agents operate against a shared transactional store, you don't need branches for daily work. You might still branch for experimentation, like trying a radically different approach in isolation, but it stops being the default mode for getting anything done.
 
-## Strawman architecture
+**The Pull Request.** A PR is basically a batch review of accumulated work. When every mutation gets validated in real-time and the full reasoning chain is captured alongside it, the whole "request permission to merge" ceremony becomes unnecessary. Humans set the policies. The system enforces them. Done.
 
-```
-┌─────────────────────────────────────────────┐
-│  Projection Layer  (IDE, dashboards, NL UI) │
-├─────────────────────────────────────────────┤
-│  Policy Layer      (human-defined rules)    │
-├─────────────────────────────────────────────┤
-│  Reasoning Layer   (intent, context, trace) │
-├─────────────────────────────────────────────┤
-│  Validation Layer  (lint→fmt→type→test→sec) │
-├─────────────────────────────────────────────┤
-│  Coordination Layer (locks, OT/CRDTs, sub)  │
-├─────────────────────────────────────────────┤
-│  Storage Layer     (Postgres / purpose-built)│
-└─────────────────────────────────────────────┘
-```
+**The Merge Conflict.** Conflicts exist because of disconnected state. Period. A transactional system with fine-grained locking and SSI resolves conflicts at write-time. Two agents editing the same function negotiate in real-time instead of discovering the problem three days later through a three-way diff.
+
+**The Local Checkout.** There is no "local." The codebase is a shared distributed store. Agents read and write directly. Humans interact through views (IDE integrations, dashboards, policy consoles) that project the live state. The mental model shifts from "I have my copy" to "I have my view."
+
+## Architecture
+
+A strawman stack, bottom to top.
+
+**Storage Layer.** A transactional database (Postgres, CockroachDB, or a purpose-built store) holding the codebase as structured data. Tables for files, symbols, dependencies, mutations. Every write is a transaction with row-level or finer locking. Event log (WAL-inspired) for full replayability.
+
+**Coordination Layer.** Manages agent sessions, lock acquisition, conflict detection, and real-time subscriptions. Implements SSI for concurrent access with semantic conflict detection. Pub/sub for codebase state change notifications. Think of it as a multiplayer engine for code.
+
+**Validation Layer.** Runs continuously on every committed transaction. Pluggable pipeline: parse, lint, format, typecheck, test, security. Invalid transactions are rejected or flagged. Replaces CI/CD for the inner loop entirely.
+
+**Reasoning Layer.** Captures and indexes agent intent, alternatives, context, and confidence alongside every mutation. Enables queries like "Why was this function rewritten?" or "Show me every change made with confidence below 0.7." This is what humans couldn't produce but agents can, and it's transformative for auditing and debugging.
+
+**Policy Layer.** Human-defined rules enforced at write-time. Architectural boundaries ("no direct DB calls from the API layer"), security policies, review thresholds ("changes to auth require human approval"), resource budgets. The governance plane for agentic codebases.
+
+**Projection Layer.** Translates the live data store into human-friendly views. IDE plugins that render the current state as a familiar file tree. Dashboards showing agent activity, validation status, policy compliance. Natural language interfaces for querying codebase history and intent.
 
 ## Git vs. what comes next
 
@@ -243,7 +242,6 @@ In a system running at this velocity, things will go wrong constantly. Here's ho
 
 **The key insight:** all of this recovery logic is only possible because you stored the semantic graph and reasoning traces. In Git, rollback is "reverse the diff." In this system, rollback is "undo this decision and everything downstream of it." That's the difference between text-aware and semantics-aware version control.
 
----
 
 These seven questions form the design spec. Get alignment on these before writing code, because every single one of them affects the data model, and the data model is the one thing you can't change later without rebuilding everything.
 

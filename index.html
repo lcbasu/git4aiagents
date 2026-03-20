@@ -28,36 +28,62 @@
 <meta name="author" content="Lokesh Basu">
 <meta name="theme-color" content="#0a0a0a">
 
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
   :root {
-    --black: #0a0a0a;
-    --white: #f0ede8;
-    --accent: #ff3d00;
-    --accent2: #00e5ff;
-    --gray: #888;
-    --dim: #333;
-    --mono: 'Space Mono', monospace;
-    --serif: 'Instrument Serif', Georgia, serif;
-    --sans: 'DM Sans', sans-serif;
+    --bg: #0c0c0c;
+    --fg: #e0e0e0;
+    --green: #39ff14;
+    --dim-green: #1a7a0a;
+    --orange: #ff6600;
+    --cyan: #00e5ff;
+    --red: #ff3d00;
+    --dim: #2a2a2a;
+    --gray: #666;
+    --comment: #555;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   html { scroll-behavior: smooth; }
 
   body {
-    background: var(--black);
-    color: var(--white);
-    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 0.9rem;
     overflow-x: hidden;
-    line-height: 1.6;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* Subtle scanline overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
   }
 
   ::selection {
-    background: var(--accent);
-    color: var(--black);
+    background: var(--green);
+    color: var(--bg);
   }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 0; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--gray); }
 
   /* ── HERO ── */
   .hero {
@@ -75,9 +101,9 @@
     position: absolute;
     top: -30%;
     right: -20%;
-    width: 800px;
-    height: 800px;
-    background: radial-gradient(circle, rgba(255,61,0,0.08) 0%, transparent 70%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(57,255,20,0.04) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -87,98 +113,110 @@
     gap: 1rem;
     margin-bottom: 2rem;
     opacity: 0;
-    animation: fadeUp 0.8s ease forwards 0.1s;
+    animation: fadeUp 0.6s ease forwards 0.1s;
   }
 
   .logo-icon {
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
+    filter: hue-rotate(60deg) saturate(2);
   }
 
   .hero-label {
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.3em;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 0;
-    opacity: 1;
-    animation: none;
+    color: var(--green);
   }
 
   .hero h1 {
-    font-family: var(--serif);
-    font-size: clamp(3.5rem, 10vw, 9rem);
-    line-height: 0.95;
-    font-weight: 400;
-    max-width: 900px;
+    font-family: var(--mono);
+    font-size: clamp(2.2rem, 6vw, 4.5rem);
+    line-height: 1.1;
+    font-weight: 700;
+    max-width: 800px;
     opacity: 0;
-    animation: fadeUp 0.8s ease forwards 0.4s;
+    animation: fadeUp 0.6s ease forwards 0.3s;
+    color: var(--fg);
   }
 
   .hero h1 em {
-    font-style: italic;
-    color: var(--accent);
+    font-style: normal;
+    color: var(--green);
+    text-shadow: 0 0 20px rgba(57,255,20,0.3);
+  }
+
+  .hero h1::after {
+    content: '█';
+    animation: blink 1s step-end infinite;
+    color: var(--green);
+    font-weight: 400;
+    margin-left: 0.1em;
   }
 
   .hero-sub {
-    font-family: var(--mono);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--gray);
     margin-top: 2.5rem;
-    max-width: 600px;
-    line-height: 1.8;
+    max-width: 640px;
+    line-height: 1.9;
     opacity: 0;
-    animation: fadeUp 0.8s ease forwards 0.6s;
+    animation: fadeUp 0.6s ease forwards 0.5s;
+    border-left: 2px solid var(--dim);
+    padding-left: 1.5rem;
   }
 
   .hero-sub b {
-    color: var(--accent);
+    color: var(--orange);
+    font-weight: 500;
   }
 
   .hero-version {
     position: absolute;
     bottom: 3rem;
     right: 6vw;
-    font-family: var(--mono);
-    font-size: 0.7rem;
-    color: var(--dim);
+    font-size: 0.65rem;
+    color: var(--comment);
     letter-spacing: 0.15em;
     opacity: 0;
-    animation: fadeUp 0.8s ease forwards 1s;
+    animation: fadeUp 0.6s ease forwards 0.8s;
+  }
+
+  .hero-version::before {
+    content: '// ';
+    color: var(--dim-green);
   }
 
   .scroll-indicator {
     position: absolute;
     bottom: 3rem;
     left: 6vw;
-    font-family: var(--mono);
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     letter-spacing: 0.2em;
-    color: var(--dim);
+    color: var(--comment);
     display: flex;
     align-items: center;
     gap: 0.8rem;
     opacity: 0;
-    animation: fadeUp 0.8s ease forwards 1s;
+    animation: fadeUp 0.6s ease forwards 0.8s;
   }
 
   .scroll-indicator::before {
     content: '';
     width: 30px;
     height: 1px;
-    background: var(--dim);
+    background: var(--dim-green);
     animation: pulse 2s ease infinite;
   }
 
-  /* ── EPOCH ── */
+  /* ── SECTIONS ── */
   .epoch {
-    padding: 6rem 6vw;
+    padding: 5rem 6vw;
     border-top: 1px solid var(--dim);
     display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 4rem;
+    grid-template-columns: 220px 1fr;
+    gap: 3rem;
   }
 
   @media (max-width: 768px) {
@@ -186,48 +224,58 @@
   }
 
   .epoch-label {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.3em;
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--dim-green);
     padding-top: 0.3rem;
   }
 
+  .epoch-label::before {
+    content: '$ ';
+    color: var(--green);
+  }
+
   .epoch-content h2 {
-    font-family: var(--serif);
-    font-size: clamp(2rem, 4vw, 3.5rem);
-    font-weight: 400;
-    line-height: 1.15;
+    font-family: var(--mono);
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 600;
+    line-height: 1.3;
     margin-bottom: 2rem;
+    color: var(--fg);
   }
 
-  .epoch-content h2 em { font-style: italic; color: var(--accent2); }
+  .epoch-content h2 em {
+    font-style: normal;
+    color: var(--cyan);
+    text-shadow: 0 0 15px rgba(0,229,255,0.2);
+  }
 
-  .epoch-content p {
-    font-size: 1.05rem;
-    color: #bbb;
+  .epoch-content p, .epoch-content > div > p {
+    font-size: 0.88rem;
+    color: #999;
     max-width: 680px;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.3rem;
     font-weight: 300;
+    line-height: 1.8;
   }
 
-  .epoch-content p strong {
-    color: var(--white);
+  .epoch-content p strong, .epoch-content > div > p strong {
+    color: var(--fg);
     font-weight: 500;
   }
 
   /* ── PRINCIPLES ── */
   .principles {
-    padding: 6rem 6vw;
+    padding: 5rem 6vw;
     border-top: 1px solid var(--dim);
   }
 
   .principles-header {
     display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 4rem;
-    margin-bottom: 4rem;
+    grid-template-columns: 220px 1fr;
+    gap: 3rem;
+    margin-bottom: 3rem;
   }
 
   @media (max-width: 768px) {
@@ -235,63 +283,68 @@
   }
 
   .principles-header h2 {
-    font-family: var(--serif);
-    font-size: clamp(2rem, 4vw, 3.5rem);
-    font-weight: 400;
+    font-family: var(--mono);
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 600;
   }
 
   .principle-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 1px;
-    background: var(--dim);
-    border: 1px solid var(--dim);
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 0;
   }
 
   .principle {
-    background: var(--black);
-    padding: 2.5rem;
-    transition: background 0.3s ease;
+    border: 1px solid var(--dim);
+    padding: 2rem;
+    transition: border-color 0.3s ease, background 0.3s ease;
+    margin: -0.5px;
   }
 
   .principle:hover {
-    background: #111;
+    border-color: var(--dim-green);
+    background: rgba(57,255,20,0.02);
   }
 
   .principle-num {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    color: var(--accent);
+    font-size: 0.6rem;
+    color: var(--dim-green);
     letter-spacing: 0.2em;
-    margin-bottom: 1rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .principle-num::before {
+    content: '// ';
+    color: var(--comment);
   }
 
   .principle h3 {
-    font-family: var(--serif);
-    font-size: 1.6rem;
-    font-weight: 400;
-    margin-bottom: 1rem;
-    line-height: 1.2;
+    font-family: var(--mono);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.8rem;
+    line-height: 1.3;
+    color: var(--fg);
   }
 
   .principle p {
-    font-size: 0.9rem;
-    color: #999;
+    font-size: 0.8rem;
+    color: #777;
     line-height: 1.7;
     font-weight: 300;
   }
 
   /* ── ARCHITECTURE ── */
   .architecture {
-    padding: 6rem 6vw;
+    padding: 5rem 6vw;
     border-top: 1px solid var(--dim);
   }
 
   .arch-header {
     display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 4rem;
-    margin-bottom: 4rem;
+    grid-template-columns: 220px 1fr;
+    gap: 3rem;
+    margin-bottom: 3rem;
   }
 
   @media (max-width: 768px) {
@@ -299,17 +352,17 @@
   }
 
   .arch-header h2 {
-    font-family: var(--serif);
-    font-size: clamp(2rem, 4vw, 3.5rem);
-    font-weight: 400;
+    font-family: var(--mono);
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 600;
   }
 
   .arch-layer {
     display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 4rem;
-    padding: 2.5rem 0;
-    border-bottom: 1px solid #1a1a1a;
+    grid-template-columns: 220px 1fr;
+    gap: 3rem;
+    padding: 1.8rem 0;
+    border-bottom: 1px dashed var(--dim);
   }
 
   @media (max-width: 768px) {
@@ -317,40 +370,44 @@
   }
 
   .arch-layer-name {
-    font-family: var(--mono);
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     letter-spacing: 0.15em;
-    color: var(--accent2);
+    color: var(--cyan);
     text-transform: uppercase;
   }
 
+  .arch-layer-name::before {
+    content: '> ';
+    color: var(--green);
+  }
+
   .arch-layer-desc {
-    font-size: 1rem;
-    color: #bbb;
+    font-size: 0.85rem;
+    color: #999;
     max-width: 680px;
     font-weight: 300;
     line-height: 1.7;
   }
 
   .arch-layer-desc code {
-    font-family: var(--mono);
     font-size: 0.8rem;
-    background: #1a1a1a;
+    background: rgba(57,255,20,0.08);
     padding: 0.15em 0.4em;
-    border-radius: 3px;
-    color: var(--accent);
+    border-radius: 2px;
+    color: var(--green);
+    border: 1px solid rgba(57,255,20,0.15);
   }
 
   /* ── COMPARISON ── */
   .compare {
-    padding: 6rem 6vw;
+    padding: 5rem 6vw;
     border-top: 1px solid var(--dim);
   }
 
   .compare-header {
     display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 4rem;
+    grid-template-columns: 220px 1fr;
+    gap: 3rem;
     margin-bottom: 3rem;
   }
 
@@ -358,50 +415,56 @@
     .compare-header { grid-template-columns: 1fr; gap: 1rem; }
   }
 
+  .compare-header h2 {
+    font-family: var(--mono);
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 600;
+  }
+
   .compare table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    border: 1px solid var(--dim);
   }
 
   .compare th {
-    font-family: var(--mono);
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     text-align: left;
-    padding: 1rem 1.5rem;
-    border-bottom: 2px solid var(--dim);
-    color: var(--gray);
+    padding: 0.8rem 1.2rem;
+    border-bottom: 1px solid var(--dim);
+    color: var(--comment);
     font-weight: 400;
+    background: rgba(255,255,255,0.02);
   }
 
-  .compare th:last-child { color: var(--accent); }
+  .compare th:last-child { color: var(--green); }
 
   .compare td {
-    padding: 1rem 1.5rem;
+    padding: 0.7rem 1.2rem;
     border-bottom: 1px solid #1a1a1a;
-    color: #999;
+    color: #777;
     font-weight: 300;
-    vertical-align: top;
   }
 
   .compare td:last-child {
-    color: var(--white);
+    color: var(--fg);
     font-weight: 400;
   }
 
   /* ── DESIGN DECISIONS ── */
   .design {
-    padding: 6rem 6vw;
+    padding: 5rem 6vw;
     border-top: 1px solid var(--dim);
   }
 
   .design-header {
     display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 4rem;
-    margin-bottom: 4rem;
+    grid-template-columns: 220px 1fr;
+    gap: 3rem;
+    margin-bottom: 3rem;
   }
 
   @media (max-width: 768px) {
@@ -409,19 +472,39 @@
   }
 
   .design-header h2 {
-    font-family: var(--serif);
-    font-size: clamp(2rem, 4vw, 3.5rem);
-    font-weight: 400;
+    font-family: var(--mono);
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 600;
   }
 
-  .design-header h2 em { font-style: italic; color: var(--accent2); }
+  .design-header h2 em {
+    font-style: normal;
+    color: var(--cyan);
+    text-shadow: 0 0 15px rgba(0,229,255,0.2);
+  }
+
+  .design-intro {
+    font-size: 0.85rem;
+    color: #999;
+    max-width: 680px;
+    margin-bottom: 2.5rem;
+    font-weight: 300;
+    line-height: 1.7;
+    margin-left: calc(220px + 3rem);
+    border-left: 2px solid var(--dim);
+    padding-left: 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .design-intro { margin-left: 0; }
+  }
 
   .design-item {
     display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 4rem;
-    padding: 3rem 0;
-    border-bottom: 1px solid #1a1a1a;
+    grid-template-columns: 220px 1fr;
+    gap: 3rem;
+    padding: 2.5rem 0;
+    border-bottom: 1px dashed var(--dim);
   }
 
   @media (max-width: 768px) {
@@ -429,26 +512,30 @@
   }
 
   .design-item-name {
-    font-family: var(--mono);
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     letter-spacing: 0.15em;
-    color: var(--accent2);
+    color: var(--cyan);
     text-transform: uppercase;
     padding-top: 0.3rem;
   }
 
+  .design-item-name::before {
+    content: '> ';
+    color: var(--green);
+  }
+
   .design-item-content h3 {
-    font-family: var(--serif);
-    font-size: 1.5rem;
-    font-weight: 400;
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    font-weight: 600;
     margin-bottom: 1.2rem;
-    line-height: 1.2;
-    color: var(--white);
+    line-height: 1.3;
+    color: var(--fg);
   }
 
   .design-item-content p {
-    font-size: 1rem;
-    color: #bbb;
+    font-size: 0.85rem;
+    color: #999;
     max-width: 680px;
     margin-bottom: 1.2rem;
     font-weight: 300;
@@ -456,17 +543,17 @@
   }
 
   .design-item-content p strong {
-    color: var(--white);
+    color: var(--fg);
     font-weight: 500;
   }
 
   .design-item-content code {
-    font-family: var(--mono);
     font-size: 0.8rem;
-    background: #1a1a1a;
+    background: rgba(57,255,20,0.08);
     padding: 0.15em 0.4em;
-    border-radius: 3px;
-    color: var(--accent);
+    border-radius: 2px;
+    color: var(--green);
+    border: 1px solid rgba(57,255,20,0.15);
   }
 
   .design-item-content ul {
@@ -476,30 +563,28 @@
   }
 
   .design-item-content ul li {
-    font-size: 0.95rem;
-    color: #bbb;
+    font-size: 0.85rem;
+    color: #999;
     max-width: 680px;
     font-weight: 300;
     line-height: 1.7;
-    padding-left: 1.2rem;
+    padding-left: 1.5rem;
     position: relative;
     margin-bottom: 0.5rem;
   }
 
   .design-item-content ul li::before {
-    content: '';
+    content: '>';
     position: absolute;
     left: 0;
-    top: 0.7em;
-    width: 5px;
-    height: 5px;
-    background: var(--accent);
-    border-radius: 50%;
+    color: var(--dim-green);
+    font-weight: 700;
+    font-size: 0.75rem;
   }
 
   /* ── CTA ── */
   .cta-section {
-    padding: 8rem 6vw;
+    padding: 6rem 6vw;
     border-top: 1px solid var(--dim);
     text-align: center;
     position: relative;
@@ -512,26 +597,30 @@
     bottom: -40%;
     left: 50%;
     transform: translateX(-50%);
-    width: 800px;
-    height: 800px;
-    background: radial-gradient(circle, rgba(0,229,255,0.06) 0%, transparent 70%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(57,255,20,0.04) 0%, transparent 70%);
     pointer-events: none;
   }
 
   .cta-section h2 {
-    font-family: var(--serif);
-    font-size: clamp(2.5rem, 6vw, 5rem);
-    font-weight: 400;
+    font-family: var(--mono);
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 700;
     margin-bottom: 1.5rem;
-    line-height: 1.1;
+    line-height: 1.2;
   }
 
-  .cta-section h2 em { font-style: italic; color: var(--accent); }
+  .cta-section h2 em {
+    font-style: normal;
+    color: var(--green);
+    text-shadow: 0 0 20px rgba(57,255,20,0.3);
+  }
 
   .cta-section p {
-    font-size: 1.05rem;
+    font-size: 0.85rem;
     color: var(--gray);
-    max-width: 500px;
+    max-width: 480px;
     margin: 0 auto 3rem;
     font-weight: 300;
   }
@@ -545,37 +634,39 @@
 
   .btn {
     font-family: var(--mono);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     letter-spacing: 0.1em;
-    padding: 1rem 2.5rem;
-    border: 1px solid var(--white);
-    color: var(--white);
+    padding: 0.9rem 2rem;
+    border: 1px solid var(--dim);
+    color: var(--fg);
     background: transparent;
     text-decoration: none;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     text-transform: uppercase;
   }
 
   .btn:hover {
-    background: var(--white);
-    color: var(--black);
+    border-color: var(--green);
+    color: var(--green);
+    box-shadow: 0 0 15px rgba(57,255,20,0.1);
   }
 
   .btn--primary {
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: var(--green);
+    color: var(--green);
   }
 
   .btn--primary:hover {
-    background: var(--accent);
-    color: var(--black);
+    background: var(--green);
+    color: var(--bg);
+    box-shadow: 0 0 20px rgba(57,255,20,0.3);
   }
 
   /* ── FOOTER ── */
   footer {
-    padding: 3rem 6vw;
-    border-top: 1px solid #1a1a1a;
+    padding: 2.5rem 6vw;
+    border-top: 1px solid var(--dim);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -584,15 +675,14 @@
   }
 
   footer span {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    color: var(--dim);
+    font-size: 0.6rem;
+    color: var(--comment);
     letter-spacing: 0.15em;
   }
 
   /* ── ANIMATIONS ── */
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
+    from { opacity: 0; transform: translateY(15px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
@@ -601,10 +691,15 @@
     50% { opacity: 1; }
   }
 
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
   .reveal {
     opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
   }
 
   .reveal.visible {
@@ -619,472 +714,229 @@
 <section class="hero">
   <div class="logo-row">
     <img src="logo.svg" alt="git4aiagents logo" class="logo-icon">
-    <div class="hero-label">An Open Manifesto</div>
+    <div class="hero-label">// an open manifesto</div>
   </div>
   <h1>Git was for <em>humans.</em><br>We need something else.</h1>
-  <div class="hero-sub">
-    I hit this problem firsthand while building an open source agentic operating system. Eight repos, multiple Claude Code instances running in parallel. I spent more time resolving git conflicts and managing PR merges than on actual architecture. The same pattern shows up everywhere. Agents writing code faster than humans can review it. And these agents are becoming autonomous. That transition is happening right now. The old workflow (checkout, branch, push, PR, wait for review, rebase, pray) was designed for human speed. It's breaking. Not slowly. Right now. This is a first attempt at figuring out what replaces it.
-    <b>I am not rebuilding Git. I am building a <u>new primitive for how code gets written in a world where the writers are machines.</u></b>
-  </div>
+  <div class="hero-sub" data-content="hero"></div>
   <div class="scroll-indicator">SCROLL TO READ</div>
   <div class="hero-version">GIT4AIAGENTS / v0.0.1 / MARCH 2026</div>
 </section>
 
 <!-- ══ EPOCH: THE REAL PROBLEM ══ -->
 <section class="epoch reveal">
-  <div class="epoch-label">01 / The Real Problem</div>
+  <div class="epoch-label">cat 01_the_real_problem.md</div>
   <div class="epoch-content">
     <h2>Git has <em>always</em> been broken for code</h2>
-    <p>
-      Here's what made me realize this goes way deeper than "Git doesn't work for agents."
-    </p>
-    <p>
-      Agents didn't create this problem. They just made it impossible to ignore.
-    </p>
-    <p>
-      Every developer has lived this. You open a PR. CI is green. No merge conflicts. You merge confidently. And you break production. Because someone else's PR, also green, also conflict-free, changed a function signature or shifted what a return value means in something you depend on. Git told you everything was fine because <strong>Git checks lines, not meaning.</strong>
-    </p>
-    <p>
-      Take a step back and look at the whole ecosystem of band-aids we've built around this one flaw. CI pipelines. Required status checks. "Rebase on main before merge" policies. Integration branches. Merge queues. Every single one of these exists because Git's merge model is semantically blind and everyone knows it. We've just normalized the pain. When a senior dev "knows" which files to check after a merge, that's a human doing semantic dependency resolution in their head because the tool refuses to do it.
-    </p>
-    <p>
-      The difference with agents is purely scale. A human team merges maybe 5-10 PRs a day, and the odds of a semantic collision are low enough that CI catches most of it. But when 20 agents are committing every few minutes, the combinatorial explosion of potential semantic conflicts makes the band-aid approach fall apart. You can't run full CI on every commit at that velocity. And you definitely can't have a human reviewer eyeballing each merge for subtle dependency breaks. I've tried. The churn burns teams out.
-    </p>
-    <p>
-      So the framing shifts. This isn't "Git is broken for agents." It's something more fundamental: <strong>Git has always been broken for code. Humans were just slow enough to work around it.</strong> Agents expose the flaw that was always there. Version control that treats code as text was always the wrong abstraction. We tolerated it because at human velocity, the failure rate was manageable.
-    </p>
+    <div data-content="real-problem"></div>
   </div>
 </section>
 
-<!-- ══ EPOCH: THE PROBLEM ══ -->
+<!-- ══ EPOCH: THE COLLAPSE ══ -->
 <section class="epoch reveal">
-  <div class="epoch-label">02 / The Collapse</div>
+  <div class="epoch-label">cat 02_the_collapse.md</div>
   <div class="epoch-content">
     <h2>The filesystem is a <em>terrible primitive</em> for agentic code</h2>
-    <p>
-      Think about what Git actually assumes. One person. One machine. One local copy of the codebase. You work on it. You push it. Someone reviews it. That was elegant when the bottleneck was how fast a human could think and type.
-    </p>
-    <p>
-      Now picture what I see every day. 100s of agents modifying the same codebase at the same time. You don't get "merge conflicts." You get chaos. <strong>Branch-per-agent gives you thousands of divergent realities.</strong> Filesystem locks are too blunt. And PR review? That's a single-threaded bottleneck choking a massively parallel system. The fastest engineer becomes the slowest reviewer. I've watched brilliant engineers spend their entire day reviewing agent-generated PRs instead of thinking about architecture and product. That's not engineering. That's bureaucracy.
-    </p>
-    <p>
-      Here's the thing most people haven't internalized yet: <strong>code is no longer something humans carefully craft and contemplate. Code is high-velocity data.</strong> It should be stored, synchronized, and validated like data. Write atomicity, real-time subscriptions, conflict resolution, and continuous validation baked into the storage layer. Not bolted on through CI pipelines that run 20 minutes after the fact.
-    </p>
-    <p>
-      If that sounds obvious, ask yourself: why is every tool in the market still built on top of Git?
-    </p>
+    <div data-content="collapse"></div>
   </div>
 </section>
 
 <!-- ══ EPOCH: THE THESIS ══ -->
 <section class="epoch reveal">
-  <div class="epoch-label">03 / The Thesis</div>
+  <div class="epoch-label">cat 03_the_thesis.md</div>
   <div class="epoch-content">
     <h2>Store code in a <em>database,</em> not a filesystem</h2>
-    <p>
-      This is the core idea. Treat the codebase as a live, transactional, event-sourced data system. Not a tree of files synchronized through patches and diffs.
-    </p>
-    <p>
-      <strong>Every write is a transaction.</strong> An agent acquires a fine-grained lock at the function level or block level, not the whole file, makes its change, and that change is immediately visible to every other agent. No more "push and pray." No more rebasing a 78-commit branch against a target that moved while you were working.
-    </p>
-    <p>
-      <strong>Every mutation is replayable.</strong> This is the part that excites me most. Humans couldn't externalize their thought process while coding. They just wrote code and left a commit message. Agents can capture everything: the reasoning, the alternatives they considered, the context they consumed, the confidence level. Your version history stops being a flat diff log and becomes a complete decision graph. That was literally never possible before.
-    </p>
-    <p>
-      <strong>Review happens continuously, not at a gate.</strong> Real-time validation (lint, format, type-check, test, security scan) runs on every single transaction. Not in some CI pipeline that fires 20 minutes later. Review shifts from "human sitting in the critical path" to "continuous automated validation with human oversight on the things that actually matter." Engineers stop being bottlenecks and start being governors.
-    </p>
+    <div data-content="core-idea"></div>
   </div>
 </section>
 
 <!-- ══ EPOCH: WHAT DIES ══ -->
 <section class="epoch reveal">
-  <div class="epoch-label">04 / What Dies</div>
+  <div class="epoch-label">cat 04_what_dies.md</div>
   <div class="epoch-content">
-    <h2>Concepts that don't survive the transition</h2>
-    <p>
-      <strong>The Branch.</strong> Branching exists because workers are disconnected from each other. When all agents operate against a shared transactional store, you don't need branches for daily work. You might still branch for experimentation, like trying a radically different approach in isolation, but it stops being the default mode for getting anything done.
-    </p>
-    <p>
-      <strong>The Pull Request.</strong> A PR is basically a batch review of accumulated work. When every mutation gets validated in real-time and the full reasoning chain is captured alongside it, the whole "request permission to merge" ceremony becomes unnecessary. Humans set the policies. The system enforces them. Done.
-    </p>
-    <p>
-      <strong>The Merge Conflict.</strong> Conflicts exist because of disconnected state. Period. A transactional system with fine-grained locking and CRDTs resolves conflicts at write-time. Two agents editing the same function negotiate in real-time instead of discovering the problem three days later through a three-way diff.
-    </p>
-    <p>
-      <strong>The Local Checkout.</strong> There is no "local." The codebase is a shared distributed store. Agents read and write directly. Humans interact through views (IDE integrations, dashboards, policy consoles) that project the live state. The mental model shifts from "I have my copy" to "I have my view."
-    </p>
+    <h2>Concepts that <em>don't survive</em> the transition</h2>
+    <div data-content="what-dies"></div>
   </div>
 </section>
 
 <!-- ══ PRINCIPLES ══ -->
 <section class="principles reveal">
   <div class="principles-header">
-    <div class="epoch-label">05 / Principles</div>
+    <div class="epoch-label">cat 05_principles.md</div>
     <h2>The 9 principles of agent-native version control</h2>
   </div>
-  <div class="principle-grid">
-    <div class="principle">
-      <div class="principle-num">01</div>
-      <h3>Code is data, not files</h3>
-      <p>The codebase is a structured, queryable, transactional data store. Files are a projection, not the source of truth. Think Postgres, not ext4.</p>
-    </div>
-    <div class="principle">
-      <div class="principle-num">02</div>
-      <h3>Write-level atomicity</h3>
-      <p>Every code mutation, from a single-line change to a multi-file refactor, is an atomic transaction with ACID guarantees. No partial states. No broken intermediaries.</p>
-    </div>
-    <div class="principle">
-      <div class="principle-num">03</div>
-      <h3>Fine-grained coordination</h3>
-      <p>Lock at the function, block, or symbol level. Not the file. Agents negotiate concurrent access through the storage layer, not through merge resolution after the fact.</p>
-    </div>
-    <div class="principle">
-      <div class="principle-num">04</div>
-      <h3>Real-time subscriptions</h3>
-      <p>Agents and tools subscribe to codebase state changes. When agent A modifies a function signature, agent B (working on a caller) is notified instantly and can adapt.</p>
-    </div>
-    <div class="principle">
-      <div class="principle-num">05</div>
-      <h3>Continuous validation</h3>
-      <p>Lint, format, type-check, test, and security scan run on every transaction. Not in a CI pipeline minutes later. Invalid code is rejected at write-time.</p>
-    </div>
-    <div class="principle">
-      <div class="principle-num">06</div>
-      <h3>Captured reasoning</h3>
-      <p>Every mutation carries structured metadata: the agent's intent, alternatives considered, context consumed, confidence level. The version history is a decision graph, not a diff log.</p>
-    </div>
-    <div class="principle">
-      <div class="principle-num">07</div>
-      <h3>Policy, not process</h3>
-      <p>Humans define policies (security boundaries, architectural constraints, review thresholds). The system enforces them continuously. The human role shifts from reviewer to governor.</p>
-    </div>
-    <div class="principle">
-      <div class="principle-num">08</div>
-      <h3>Full replayability</h3>
-      <p>Any codebase state, including the reasoning and context that produced it, can be reconstructed at any point. Time-travel debugging across the entire project history, including agent thought processes.</p>
-    </div>
-    <div class="principle">
-      <div class="principle-num">09</div>
-      <h3>Human-legible views</h3>
-      <p>The underlying store is agent-optimized. Humans interact through projections: IDE integrations, dashboards, policy consoles, natural language queries against the codebase.</p>
-    </div>
-  </div>
+  <div class="principle-grid" data-content="principles"></div>
 </section>
 
 <!-- ══ ARCHITECTURE ══ -->
 <section class="architecture reveal">
   <div class="arch-header">
-    <div class="epoch-label">06 / Architecture</div>
+    <div class="epoch-label">cat 06_architecture.md</div>
     <h2>A strawman stack</h2>
   </div>
-
-  <div class="arch-layer">
-    <div class="arch-layer-name">Storage Layer</div>
-    <div class="arch-layer-desc">
-      A transactional database (Postgres, CockroachDB, or a purpose-built store) holding the codebase as structured data. Tables for <code>files</code>, <code>symbols</code>, <code>dependencies</code>, <code>mutations</code>. Every write is a transaction with row-level or finer locking. Event log (WAL-inspired) for full replayability.
-    </div>
-  </div>
-
-  <div class="arch-layer">
-    <div class="arch-layer-name">Coordination Layer</div>
-    <div class="arch-layer-desc">
-      Manages agent sessions, lock acquisition, conflict detection, and real-time subscriptions. Implements operational transforms or CRDTs for concurrent edits to the same region. Pub/sub for codebase state change notifications. Think: a multiplayer engine for code.
-    </div>
-  </div>
-
-  <div class="arch-layer">
-    <div class="arch-layer-name">Validation Layer</div>
-    <div class="arch-layer-desc">
-      Runs continuously on every committed transaction. Pluggable pipeline: <code>parse → lint → format → typecheck → test → security</code>. Invalid transactions are rejected or flagged. Replaces CI/CD for the inner loop entirely.
-    </div>
-  </div>
-
-  <div class="arch-layer">
-    <div class="arch-layer-name">Reasoning Layer</div>
-    <div class="arch-layer-desc">
-      Captures and indexes agent intent, alternatives, context, and confidence alongside every mutation. Enables queries like: <em>"Why was this function rewritten?"</em> or <em>"Show me every change made with confidence below 0.7."</em> This is what humans couldn't produce but agents can, and it's transformative for auditing and debugging.
-    </div>
-  </div>
-
-  <div class="arch-layer">
-    <div class="arch-layer-name">Policy Layer</div>
-    <div class="arch-layer-desc">
-      Human-defined rules enforced at write-time. Architectural boundaries (<code>"no direct DB calls from the API layer"</code>), security policies, review thresholds (<code>"changes to auth require human approval"</code>), resource budgets. The governance plane for agentic codebases.
-    </div>
-  </div>
-
-  <div class="arch-layer">
-    <div class="arch-layer-name">Projection Layer</div>
-    <div class="arch-layer-desc">
-      Translates the live data store into human-friendly views. IDE plugins that render the current state as a familiar file tree. Dashboards showing agent activity, validation status, policy compliance. Natural language interfaces for querying codebase history and intent.
-    </div>
-  </div>
+  <div data-content="architecture"></div>
 </section>
 
 <!-- ══ COMPARISON ══ -->
 <section class="compare reveal">
   <div class="compare-header">
-    <div class="epoch-label">07 / Contrast</div>
+    <div class="epoch-label">diff git vs git4aiagents</div>
     <h2>Git vs. what comes next</h2>
   </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Dimension</th>
-        <th>Git (2005-2025)</th>
-        <th>git4aiagents (2026→)</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Storage</td>
-        <td>Filesystem + DAG of snapshots</td>
-        <td>Transactional database</td>
-      </tr>
-      <tr>
-        <td>Unit of work</td>
-        <td>Commit (batch of diffs)</td>
-        <td>Transaction (atomic mutation)</td>
-      </tr>
-      <tr>
-        <td>Coordination</td>
-        <td>Branch + merge</td>
-        <td>SSI + semantic dependency graph</td>
-      </tr>
-      <tr>
-        <td>Conflict resolution</td>
-        <td>After the fact (merge/rebase)</td>
-        <td>At write-time (real-time)</td>
-      </tr>
-      <tr>
-        <td>Validation</td>
-        <td>CI pipeline (minutes later)</td>
-        <td>Continuous (per-transaction)</td>
-      </tr>
-      <tr>
-        <td>Review</td>
-        <td>Human gate (PR)</td>
-        <td>Continuous automated + policy</td>
-      </tr>
-      <tr>
-        <td>History</td>
-        <td>Diff log + commit messages</td>
-        <td>Decision graph + reasoning traces</td>
-      </tr>
-      <tr>
-        <td>Human role</td>
-        <td>Writer + reviewer</td>
-        <td>Governor + architect</td>
-      </tr>
-      <tr>
-        <td>Optimized for</td>
-        <td>1-20 humans</td>
-        <td>10-1000 agents + humans</td>
-      </tr>
-    </tbody>
-  </table>
+  <div data-content="comparison"></div>
 </section>
 
 <!-- ══ DESIGN DECISIONS ══ -->
 <section class="design reveal">
   <div class="design-header">
-    <div class="epoch-label">08 / The Design</div>
+    <div class="epoch-label">cat 08_design.md</div>
     <h2>Seven foundational <em>decisions</em> I made before writing a single line of code</h2>
   </div>
-
-  <div class="design-item">
-    <div class="design-item-name">01 / Unit of Work</div>
-    <div class="design-item-content">
-      <h3>Two primitives, not one</h3>
-      <p>
-        Git's "commit" is a snapshot of the entire repo. That made sense when a human would spend 30 minutes making a coherent set of changes. For agents, this is absurd. An agent might change one line in one function, or refactor 40 files in 3 seconds. The commit is either too coarse or too fine.
-      </p>
-      <p>
-        The <strong>atomic unit</strong> is the <em>semantic mutation</em>. A single meaningful change to a single semantic element. Not "line 47 changed from X to Y" but "function <code>calculateTotal</code> signature changed from <code>(items: Item[]) -> int</code> to <code>(items: Item[], currency: Currency) -> Decimal</code>." Each mutation is a node in a graph with a type (create, modify, delete, rename, move) and a target (function, type, interface, constant, import).
-      </p>
-      <p>
-        The <strong>logical unit</strong> is the <em>task</em>. A directed acyclic graph of semantic mutations that together accomplish something. "Implement multi-currency support" is a task of 15 mutations across 8 files. Tasks are what agents get assigned, what humans review, and what gets rolled back if something breaks. Like a PR, but a first-class entity in the data model, not a diff between two branch tips.
-      </p>
-      <p>
-        Why two levels matters: the system can accept or reject individual mutations based on semantic conflicts, while humans reason about tasks. An agent's task might have 14 clean mutations and 1 conflicting one. Instead of rejecting the whole thing, the system pinpoints exactly which mutation conflicts and why. The agent fixes just that one.
-      </p>
-      <p>
-        <strong>The thing Git gets catastrophically wrong:</strong> a commit bundles unrelated changes into one blob. "Fixed the bug AND ran the linter AND renamed that variable" as one unit. Need to revert just the bug fix? Good luck. In this system, those are three separate mutations inside one task, independently addressable.
-      </p>
-    </div>
-  </div>
-
-  <div class="design-item">
-    <div class="design-item-name">02 / Coordination</div>
-    <div class="design-item-content">
-      <h3>Serializable Snapshot Isolation over a semantic dependency graph</h3>
-      <p>
-        <strong>Step 1, Task assignment.</strong> An agent gets a task. The system computes the <em>likely impact zone</em>, the set of semantic elements the agent will probably touch, based on the task description and the dependency graph. This is an estimate, not a lock.
-      </p>
-      <p>
-        <strong>Step 2, Snapshot.</strong> The agent gets a consistent snapshot of the impact zone plus its transitive dependencies. Not the whole repo, just the subgraph it needs. Cheap because you're querying a database, not cloning a repo.
-      </p>
-      <p>
-        <strong>Step 3, Work.</strong> The agent works against its snapshot. Generates semantic mutations. No coordination overhead. Fully independent.
-      </p>
-      <p>
-        <strong>Step 4, Commit validation.</strong> Three layers:
-      </p>
-      <ul>
-        <li><strong>Structural conflict.</strong> Did another agent modify the same semantic element since our snapshot? Hard conflict. First-writer-wins or priority-based.</li>
-        <li><strong>Interface contract.</strong> Did any element I <em>depend on</em> change its interface? If I'm calling <code>formatPrice(amount)</code> but another agent changed it to <code>formatPrice(amount, locale)</code>, the dependency graph catches this instantly. No compile needed.</li>
-        <li><strong>Behavioral validation.</strong> Does the combined state pass relevant tests? Expensive, so it runs on task completion. Because you have the dependency graph, you run <em>targeted</em> tests, not the full suite.</li>
-      </ul>
-      <p>
-        <strong>Why this beats the alternatives:</strong> Locks serialize agents. CRDTs can't work because code merges aren't commutative (<code>addParameter(x)</code> and <code>removeFunction(x)</code> don't compose). OT at the character level spends more compute on transforms than on writing code, and still misses semantic conflicts.
-      </p>
-      <p>
-        <strong>The throughput math:</strong> 1000 semantic elements, 20 agents, each task touching about 10 elements on average. The probability of structural conflict on any given commit is low (roughly <code>(10/1000) * 19</code>, about 19% chance of touching at least one overlapping element). Interface conflicts are slightly more likely because of transitive dependencies, but the dependency graph makes detection O(edges) not O(codebase). You get near-linear scaling with agent count until the codebase's dependency graph becomes so interconnected that most agents' impact zones overlap. At that point you have an architecture problem, not a tooling problem.
-      </p>
-      <p>
-        <strong>Open question worth flagging:</strong> what happens when Layer 1 rejects a mutation? The agent needs to redo work. If you're naive about this, you get livelock, two agents repeatedly conflicting and redoing. The fix is a combination of priority ordering (agent working on higher-priority task wins) and <em>impact zone advisories</em>, soft signals that say "heads up, Agent B is also working in this area." Not locks, but hints that let an agent's planner decide whether to wait or proceed optimistically.
-      </p>
-    </div>
-  </div>
-
-  <div class="design-item">
-    <div class="design-item-name">03 / Consistency</div>
-    <div class="design-item-content">
-      <h3>Strong where it matters, eventual where it doesn't</h3>
-      <p>
-        The knee-jerk answer is "strong consistency, obviously, code has to be correct." That's wrong at the scale we're targeting.
-      </p>
-      <p>
-        <strong>Strong consistency within a dependency subgraph, eventual consistency across independent subgraphs.</strong> If Agent A is working on payments and Agent B is working on the onboarding flow, and those two subgraphs share no semantic dependencies, they don't need to see each other's changes in real-time. They're working in effectively different codebases that happen to live in the same repo.
-      </p>
-      <p>
-        But if Agent A changes a shared utility function that Agent B depends on, Agent B needs to know <em>before it commits</em>, not after. The dependency graph naturally partitions into clusters of tightly-coupled code connected by thinner edges. Within a cluster, strong consistency. Across clusters, eventual consistency with conflict detection at commit time.
-      </p>
-      <p>
-        <strong>The tricky edge case: shared utilities.</strong> Every codebase has a <code>utils.ts</code> that everything depends on. If you make that a single serialization point, it becomes a bottleneck. The fix: decompose at function-level granularity. <code>utils.formatDate</code> and <code>utils.formatCurrency</code> are independent semantic elements. Two agents can modify different utility functions concurrently because the graph tracks dependencies at the function level, not the file level.
-      </p>
-      <p>
-        <strong>Streaming validation:</strong> instead of discovering conflicts at commit time (wasting 5 minutes of work), the system continuously checks whether an agent's snapshot dependencies are still valid. If something changes, the agent gets an interrupt mid-task and can adapt. This is a massive advantage over Git where you only discover conflicts when you try to merge.
-      </p>
-    </div>
-  </div>
-
-  <div class="design-item">
-    <div class="design-item-name">04 / Reasoning Traces</div>
-    <div class="design-item-content">
-      <h3>Code that knows why it exists</h3>
-      <p>
-        This is the moat. And honestly, this is the part that got me most excited when I started thinking about all of this. Every other part of this system is hard engineering. The reasoning trace is what makes it genuinely new.
-      </p>
-      <p>
-        <strong>The problem with "just store the LLM's reasoning":</strong> an agent producing 100 mutations per minute, each with a paragraph of reasoning, generates gigabytes of unstructured text per day. Nobody will read it. Unsearchable. Mostly noise.
-      </p>
-      <p>
-        <strong>Tier 1, Structured metadata (always stored, machine-readable).</strong> Compact and queryable: <code>intent</code> (feature, bugfix, refactor, optimize, adapt-to-dependency-change), <code>confidence</code> (float), <code>alternatives_considered</code> (count), <code>dependencies_read</code>, <code>constraints_applied</code>. About 200 bytes per mutation. At 1000 mutations/min, that's roughly 288MB/day. Trivial.
-      </p>
-      <p>
-        <strong>Tier 2, Structured rationale (stored for non-trivial mutations).</strong> 1-2 sentences for why this approach, why not alternatives, and explicit assumptions. About 500 bytes per mutation, stored for roughly 30% of mutations. About 100MB/day.
-      </p>
-      <p>
-        <strong>Tier 3, Full reasoning dump (ephemeral, garbage-collected).</strong> The raw LLM chain. Useful for forensics when things go badly wrong. About 5KB per mutation, 7-day retention. Roughly 49GB rolling. Manageable in cold storage.
-      </p>
-      <p>
-        <strong>The killer query:</strong> "Why does this function exist?" No human codebase can answer that today. You grep commit messages, PR descriptions, Slack threads, Jira tickets. In this system, you traverse the reasoning trace: created by Task X, because of reasoning Y, depends on A and B, assumptions are C. Transformative for onboarding, debugging, and refactoring.
-      </p>
-    </div>
-  </div>
-
-  <div class="design-item">
-    <div class="design-item-name">05 / Human Interaction</div>
-    <div class="design-item-content">
-      <h3>Humans govern. Agents execute.</h3>
-      <p>
-        This is the one I feel most strongly about because I live it every single day. This is where most "AI-first" tools fail. They build for the machine and bolt on a human interface as an afterthought. But humans are the principal. Agents are the executors.
-      </p>
-      <p>
-        I've seen what happens when you try to keep humans in the review loop at agent scale, both in my own work and across teams everywhere I've been recently. People burn out. The review queue becomes a graveyard. Good engineers start spending 100% of their time reading agent-generated diffs instead of thinking about architecture, product, or strategy. That's not a workflow problem. That's a fundamental mismatch between the volume of work being produced and the capacity of human attention.
-      </p>
-      <p>
-        <strong>At 1000+ mutations per minute, line-by-line code review is dead.</strong> Humans operate at three levels instead:
-      </p>
-      <ul>
-        <li><strong>Policy definition.</strong> Before any agent writes code, humans define machine-enforceable constraints. "All API endpoints validate input with Zod schemas." "No new dependencies over 100KB." "No changes to <code>auth</code> without human approval." The system checks these on every mutation.</li>
-        <li><strong>Task-level review.</strong> Humans review completed tasks, not individual mutations. Presented as: what changed (semantic summary, not a diff), why (aggregated reasoning traces), test results, confidence scores, assumptions. This is PR review at the right abstraction level.</li>
-        <li><strong>Anomaly-driven intervention.</strong> The system surfaces risk: low confidence mutations, tasks with too many retries, architectural violations that pass tests, cascading dependency changes. Humans jump in when flagged, not on a fixed cadence.</li>
-      </ul>
-      <p>
-        <strong>The UI is not a diff viewer.</strong> It's an air traffic control dashboard: active tasks, agent utilization, conflict rates, test health, policy violations, attention queue. Humans direct traffic, not read every line.
-      </p>
-      <p>
-        <strong>Escalation granularity matters:</strong> hard blocks (agent cannot proceed), soft warnings (proceed but flagged), async follow-ups (create a task to fix it later). Getting this right is what makes the system usable instead of either too permissive or too rigid.
-      </p>
-    </div>
-  </div>
-
-  <div class="design-item">
-    <div class="design-item-name">06 / Migration</div>
-    <div class="design-item-content">
-      <h3>A bridge to Git, not a wall</h3>
-      <p>
-        Every potential user has an existing Git repo. If the system requires a clean-room start, adoption is dead.
-      </p>
-      <p>
-        <strong>The bridge:</strong> ingest from and export to Git as an I/O adapter. Import a Git repo, parse into semantic graph (tree-sitter + LSP for the AST, build dependency graph from there). Export back, generate conventional Git commits with readable diffs and commit messages synthesized from reasoning traces. Teams adopt incrementally: agents work in the new system, but compliance/legal still sees a Git repo updated via the bridge.
-      </p>
-      <p>
-        <strong>The long-term play:</strong> once teams see semantic conflict detection, reasoning traces, and task-level review, they stop looking at the Git export. It becomes an artifact for backward compatibility, like PDF invoices in a digital-first company. Eventually, the new system <em>is</em> the source of record.
-      </p>
-    </div>
-  </div>
-
-  <div class="design-item">
-    <div class="design-item-name">07 / Recovery</div>
-    <div class="design-item-content">
-      <h3>Semantic rollback, not diff reversal</h3>
-      <p>
-        <strong>Agent-level failure:</strong> an agent crashes mid-task. Every mutation is individually recorded, so there's no "half-committed" state. The completed mutations are valid. The task is marked incomplete. Another agent picks it up, reads the existing mutations and reasoning traces, and continues. Try doing that with a half-finished Git branch from a developer who left.
-      </p>
-      <p>
-        <strong>Semantic regression:</strong> changes pass all validation but cause a production issue. The system traces the causal chain: this task, these mutations, these semantic elements, these code paths. Rollback is targeted. Revert the specific mutations, not "revert the whole commit and the 5 commits after it because Git made them sequential."
-      </p>
-      <p>
-        <strong>Cascading failure:</strong> Agent A makes a change, agents B, C, D adapt to it, then A's change gets rolled back. B, C, D's adaptations are now orphaned. The dependency graph detects this immediately: A's rollback invalidates downstream mutations with <code>adapt_to_dependency_change</code> intent linked to A's mutation. Flagged for re-evaluation automatically.
-      </p>
-      <p>
-        <strong>The key insight:</strong> in Git, rollback is "reverse the diff." Here, rollback is "undo this decision and everything downstream of it." That's the difference between text-aware and semantics-aware version control.
-      </p>
-    </div>
-  </div>
+  <div data-content="design-decisions"></div>
 </section>
 
 <!-- ══ CTA ══ -->
 <section class="cta-section reveal">
   <h2>This is <em>draft zero.</em></h2>
   <p>
-    Deliberately incomplete. Probably wrong about some things. But someone has to start writing down what comes after Git. Fork it. Fight it. Build on it. Let's figure this out together.
+    Deliberately incomplete. Probably wrong about some things. But someone has to start writing down what comes after Git. Fork it. Fight it. Build on it.
   </p>
   <div class="cta-buttons">
-    <a href="https://github.com/lcbasu/git4aiagents" class="btn btn--primary" target="_blank">GitHub → git4aiagents</a>
+    <a href="https://github.com/lcbasu/git4aiagents" class="btn btn--primary" target="_blank">git clone git4aiagents</a>
     <a href="#" class="btn" onclick="navigator.clipboard.writeText(window.location.href); this.textContent='COPIED'; setTimeout(()=>this.textContent='SHARE THIS',2000); return false;">Share This</a>
   </div>
 </section>
 
 <footer>
-  <span style="display:flex;align-items:center;gap:0.6rem;"><img src="logo.svg" alt="" width="20" height="20"> GIT4AIAGENTS MANIFESTO / OPEN SOURCE / CC-BY-4.0</span>
-  <span>MARCH 2026</span>
+  <span style="display:flex;align-items:center;gap:0.6rem;"><img src="logo.svg" alt="" width="16" height="16" style="filter:hue-rotate(60deg) saturate(2)"> GIT4AIAGENTS // OPEN SOURCE // CC-BY-4.0</span>
+  <span>// MARCH 2026</span>
 </footer>
 
 <script>
-  // Intersection Observer for reveal animations
+(async function() {
+  const res = await fetch('README.md');
+  const text = await res.text();
+
+  const sections = {};
+  const parts = text.split(/^## /gm);
+  for (let i = 1; i < parts.length; i++) {
+    const lines = parts[i].split('\n');
+    const heading = lines[0].trim();
+    const body = lines.slice(1).join('\n').trim();
+    sections[heading] = body;
+  }
+
+  const md = (s) => marked.parse(s || '');
+
+  // Hero
+  const heroEl = document.querySelector('[data-content="hero"]');
+  if (heroEl && sections['Why this exists']) {
+    const paragraphs = sections['Why this exists'].split(/\n\n+/);
+    const heroText = paragraphs.slice(0, -1).join(' ');
+    heroEl.innerHTML = heroText +
+      ' <b>I am not rebuilding Git. I am building a <u>new primitive for how code gets written in a world where the writers are machines.</u></b>';
+  }
+
+  // Narrative sections
+  const narrativeMap = {
+    'The real problem (it\'s not just agents)': 'real-problem',
+    'The collapse at scale': 'collapse',
+    'The core idea': 'core-idea',
+    'What dies': 'what-dies',
+  };
+
+  for (const [heading, id] of Object.entries(narrativeMap)) {
+    const el = document.querySelector(`[data-content="${id}"]`);
+    if (el && sections[heading]) {
+      let content = sections[heading];
+      if (heading === 'The core idea') {
+        content = content.replace(/^\*\*.*?\*\*\s*\n*/, '');
+      }
+      el.innerHTML = md(content);
+    }
+  }
+
+  // Principles
+  const principlesEl = document.querySelector('[data-content="principles"]');
+  if (principlesEl && sections['The 9 Principles']) {
+    const items = sections['The 9 Principles'].match(/\d+\.\s+\*\*(.+?)\*\*:?\s*(.+)/g);
+    if (items) {
+      principlesEl.innerHTML = items.map((item, i) => {
+        const m = item.match(/\d+\.\s+\*\*(.+?)\*\*:?\s*(.+)/);
+        if (!m) return '';
+        return `<div class="principle">
+          <div class="principle-num">${String(i + 1).padStart(2, '0')}</div>
+          <h3>${m[1]}</h3>
+          <p>${m[2]}</p>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // Architecture
+  const archEl = document.querySelector('[data-content="architecture"]');
+  if (archEl && sections['Architecture']) {
+    const content = sections['Architecture'];
+    const blocks = content.split(/\*\*(.+?)\.\*\*\s*/);
+    let html = '';
+    for (let i = 1; i < blocks.length; i += 2) {
+      const name = blocks[i];
+      const desc = (blocks[i + 1] || '').split('\n\n')[0].trim();
+      html += `<div class="arch-layer">
+        <div class="arch-layer-name">${name}</div>
+        <div class="arch-layer-desc">${desc}</div>
+      </div>`;
+    }
+    archEl.innerHTML = html;
+  }
+
+  // Comparison
+  const compareEl = document.querySelector('[data-content="comparison"]');
+  if (compareEl && sections['Git vs. what comes next']) {
+    compareEl.innerHTML = md(sections['Git vs. what comes next']);
+  }
+
+  // Design decisions
+  const designEl = document.querySelector('[data-content="design-decisions"]');
+  if (designEl && sections['Foundational design decisions']) {
+    const content = sections['Foundational design decisions'];
+    const subParts = content.split(/^### /gm);
+    const intro = subParts[0].trim();
+    const labels = [
+      'Unit of Work', 'Coordination', 'Consistency',
+      'Reasoning Traces', 'Human Interaction', 'Migration', 'Recovery'
+    ];
+
+    let html = '';
+    if (intro) {
+      html += `<div class="design-intro">${md(intro)}</div>`;
+    }
+
+    for (let i = 1; i < subParts.length; i++) {
+      const lines = subParts[i].split('\n');
+      const title = lines[0].replace(/^\d+\.\s*/, '').trim();
+      const body = lines.slice(1).join('\n').trim();
+      const label = labels[i - 1] || '';
+
+      html += `<div class="design-item">
+        <div class="design-item-name">${String(i).padStart(2, '0')} / ${label}</div>
+        <div class="design-item-content">
+          <h3>${title}</h3>
+          ${md(body)}
+        </div>
+      </div>`;
+    }
+    designEl.innerHTML = html;
+  }
+
+  // Reveal animations
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-      }
+      if (entry.isIntersecting) entry.target.classList.add('visible');
     });
   }, { threshold: 0.1 });
 
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+})();
 </script>
 </body>
 </html>
