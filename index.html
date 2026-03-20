@@ -933,7 +933,10 @@
         <strong>Why this beats the alternatives:</strong> Locks serialize agents. CRDTs can't work because code merges aren't commutative (<code>addParameter(x)</code> and <code>removeFunction(x)</code> don't compose). OT at the character level spends more compute on transforms than on writing code, and still misses semantic conflicts.
       </p>
       <p>
-        <strong>The throughput math:</strong> 1000 semantic elements, 20 agents, each task touching about 10 elements. Probability of structural conflict per commit is roughly 19%. Interface conflicts are slightly higher due to transitive dependencies, but detection is O(edges) not O(codebase). Near-linear scaling until the dependency graph becomes so interconnected that most impact zones overlap. At that point you have an architecture problem, not a tooling problem.
+        <strong>The throughput math:</strong> 1000 semantic elements, 20 agents, each task touching about 10 elements on average. The probability of structural conflict on any given commit is low (roughly <code>(10/1000) * 19</code>, about 19% chance of touching at least one overlapping element). Interface conflicts are slightly more likely because of transitive dependencies, but the dependency graph makes detection O(edges) not O(codebase). You get near-linear scaling with agent count until the codebase's dependency graph becomes so interconnected that most agents' impact zones overlap. At that point you have an architecture problem, not a tooling problem.
+      </p>
+      <p>
+        <strong>Open question worth flagging:</strong> what happens when Layer 1 rejects a mutation? The agent needs to redo work. If you're naive about this, you get livelock, two agents repeatedly conflicting and redoing. The fix is a combination of priority ordering (agent working on higher-priority task wins) and <em>impact zone advisories</em>, soft signals that say "heads up, Agent B is also working in this area." Not locks, but hints that let an agent's planner decide whether to wait or proceed optimistically.
       </p>
     </div>
   </div>
