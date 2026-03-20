@@ -6,261 +6,226 @@
 
 ## Why this exists
 
-I hit this problem firsthand while building an open source agentic operating system. Eight repos, multiple Claude Code instances running in parallel, all building the product at the same time. I spent more time resolving git conflicts and managing PR merges than I did on actual architecture decisions. The same pattern shows up everywhere I look. Teams across every place I've worked at recently are dealing with the exact same thing: agents writing code faster than humans can review it.
+I hit this problem firsthand while building an open source agentic operating system. Eight repos, multiple Claude Code instances running in parallel. I spent more time resolving git conflicts and managing PR merges than on actual architecture decisions. The same pattern shows up everywhere. Teams across every place I've worked at recently are dealing with the exact same thing: agents writing code faster than humans can review it.
 
-Right now, most teams use tools like Kiro and Claude Code where a human prompts the agent and reviews what it produces. That's already creating problems. But here's what keeps me up at night: these agents are becoming autonomous. They will plan, write, test, and ship code without waiting for a human to type a prompt each time. That transition is not theoretical. It's happening right now.
+These agents are becoming autonomous. They will plan, write, test, and ship code without waiting for a human to type a prompt each time. That transition is happening right now. And Git is not ready for it.
 
-The old workflow (checkout, branch, push, PR, wait for review, rebase, pray) was built for human speed. At machine speed, it doesn't slow down gracefully. It shatters. The review bottleneck alone creates so much churn that I had to step back and ask a much more basic question: what if the problem isn't the workflow? What if the problem is Git itself?
-
-Someone has to start writing down what comes after Git. This is that attempt. Probably wrong about some things. But the conversation needs to start.
-
-## The real problem (it's not just agents)
-
-Here's what made me realize this goes way deeper than "Git doesn't work for agents."
+## The real problem
 
 Agents didn't create this problem. They just made it impossible to ignore.
 
-Every developer has lived this. You open a PR. CI is green. No merge conflicts. You merge confidently. And you break production. Because someone else's PR, also green, also conflict-free, changed a function signature or shifted what a return value means in something you depend on. Git told you everything was fine because **Git checks lines, not meaning.**
+Every developer has lived this. You open a PR. CI is green. No merge conflicts. You merge confidently. And you break production. Because someone else's PR changed a function signature or shifted what a return value means in something you depend on. Git told you everything was fine because **Git checks lines, not meaning.**
 
-Take a step back and look at the whole ecosystem of band-aids we've built around this one flaw. CI pipelines. Required status checks. "Rebase on main before merge" policies. Integration branches. Merge queues. Every single one of these exists because Git's merge model is semantically blind and everyone knows it. We've just normalized the pain. When a senior dev "knows" which files to check after a merge, that's a human doing semantic dependency resolution in their head because the tool refuses to do it.
+Look at the band-aids: CI pipelines, required status checks, "rebase on main" policies, merge queues. All exist because Git's merge model is semantically blind. At human scale (5-10 PRs a day), CI catches most collisions. At agent scale (100s of commits every few minutes), the band-aids collapse. You can't run full CI at that velocity. You can't have humans eyeballing every merge.
 
-The difference with agents is purely scale. A human team merges maybe 5-10 PRs a day, and the odds of a semantic collision are low enough that CI catches most of it. But when 20 agents are committing every few minutes, the combinatorial explosion of potential semantic conflicts makes the band-aid approach fall apart. You can't run full CI on every commit at that velocity. And you definitely can't have a human reviewer eyeballing each merge for subtle dependency breaks. I've tried. The churn burns teams out.
-
-So the framing shifts. This isn't "Git is broken for agents." It's something more fundamental: **Git has always been broken for code. Humans were just slow enough to work around it.** Agents expose the flaw that was always there. Version control that treats code as text was always the wrong abstraction. We tolerated it because at human velocity, the failure rate was manageable.
-
-## The collapse at scale
-
-Think about what Git actually assumes. One person. One machine. One local copy of the codebase. You work on it. You push it. Someone reviews it. That was elegant when the bottleneck was how fast a human could think and type.
-
-Now picture what I see every day. 100s of agents modifying the same codebase at the same time. You don't get "merge conflicts." You get chaos. **Branch-per-agent gives you thousands of divergent realities.** Filesystem locks are too blunt. And PR review? That's a single-threaded bottleneck choking a massively parallel system. The fastest engineer becomes the slowest reviewer. I've watched brilliant engineers spend their entire day reviewing agent-generated PRs instead of thinking about architecture and product. That's not engineering. That's bureaucracy.
-
-Here's the thing most people haven't internalized yet: **code is no longer something humans carefully craft and contemplate. Code is high-velocity data.** It should be stored, synchronized, and validated like data. Write atomicity, real-time subscriptions, conflict resolution, and continuous validation baked into the storage layer. Not bolted on through CI pipelines that run 20 minutes after the fact.
+**Git has always been broken for code. Humans were just slow enough to work around it.** Branch-per-agent gives you thousands of divergent realities. PR review becomes a single-threaded bottleneck choking a massively parallel system. **Code is no longer something humans carefully craft. Code is high-velocity data.** It should be stored and validated like data.
 
 If that sounds obvious, ask yourself: why is every tool in the market still built on top of Git?
 
-## The core idea
+## 14 foundational design decisions
 
-**Store code in a database, not a filesystem.**
-
-This is the core idea. Treat the codebase as a live, transactional, event-sourced data system. Not a tree of files synchronized through patches and diffs.
-
-Every write is a transaction. An agent acquires a fine-grained lock at the function level or block level, not the whole file, makes its change, and that change is immediately visible to every other agent. No more "push and pray." No more rebasing a 78-commit branch against a target that moved while you were working.
-
-Every mutation is replayable. This is the part that excites me most. Humans couldn't externalize their thought process while coding. They just wrote code and left a commit message. Agents can capture everything: the reasoning, the alternatives they considered, the context they consumed, the confidence level. Your version history stops being a flat diff log and becomes a complete decision graph. That was literally never possible before.
-
-Review happens continuously, not at a gate. Real-time validation (lint, format, type-check, test, security scan) runs on every single transaction. Not in some CI pipeline that fires 20 minutes later. Review shifts from "human sitting in the critical path" to "continuous automated validation with human oversight on the things that actually matter." Engineers stop being bottlenecks and start being governors.
-
-## The 9 Principles
-
-1. **Code is data, not files**: The codebase is a structured, queryable, transactional data store. Files are a projection, not the truth.
-2. **Write-level atomicity**: Every mutation is an atomic transaction with ACID guarantees. No partial states. No broken intermediaries.
-3. **Fine-grained coordination**: Lock at the function or symbol level, not the file. Agents negotiate access through the storage layer, not through merge resolution after the fact.
-4. **Real-time subscriptions**: When agent A modifies a function signature, agent B, working on a caller,  knows instantly and can adapt.
-5. **Continuous validation**: Lint, format, typecheck, test on every transaction. Not in a CI pipeline 20 minutes later.
-6. **Captured reasoning**: Every mutation carries the agent's intent, alternatives considered, context consumed, confidence level. The version history becomes a decision graph, not a diff log. This was never possible with humans.
-7. **Policy, not process**: Humans define rules. The system enforces them. Continuously. The human role shifts from reviewer to governor.
-8. **Full replayability**: Any codebase state, including the reasoning that produced it, can be reconstructed at any point. Time-travel debugging across the entire project history, including thought processes.
-9. **Human-legible views**: The underlying store is agent-optimized. Humans interact through projections: IDE plugins, dashboards, NL queries against the codebase.
-
-## What dies
-
-**The Branch.** Branching exists because workers are disconnected from each other. When all agents operate against a shared transactional store, you don't need branches for daily work. You might still branch for experimentation, like trying a radically different approach in isolation, but it stops being the default mode for getting anything done.
-
-**The Pull Request.** A PR is basically a batch review of accumulated work. When every mutation gets validated in real-time and the full reasoning chain is captured alongside it, the whole "request permission to merge" ceremony becomes unnecessary. Humans set the policies. The system enforces them. Done.
-
-**The Merge Conflict.** Conflicts exist because of disconnected state. Period. A transactional system with fine-grained locking and SSI resolves conflicts at write-time. Two agents editing the same function negotiate in real-time instead of discovering the problem three days later through a three-way diff.
-
-**The Local Checkout.** There is no "local." The codebase is a shared distributed store. Agents read and write directly. Humans interact through views (IDE integrations, dashboards, policy consoles) that project the live state. The mental model shifts from "I have my copy" to "I have my view."
-
-## Architecture
-
-A strawman stack, bottom to top.
-
-**Storage Layer.** A transactional database (Postgres, CockroachDB, or a purpose-built store) holding the codebase as structured data. Tables for files, symbols, dependencies, mutations. Every write is a transaction with row-level or finer locking. Event log (WAL-inspired) for full replayability.
-
-**Coordination Layer.** Manages agent sessions, lock acquisition, conflict detection, and real-time subscriptions. Implements SSI for concurrent access with semantic conflict detection. Pub/sub for codebase state change notifications. Think of it as a multiplayer engine for code.
-
-**Validation Layer.** Runs continuously on every committed transaction. Pluggable pipeline: parse, lint, format, typecheck, test, security. Invalid transactions are rejected or flagged. Replaces CI/CD for the inner loop entirely.
-
-**Reasoning Layer.** Captures and indexes agent intent, alternatives, context, and confidence alongside every mutation. Enables queries like "Why was this function rewritten?" or "Show me every change made with confidence below 0.7." This is what humans couldn't produce but agents can, and it's transformative for auditing and debugging.
-
-**Policy Layer.** Human-defined rules enforced at write-time. Architectural boundaries ("no direct DB calls from the API layer"), security policies, review thresholds ("changes to auth require human approval"), resource budgets. The governance plane for agentic codebases.
-
-**Projection Layer.** Translates the live data store into human-friendly views. IDE plugins that render the current state as a familiar file tree. Dashboards showing agent activity, validation status, policy compliance. Natural language interfaces for querying codebase history and intent.
-
-## Git vs. what comes next
-
-| Dimension | Git (2005-2025) | git4aiagents (2026+) |
-|---|---|---|
-| Storage | Filesystem + DAG of snapshots | Transactional database |
-| Unit of work | Commit (batch of diffs) | Transaction (atomic mutation) |
-| Coordination | Branch + merge | SSI + semantic dependency graph |
-| Conflict resolution | After the fact (merge/rebase) | At write-time (real-time) |
-| Validation | CI pipeline (minutes later) | Continuous (per-transaction) |
-| Review | Human gate (PR) | Continuous automated + policy |
-| History | Diff log + commit messages | Decision graph + reasoning traces |
-| Human role | Writer + reviewer | Governor + architect |
-| Optimized for | 1-20 humans | 10-1000 agents + humans |
-
-## Foundational design decisions
-
-These are the questions I went through before writing a single line of code. Every one of them affects the data model, and the data model is the one thing you can't change later without rebuilding everything. Get these wrong and you're starting from scratch.
+These are the questions I went through before writing a single line of code. Every one affects the data model, and the data model is the one thing you can't change later without rebuilding everything.
 
 ### 1. What is the unit of work?
 
-Git's "commit" is a snapshot of the entire repo at a point in time. That made sense when a human would spend 30 minutes making a coherent set of changes, write a message, and push. For agents, this is absurd. An agent might change one line in one function as part of a larger task, or refactor 40 files in 3 seconds. The commit granularity is either too coarse or too fine.
+Git's commit bundles a snapshot of the entire repo. For agents that might change one line or refactor 40 files in 3 seconds, the granularity is always wrong.
 
-**The answer is two units, not one.**
+**The answer is two units.** The **atomic unit** is the *semantic mutation*: a single meaningful change to a single semantic element. Not "line 47 changed" but "function `calculateTotal` signature changed from `(items: Item[]) -> int` to `(items: Item[], currency: Currency) -> Decimal`." Structural, not textual.
 
-The **atomic unit** is the *semantic mutation*. A single meaningful change to a single semantic element. "Changed the return type of `calculateTotal` from `int` to `Decimal`." "Added parameter `currency` to `formatPrice`." "Created new function `validateCurrency`." Each mutation is a node in a graph. It has a type (create, modify, delete, rename, move), a target (the semantic element, whether that's a function, type, interface, constant, or import), and a diff that's structural, not textual. You're not storing "line 47 changed from X to Y." You're storing "function `calculateTotal` signature changed from `(items: Item[]) -> int` to `(items: Item[], currency: Currency) -> Decimal`."
+The **logical unit** is the *task*: a DAG of semantic mutations that together accomplish something. "Implement multi-currency support" = 15 mutations across 8 files. Tasks are what agents get assigned, humans review, and the system rolls back.
 
-The **logical unit** is the *task*. A directed acyclic graph of semantic mutations that together accomplish something. "Implement multi-currency support" is a task composed of 15 mutations across 8 files. The task is what agents get assigned, what humans review, and what gets rolled back if something breaks. It's roughly analogous to a PR, but it's a first-class entity in the data model, not a diff between two branch tips.
+Why two levels: an agent's task might have 14 clean mutations and 1 conflicting one. Instead of rejecting the whole thing, the system pinpoints exactly which mutation conflicts. The agent fixes just that one.
 
-Why two levels matters: the system can accept or reject individual mutations based on semantic conflicts, while humans reason about tasks. An agent's task might have 14 clean mutations and 1 conflicting one. Instead of rejecting the whole "PR," the system pinpoints exactly which mutation conflicts and why. The agent can fix just that one.
+**What Git gets wrong:** "fixed the bug AND ran the linter AND renamed that variable" as one commit. Need to revert just the bug fix? Good luck. Here, those are three separate mutations, independently addressable.
 
-**The thing Git gets catastrophically wrong:** a commit bundles unrelated changes into one blob. Developers commit "fixed the bug AND ran the linter AND renamed that variable" as one unit. When you need to revert just the bug fix, good luck. In this system, those are three separate mutations inside one task, independently addressable.
-
-**Data model implication:** your storage isn't files and lines. It's a graph of semantic elements with mutation history on each node. A "function" node has a full history of every mutation, who (which agent) made it, why (linked to task + reasoning trace), and what it depends on. This is why database-native storage is the right call. You literally need graph queries and transactional semantics on this structure.
+**Data model implication:** storage isn't files and lines. It's a graph of semantic elements with mutation history on each node. This is why database-native storage is the right call. You literally need graph queries and transactional semantics on this structure.
 
 ### 2. What is the coordination model?
 
 **Serializable Snapshot Isolation (SSI) over a semantic dependency graph.**
 
-Here's how it actually works step by step:
+1. **Task assignment.** System computes the *likely impact zone* from the dependency graph. An estimate, not a lock.
+2. **Snapshot.** Agent gets a consistent snapshot of the impact zone + transitive dependencies. Cheap because you're querying a database, not cloning a repo.
+3. **Work.** Agent works independently against its snapshot. No coordination overhead.
+4. **Commit validation.** Three layers:
+   - **Structural conflict.** Did another agent modify the same semantic element? Hard conflict, first-writer-wins.
+   - **Interface contract.** Did any element I *depend on* change its interface? The dependency graph catches this instantly, no compile needed.
+   - **Behavioral validation.** Does the combined state pass targeted tests? Only tests covering the changed subgraph, not the full suite.
 
-**Step 1, Task assignment.** An agent gets a task ("add multi-currency support"). The system computes the *likely impact zone*, the set of semantic elements the agent will probably touch, based on the task description and the dependency graph. This is an estimate, not a lock.
+**Why not alternatives:** Locks serialize agents. CRDTs don't work because code merges aren't commutative (`addParameter(x)` and `removeFunction(x)` don't compose). OT misses semantic conflicts.
 
-**Step 2, Snapshot.** The agent gets a consistent snapshot of the impact zone plus its transitive dependencies. Not the whole repo, just the subgraph it needs. This is cheap because you're querying a database, not cloning a repo.
+**Throughput math:** 1000 semantic elements, 20 agents, ~10 elements per task = roughly 19% overlap chance per commit. Detection is O(edges) not O(codebase). Near-linear scaling until the dependency graph is so interconnected that impact zones all overlap. At that point you have an architecture problem, not a tooling problem.
 
-**Step 3, Work.** The agent works against its snapshot. It generates semantic mutations. No coordination overhead during this phase. The agent is fully independent.
-
-**Step 4, Commit validation.** When the agent submits its mutations, the system runs three-layer validation:
-
-- **Layer 1, Structural conflict.** Did another agent modify the same semantic element since our snapshot? If agent A and agent B both rewrote `calculateTotal`, that's a hard conflict. One wins (first-writer-wins or priority-based), the other gets rejected with full context of what changed.
-- **Layer 2, Interface contract.** Did any semantic element I *depend on* change its interface since my snapshot? If I'm calling `formatPrice(amount)` but another agent changed it to `formatPrice(amount, locale)`, my code is broken even though I never touched `formatPrice`. The dependency graph catches this instantly. No need to compile or run tests to detect it.
-- **Layer 3, Behavioral validation.** Does the combined state pass relevant tests? This is the expensive one. You can't run it on every mutation, so it runs on task completion or on a cadence. The key insight: because you have the dependency graph, you can run *targeted* tests. Only the tests that cover the changed subgraph and its dependents. Not the full suite.
-
-**Why this beats every alternative:**
-
-- Locks would serialize agents. If Agent A locks the "payments" module, agents B through F sit idle even though they're touching unrelated functions within that module.
-- CRDTs can't work because code merges aren't commutative. `addParameter(x)` and `removeFunction(x)` don't compose. Order matters, and semantic validity matters.
-- OT could work at the character level but you'd spend more compute resolving transforms than writing code, and you'd still miss semantic conflicts.
-
-**The throughput math:** if your system has 1000 semantic elements and 20 agents, and each agent's task touches about 10 elements on average, the probability of structural conflict on any given commit is low (roughly `(10/1000) * 19`, about 19% chance of touching at least one overlapping element). Interface conflicts are slightly more likely because of transitive dependencies, but the dependency graph makes detection O(edges) not O(codebase). You get near-linear scaling with agent count until the codebase's dependency graph becomes so interconnected that most agents' impact zones overlap. At that point you have an architecture problem, not a tooling problem.
-
-**Open question worth flagging:** what happens when Layer 1 rejects a mutation? The agent needs to redo work. If you're naive about this, you get livelock, two agents repeatedly conflicting and redoing. The fix is a combination of priority ordering (agent working on higher-priority task wins) and *impact zone advisories*, soft signals that say "heads up, Agent B is also working in this area." Not locks, but hints that let an agent's planner decide whether to wait or proceed optimistically.
+**Livelock risk:** when Layer 1 rejects a mutation, the agent redoes work. Two agents repeatedly conflicting = livelock. Fix: priority ordering (higher-priority task wins) + *impact zone advisories* (soft hints, not locks).
 
 ### 3. What is the consistency model?
 
-The knee-jerk answer is "strong consistency, obviously, code has to be correct." But that's wrong at the scale we're targeting.
+**Strong consistency within a dependency subgraph, eventual consistency across independent subgraphs.**
 
-**The right model: strong consistency within a dependency subgraph, eventual consistency across independent subgraphs.**
+If Agent A is on payments and Agent B is on onboarding with no shared dependencies, eventual consistency is fine. But if A changes a shared utility that B depends on, B needs to know *before it commits*. The dependency graph naturally partitions into clusters. Within a cluster, strong consistency. Across clusters, eventual consistency with conflict detection at commit time.
 
-Think of it this way. If Agent A is working on payments and Agent B is working on the onboarding flow, and those two subgraphs share no semantic dependencies, they don't need to see each other's changes in real-time. Eventual consistency is fine. They're working in effectively different codebases that happen to live in the same repo.
+**Shared utilities edge case:** `utils.ts` is a high-centrality node. Don't make it a single serialization point. Decompose at function-level granularity. `utils.formatDate` and `utils.formatCurrency` are independent elements.
 
-But if Agent A changes a shared utility function that Agent B depends on, Agent B needs to know *before it commits*, not after. Within connected components of the dependency graph, you need strong consistency. Specifically, you need the snapshot isolation guarantee that when B commits, the system checks whether B's dependencies have changed since B's snapshot.
-
-**This maps to a real database concept: partitioned consistency.** Your semantic dependency graph naturally partitions into clusters of tightly-coupled code (a module, a service, a feature area) connected by thinner edges (shared interfaces, common utilities). Within a cluster, strong consistency. Across clusters, eventual consistency with conflict detection at commit time.
-
-**The practical architecture:** each cluster has a serialization point (think of it as a lightweight transaction coordinator). Mutations within a cluster are serialized. Mutations across clusters are validated at commit time using the interface contract check from Layer 2. This gives you the throughput of eventual consistency (agents in different clusters never block each other) with the correctness of strong consistency (agents in the same cluster see each other's changes).
-
-**The tricky edge case: shared utilities.** Every codebase has a `utils.ts` or a `common` module that everything depends on. In the dependency graph, this is a high-centrality node, lots of things point to it. If you make this a single serialization point, it becomes a bottleneck. The fix: decompose shared utilities at a finer granularity in the semantic graph. `utils.formatDate` and `utils.formatCurrency` are independent semantic elements, not one "utils" module. Two agents can modify different utility functions concurrently because the graph tracks dependencies at the function level, not the file level.
-
-**The failure mode to design for:** an agent works for 5 minutes on a task, generates 20 mutations, and at commit time discovers that a dependency changed 4 minutes ago. 20 mutations of wasted work. The mitigation is *streaming validation*. As the agent works, the system continuously checks whether the agent's snapshot dependencies are still valid. If something changes, the agent gets an interrupt: "heads up, `formatPrice` signature just changed, here's the new interface." The agent can adapt mid-task instead of discovering the conflict at the end. This is a major advantage over Git where you only discover conflicts when you try to merge.
+**Streaming validation:** instead of discovering conflicts at commit time (wasting minutes of work), the system continuously checks snapshot dependencies. If something changes mid-task, the agent gets an interrupt and adapts. A major advantage over Git where you only discover conflicts at merge time.
 
 ### 4. What does the reasoning trace look like?
 
-This is the moat. And honestly, this is the part that got me most excited when I started thinking about all of this. Every other part of this system is hard engineering. The reasoning trace is the thing that makes it genuinely new. Code that knows *why* it exists.
+This is the moat. Code that knows *why* it exists.
 
-**The problem with "just store the LLM's reasoning":** an agent producing 100 mutations per minute, each with a paragraph of reasoning, generates gigabytes of unstructured text per day. Nobody will read it. It's unsearchable in any useful way. And most of it is noise.
+**Three tiers:**
 
-**The structure: three tiers.**
+**Tier 1, Structured metadata (always stored).** `intent`, `confidence`, `alternatives_considered`, `dependencies_read`, `constraints_applied`. About 200 bytes per mutation, ~288MB/day at scale. Trivial. This is your dashboard and audit trail.
 
-**Tier 1, Structured metadata (always stored, machine-readable).** Compact and queryable.
-- `intent`: enum like `implement_feature`, `fix_bug`, `refactor`, `optimize`, `adapt_to_dependency_change`
-- `task_id`: link to the parent task
-- `confidence`: float, how certain the agent was this was the right change
-- `alternatives_considered`: count of other approaches evaluated
-- `dependencies_read`: which semantic elements the agent examined before making this change
-- `constraints_applied`: which rules/policies/patterns influenced the decision
+**Tier 2, Structured rationale (non-trivial mutations only).** Why this approach, why not alternatives, explicit assumptions. ~100MB/day. What a human reads during review instead of guessing from a diff.
 
-**Tier 2, Structured rationale (stored for non-trivial mutations, human-readable but compact).**
-- `why_this_approach`: 1-2 sentences. "Used Decimal instead of float because currency arithmetic requires exact precision."
-- `why_not_alternatives`: 1-2 sentences per rejected alternative. "Considered BigNumber library but it adds 50KB to bundle size for a feature that only needs basic arithmetic."
-- `assumptions`: explicit list. "Assumes all currencies have exactly 2 decimal places. This is wrong for JPY and BHD, flagged as follow-up task."
+**Tier 3, Full reasoning dump (ephemeral, 7-day retention).** Raw LLM chain for forensics. ~49GB rolling. Cold storage.
 
-**Tier 3, Full reasoning dump (stored ephemerally, garbage-collected after N days).**
-- The raw LLM reasoning chain. Useful when something goes wrong and you need to understand the agent's full thought process. Not useful day-to-day.
-
-**Why three tiers:** Tier 1 is what the system queries. "Show me all mutations where an agent had confidence below 0.7." "Show me all mutations that were `adapt_to_dependency_change`, those are the ones most likely to be wrong." "Show me everything that read from `calculateTotal` in the last hour." This is your dashboard, your audit trail, your debugging surface.
-
-Tier 2 is what a human reads during review. Instead of reading a diff and guessing why the agent made a choice, the human reads a concise rationale. This is the thing that makes agent-written code actually reviewable.
-
-Tier 3 is your escape hatch for when things go really wrong and you need forensics.
-
-**Storage math:** Tier 1 is about 200 bytes per mutation. At 1000 mutations per minute across all agents, that's 200KB/min, roughly 12MB/hour, roughly 288MB/day. Trivial. Tier 2 is about 500 bytes per mutation but only stored for roughly 30% of mutations (trivial ones like import additions skip it). About 100MB/day. Still trivial. Tier 3 is about 5KB per mutation, stored for 7 days. Roughly 7GB/day, roughly 49GB rolling. Significant but manageable, and you can put it in cold storage.
-
-**The killer query this enables:** "Why does this function exist?" No human codebase can answer that today. You grep through commit messages, PR descriptions, Slack threads, Jira tickets. In this system, you traverse the reasoning trace: this function was created by Task X, because of reasoning Y, it depends on A and B, and its assumptions are C. That's transformative for onboarding, debugging, and refactoring.
+**The killer query:** "Why does this function exist?" Today you grep commit messages, PR descriptions, Slack, Jira. Here, you traverse the reasoning trace: created by Task X, because of reasoning Y, depends on A and B, assumptions are C.
 
 ### 5. How do humans interact?
 
-This is the one I feel most strongly about because I live it every single day. This is where most "AI-first" tools fail. They build for the machine and bolt on a human interface as an afterthought. But humans are the principal. Agents are the executors. The governance model has to be human-first.
+Most "AI-first" tools build for the machine and bolt on a human interface as an afterthought. Humans are the principal. Agents are the executors.
 
-**The mental model shift: humans don't review code. Humans set policy and review outcomes.**
+**Humans don't review code. Humans set policy and review outcomes.** At 1000+ mutations per minute, line-by-line review is dead. Humans operate at three levels:
 
-I've seen what happens when you try to keep humans in the review loop at agent scale, both in my own work and across teams everywhere I've been recently. People burn out. The review queue becomes a graveyard. Good engineers start spending 100% of their time reading agent-generated diffs instead of thinking about architecture, product, or strategy. That's not a workflow problem. That's a fundamental mismatch between the volume of work being produced and the capacity of human attention.
+**Level 1, Policy definition.** Machine-enforceable constraints checked on every mutation. "All API endpoints validate with Zod." "No changes to `auth` without human approval."
 
-At 1000+ mutations per minute, line-by-line code review is dead. A human can't review that volume and shouldn't try. Instead, humans operate at three levels:
+**Level 2, Task-level review.** Review completed tasks, not individual mutations. Presented as: semantic summary, reasoning traces, test results, confidence scores, assumptions.
 
-**Level 1, Policy definition.** Before any agent writes code, humans define constraints. "All API endpoints must validate input with Zod schemas." "No new dependencies over 100KB without approval." "The payments module must maintain 95% test coverage." "No changes to the `auth` module without human approval." These aren't code review comments. They're machine-enforceable rules that the system checks on every mutation.
+**Level 3, Anomaly-driven intervention.** System surfaces risk: low confidence, too many retries, architectural violations, cascading dependency changes. Humans jump in when flagged, not on a fixed cadence.
 
-**Level 2, Task-level review.** Humans review completed tasks, not individual mutations. A task like "implement multi-currency support" gets presented as: here's what changed (semantic summary, not a diff), here's why (aggregated reasoning traces), here are the test results, here are the confidence scores, here are the assumptions. The human approves the task, requests changes (which generates a new sub-task for an agent), or rejects it. This is the equivalent of PR review but at the right abstraction level.
+**The UI is not a diff viewer.** It's an air traffic control dashboard. Humans direct traffic, not read every line.
 
-**Level 3, Anomaly-driven intervention.** The system surfaces things that look wrong: mutations with low confidence scores, tasks that required unusually many retries (suggesting the agent was struggling), patterns that violate architectural principles even if they pass tests, clusters of `adapt_to_dependency_change` mutations (suggesting a cascading change that might be going off the rails). Humans jump in when the system flags risk, not on a fixed review cadence.
+### 6. What is the migration story?
 
-**The UI is not a diff viewer.** It's a dashboard that shows active tasks, agent utilization, conflict rates, test health, policy violations, and an attention queue of things that need human eyes. Think of it as an air traffic control screen, not a GitHub PR page. Humans are directing traffic, not reading every line.
+Every potential user has an existing Git repo. If this requires a clean-room start, adoption is dead.
 
-**The escalation model matters:** every policy should define what happens when it's violated. Some are hard blocks (auth module changes require human approval, agent literally cannot proceed). Some are soft warnings (dependency size exceeded, agent can proceed but it's flagged for review). Some are async (test coverage dipped below threshold, create a follow-up task to fix it, don't block the current task). Getting this granularity right is what makes the system usable instead of either too permissive or too rigid.
-
-### 6. What is the migration and interop story?
-
-You can't ignore this. Every potential user has an existing Git repo. If your system requires a clean-room start, adoption is dead.
-
-**The bridge:** the system needs to ingest from and export to Git. Not as a core abstraction, but as an I/O adapter. Import a Git repo, parse it into a semantic graph (tree-sitter + LSP give you the AST, you build the dependency graph from there). Export from the system, generate a conventional Git commit with a readable diff and a commit message synthesized from the reasoning traces. This means teams can adopt incrementally: agents work in the new system, but the "source of record" for compliance/legal/existing-CI purposes is still a Git repo that gets updated via the bridge.
-
-**The long-term play:** once teams see the benefit (semantic conflict detection, reasoning traces, task-level review) they stop looking at the Git export. It becomes an artifact for backward compatibility, like how companies still generate PDF invoices even though everything is digital. Eventually, the new system *is* the source of record.
+**The bridge:** ingest from and export to Git as an I/O adapter. Import via tree-sitter + LSP into semantic graph. Export as conventional Git commits with diffs and commit messages synthesized from reasoning traces. Teams adopt incrementally. Eventually, the new system *is* the source of record.
 
 ### 7. What is the failure and recovery model?
 
-In a system running at this velocity, things will go wrong constantly. Here's how to handle it.
+**Agent crash:** every mutation is individually recorded, so no "half-committed" state. Another agent picks up the task, reads existing mutations + reasoning traces, continues.
 
-**Agent-level failure:** an agent crashes mid-task. Because every mutation is individually recorded in the database, there's no "half-committed" state. The completed mutations are valid. The task is marked incomplete. Another agent can pick it up, read the existing mutations and reasoning traces, and continue from where it stopped. This is impossibly hard in Git. If a developer disappears mid-branch, someone else has to read the diff, reverse-engineer the intent, and finish the work.
+**Semantic regression:** system traces the causal chain from task to mutations to affected code paths. Rollback is targeted, not "revert the whole commit and the 5 after it."
 
-**Semantic regression:** an agent's changes pass all three validation layers but still cause a production issue. The system can identify the causal chain: this task introduced these mutations, which affected these semantic elements, which are exercised by these code paths. Rollback is targeted. Revert the specific mutations, not "revert the whole commit and also the 5 commits that came after it because Git made them all sequential."
+**Cascading failure:** Agent A's change gets rolled back after agents B, C, D adapted to it. The dependency graph detects orphaned downstream mutations immediately and flags them for re-evaluation.
 
-**Cascading failure:** Agent A makes a change, agents B, C, and D adapt to it, and then A's change is rolled back. Now B, C, and D's adaptations are orphaned. They're adapting to something that no longer exists. The dependency graph detects this immediately: A's rollback invalidates downstream mutations that have `adapt_to_dependency_change` intent linked to A's mutation. Those get flagged for re-evaluation automatically.
+In Git, rollback is "reverse the diff." Here, rollback is "undo this decision and everything downstream of it."
 
-**The key insight:** all of this recovery logic is only possible because you stored the semantic graph and reasoning traces. In Git, rollback is "reverse the diff." In this system, rollback is "undo this decision and everything downstream of it." That's the difference between text-aware and semantics-aware version control.
+### 8. What is the identity and trust model?
 
+In Git, every commit is signed by a human with a GPG key. In this system, "claude-code-7a3f" made a change. Who controls that agent? What permissions does it have?
 
-These seven questions form the design spec. Get alignment on these before writing code, because every single one of them affects the data model, and the data model is the one thing you can't change later without rebuilding everything.
+**Three layers:**
 
-## Open questions (where we still need help)
+**Agent registration.** Every agent gets a cryptographic identity. Every mutation is signed. You can prove which agent instance produced every change. This matters for audit, compliance, and debugging.
+
+**Capability scoping.** An agent doesn't get blanket write access. It gets a capability token per task: "you can write to /payments/*, read but not write /auth/*, cannot access /infrastructure/ at all." An agent working on "add multi-currency support" has no business touching the auth module. Capability scoping bounds the blast radius of a confused agent.
+
+**Trust scoring.** The system builds a track record for each agent. Agents whose mutations pass validation, whose confidence scores correlate with quality, and whose changes rarely get rolled back earn higher trust. Low-trust agents get tighter scopes and lower conflict priority. This evolves automatically from the data.
+
+### 9. What is the semantic parsing model?
+
+The unit of work is a "semantic mutation" on a "semantic element." But how does the system know what the semantic elements are?
+
+**tree-sitter for block-level parsing.** You don't need a full AST. You need to identify blocks (functions, classes, top-level declarations) and their boundaries. tree-sitter does this in milliseconds, supports 100+ languages, and gives you a uniform representation. The system stores a block index (which blocks exist, their type, name, byte range, dependencies) and block content (raw text, versioned). Mutations are "block X changed from content A to content B." Coordination operates at block level.
+
+**Agent-declared scopes as supplementary signal.** Agents already know the semantic scope of their mutations ("I'm modifying function `calculateTotal`"). The system uses this declaration, verified against the actual diff at commit time.
+
+**POC path:** agent-declared scopes + tree-sitter verification. For production: tree-sitter as primary, agent declarations as metadata.
+
+### 10. What is the dependency graph model?
+
+The coordination model (Q2) and consistency model (Q3) both depend on a dependency graph. How is it built?
+
+**Multi-signal dependency inference:**
+- **Explicit imports.** If file A imports from file B, A depends on B. Catches 80% of dependencies.
+- **Symbol references.** Function X calls function Y, extracted via tree-sitter.
+- **Agent-declared dependencies.** When an agent reads a block before mutating, it declares the read. Stored in the reasoning trace.
+- **Test coverage mapping.** If test T exercises blocks X and Y, they're behaviorally coupled. Changes to X should re-validate Y.
+
+The graph is append-only and probabilistic. False positives cause harmless re-validation. False negatives are caught by behavioral validation (tests). A large codebase (100K elements, 500K edges) fits in memory. Graph queries are milliseconds.
+
+### 11. What is the task decomposition model?
+
+Who creates tasks? How are they decomposed? How are they assigned?
+
+**Human creates a high-level objective.** "Add multi-currency support to checkout."
+
+**Planner agent decomposes into a task DAG.** Reads the objective, analyzes the codebase via semantic + dependency graphs, produces ordered tasks with dependencies. Tasks 1 and 4 might run in parallel. Task 3 waits for Task 2. This is where the 1000x efficiency comes from: all independent tasks run in parallel, with agents picking up work the instant dependencies are satisfied.
+
+**The planner is the most underrated component.** A bad planner creates tasks that are too large (high conflict probability), too small (coordination overhead exceeds benefit), or poorly decomposed (circular dependencies, missing steps).
+
+**POC path:** human defines tasks manually. The system's value is still demonstrated by parallel execution, conflict resolution, and reasoning traces.
+
+### 12. What is the observability model?
+
+At 1000+ mutations per minute, you need to know what's happening without drowning in data.
+
+**Three surfaces:**
+- **System health (for operators).** Agent count, mutation rate, conflict rate, validation pass rate, lock contention, latency. Alert on anomalies.
+- **Task progress (for stakeholders).** Task DAG visualization, completion status, confidence scores. Non-technical humans can understand it.
+- **Decision audit (for debugging).** Full reasoning graph traversal. Why does the code look like this? The forensic view.
+
+**Event streaming, not polling.** Every mutation emits an event. Dashboard, agents, and observability all subscribe to the same event bus.
+
+### 13. What is the testing model?
+
+In Git, testing is external (push, CI runs, wait). Here, testing is internal, part of the mutation commit pipeline.
+
+**Three tiers:**
+- **Syntactic validation (every mutation, <100ms).** Does it parse? Pass lint? tree-sitter + linters. Reject before commit.
+- **Targeted unit tests (every task completion, <30s).** Only tests covering affected blocks via test coverage mapping. Not the full suite.
+- **Integration tests (periodic, minutes).** Full suite on a cadence. Results identify which recent tasks touched failing code paths.
+
+**Testing is a resource allocation problem.** Finite compute, so prioritize high-risk changes: low confidence scores, high dependency count, critical modules, low-trust agents.
+
+### 14. What is the versioning and release model?
+
+Git has tags and branches for releases. What's the equivalent in a continuous, branchless system?
+
+**Named snapshots with semantic guarantees.** A "release" is a point-in-time snapshot of the semantic graph where all tests pass, no policy violations, no open flags. The system computes this automatically.
+
+**Environments as snapshot pointers.** Production runs snapshot X. Staging runs the latest validated snapshot. Promoting is moving a pointer, not deploying code.
+
+**Rollback is pointer movement + targeted mutation reversal.** And every release carries full provenance: which tasks, which agents, what reasoning, what tests validated it. "What's in this release and why" is a single query.
+
+## Summary
+
+| # | Question | Core decision |
+|---|---|---|
+| 1 | Unit of work | Semantic mutation + task DAG |
+| 2 | Coordination | SSI over dependency graph |
+| 3 | Consistency | Strong within clusters, eventual across |
+| 4 | Reasoning trace | 3-tier: metadata, rationale, full dump |
+| 5 | Human interaction | Policy + task review + anomaly intervention |
+| 6 | Migration | Git bridge: import/export adapter |
+| 7 | Failure recovery | Dependency-aware targeted rollback |
+| 8 | Identity and trust | Crypto identity + capability scoping + trust scoring |
+| 9 | Semantic parsing | tree-sitter blocks + agent declarations |
+| 10 | Dependency graph | Multi-signal: imports, refs, agent behavior, tests |
+| 11 | Task decomposition | Planner agent + scheduler + task DAG |
+| 12 | Observability | Event streaming to 3 surfaces |
+| 13 | Testing | 3-tier: syntactic, targeted unit, integration |
+| 14 | Versioning | Named snapshots with semantic guarantees |
+
+Questions 1-7 define the core data model. Questions 8-14 define the operational model that makes it usable at scale. For the POC, you need solid answers to 1, 2, 4, 9, and 12. Everything else can be stubbed or deferred.
+
+## Open questions
 
 - How do cross-repo dependencies work in a database-native model?
 - How do you preserve offline work and forking, the things that made Git great for open source?
 - What's the right garbage collection policy for Tier 3 reasoning traces?
-- How do you handle the livelock problem at scale beyond priority ordering and impact zone advisories?
+- How do you handle livelock at scale beyond priority ordering and impact zone advisories?
 - What does testing look like when the test suite itself is being modified by agents concurrently?
 
 ## How to contribute
 
 I need people who have felt this pain to help shape the solution.
 
-- **Challenge the premises**: Open an issue arguing why Git is actually fine. Seriously. Steelman it. If I'm wrong, I want to know now.
-- **Extend the architecture**: Submit proposals for specific layers. The Reasoning Layer especially needs deeper thinking.
-- **Build prototypes**: A working POC of any single layer would be incredibly valuable. Code talks louder than manifestos.
-- **Share war stories**: How is agent-scale code actually breaking your workflow today? Real examples from real teams are worth more than theory.
+- **Challenge the premises**: Steelman Git. If I'm wrong, I want to know now.
+- **Build prototypes**: A working POC of any single layer would be incredibly valuable.
+- **Share war stories**: How is agent-scale code breaking your workflow today?
 
 ## License
 

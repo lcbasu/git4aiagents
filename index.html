@@ -731,67 +731,22 @@
   </div>
 </section>
 
-<!-- ══ EPOCH: THE COLLAPSE ══ -->
-<section class="epoch reveal">
-  <div class="epoch-label">cat 02_the_collapse.md</div>
-  <div class="epoch-content">
-    <h2>The filesystem is a <em>terrible primitive</em> for agentic code</h2>
-    <div data-content="collapse"></div>
-  </div>
-</section>
-
-<!-- ══ EPOCH: THE THESIS ══ -->
-<section class="epoch reveal">
-  <div class="epoch-label">cat 03_the_thesis.md</div>
-  <div class="epoch-content">
-    <h2>Store code in a <em>database,</em> not a filesystem</h2>
-    <div data-content="core-idea"></div>
-  </div>
-</section>
-
-<!-- ══ EPOCH: WHAT DIES ══ -->
-<section class="epoch reveal">
-  <div class="epoch-label">cat 04_what_dies.md</div>
-  <div class="epoch-content">
-    <h2>Concepts that <em>don't survive</em> the transition</h2>
-    <div data-content="what-dies"></div>
-  </div>
-</section>
-
-<!-- ══ PRINCIPLES ══ -->
-<section class="principles reveal">
-  <div class="principles-header">
-    <div class="epoch-label">cat 05_principles.md</div>
-    <h2>The 9 principles of agent-native version control</h2>
-  </div>
-  <div class="principle-grid" data-content="principles"></div>
-</section>
-
-<!-- ══ ARCHITECTURE ══ -->
-<section class="architecture reveal">
-  <div class="arch-header">
-    <div class="epoch-label">cat 06_architecture.md</div>
-    <h2>A strawman stack</h2>
-  </div>
-  <div data-content="architecture"></div>
-</section>
-
-<!-- ══ COMPARISON ══ -->
-<section class="compare reveal">
-  <div class="compare-header">
-    <div class="epoch-label">diff git vs git4aiagents</div>
-    <h2>Git vs. what comes next</h2>
-  </div>
-  <div data-content="comparison"></div>
-</section>
-
 <!-- ══ DESIGN DECISIONS ══ -->
 <section class="design reveal">
   <div class="design-header">
-    <div class="epoch-label">cat 08_design.md</div>
-    <h2>Seven foundational <em>decisions</em> I made before writing a single line of code</h2>
+    <div class="epoch-label">cat design_decisions.md</div>
+    <h2>14 foundational <em>decisions</em></h2>
   </div>
   <div data-content="design-decisions"></div>
+</section>
+
+<!-- ══ SUMMARY ══ -->
+<section class="compare reveal">
+  <div class="compare-header">
+    <div class="epoch-label">cat summary.md</div>
+    <h2>The 14 questions at a glance</h2>
+  </div>
+  <div data-content="summary"></div>
 </section>
 
 <!-- ══ CTA ══ -->
@@ -838,72 +793,27 @@
 
   // Narrative sections
   const narrativeMap = {
-    'The real problem (it\'s not just agents)': 'real-problem',
-    'The collapse at scale': 'collapse',
-    'The core idea': 'core-idea',
-    'What dies': 'what-dies',
+    'The real problem': 'real-problem',
   };
 
   for (const [heading, id] of Object.entries(narrativeMap)) {
     const el = document.querySelector(`[data-content="${id}"]`);
     if (el && sections[heading]) {
-      let content = sections[heading];
-      if (heading === 'The core idea') {
-        content = content.replace(/^\*\*.*?\*\*\s*\n*/, '');
-      }
-      el.innerHTML = md(content);
+      el.innerHTML = md(sections[heading]);
     }
   }
 
-  // Principles
-  const principlesEl = document.querySelector('[data-content="principles"]');
-  if (principlesEl && sections['The 9 Principles']) {
-    const items = sections['The 9 Principles'].match(/\d+\.\s+\*\*(.+?)\*\*:?\s*(.+)/g);
-    if (items) {
-      principlesEl.innerHTML = items.map((item, i) => {
-        const m = item.match(/\d+\.\s+\*\*(.+?)\*\*:?\s*(.+)/);
-        if (!m) return '';
-        return `<div class="principle">
-          <div class="principle-num">${String(i + 1).padStart(2, '0')}</div>
-          <h3>${m[1]}</h3>
-          <p>${m[2]}</p>
-        </div>`;
-      }).join('');
-    }
-  }
-
-  // Architecture
-  const archEl = document.querySelector('[data-content="architecture"]');
-  if (archEl && sections['Architecture']) {
-    const content = sections['Architecture'];
-    const blocks = content.split(/\*\*(.+?)\.\*\*\s*/);
-    let html = '';
-    for (let i = 1; i < blocks.length; i += 2) {
-      const name = blocks[i];
-      const desc = (blocks[i + 1] || '').split('\n\n')[0].trim();
-      html += `<div class="arch-layer">
-        <div class="arch-layer-name">${name}</div>
-        <div class="arch-layer-desc">${desc}</div>
-      </div>`;
-    }
-    archEl.innerHTML = html;
-  }
-
-  // Comparison
-  const compareEl = document.querySelector('[data-content="comparison"]');
-  if (compareEl && sections['Git vs. what comes next']) {
-    compareEl.innerHTML = md(sections['Git vs. what comes next']);
-  }
-
-  // Design decisions
+  // Design decisions (14 questions)
   const designEl = document.querySelector('[data-content="design-decisions"]');
-  if (designEl && sections['Foundational design decisions']) {
-    const content = sections['Foundational design decisions'];
+  if (designEl && sections['14 foundational design decisions']) {
+    const content = sections['14 foundational design decisions'];
     const subParts = content.split(/^### /gm);
     const intro = subParts[0].trim();
     const labels = [
       'Unit of Work', 'Coordination', 'Consistency',
-      'Reasoning Traces', 'Human Interaction', 'Migration', 'Recovery'
+      'Reasoning Traces', 'Human Interaction', 'Migration', 'Recovery',
+      'Identity & Trust', 'Semantic Parsing', 'Dependency Graph',
+      'Task Decomposition', 'Observability', 'Testing', 'Versioning'
     ];
 
     let html = '';
@@ -926,6 +836,12 @@
       </div>`;
     }
     designEl.innerHTML = html;
+  }
+
+  // Summary table
+  const summaryEl = document.querySelector('[data-content="summary"]');
+  if (summaryEl && sections['Summary']) {
+    summaryEl.innerHTML = md(sections['Summary']);
   }
 
   // Reveal animations
