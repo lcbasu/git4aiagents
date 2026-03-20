@@ -6,31 +6,49 @@
 
 ## Why this exists
 
-Everyone nowadays run engineering teams where agents now write more code than my engineers. The old workflow of -> checkout, branch, push, PR, wait for review, rebase, pray was designed for human speed. It's breaking right now.
+I hit this problem firsthand while building an open source agentic operating system. Eight repos, multiple Claude Code instances running in parallel, all building the product at the same time. I spent more time resolving git conflicts and managing PR merges than I did on actual architecture decisions. The same pattern shows up everywhere I look. Teams across every place I've worked at recently are dealing with the exact same thing: agents writing code faster than humans can review it.
 
-PR review is already the bottleneck for any high-output team. A filesystem checkout is a terrible primitive when you have hundreds of agents writing code in parallel. Code has become high-velocity data, and we're still storing and synchronizing it like it's 2005.
+Right now, most teams use tools like Kiro and Claude Code where a human prompts the agent and reviews what it produces. That's already creating problems. But here's what keeps me up at night: these agents are becoming autonomous. They will plan, write, test, and ship code without waiting for a human to type a prompt each time. That transition is not theoretical. It's happening right now.
+
+The old workflow (checkout, branch, push, PR, wait for review, rebase, pray) was built for human speed. At machine speed, it doesn't slow down gracefully. It shatters. The review bottleneck alone creates so much churn that I had to step back and ask a much more basic question: what if the problem isn't the workflow? What if the problem is Git itself?
 
 Someone has to start writing down what comes after Git. This is that attempt. Probably wrong about some things. But the conversation needs to start.
 
 ## The real problem (it's not just agents)
 
+Here's what made me realize this goes way deeper than "Git doesn't work for agents."
+
 Agents didn't create this problem. They just made it impossible to ignore.
 
-Every developer has lived this: you open a PR, CI is green, no merge conflicts, you merge confidently, and you break production. Because someone else's PR, also green, also conflict-free, changed a function signature or shifted what a return value means in something you depend on. Git told you everything was fine because **Git checks lines, not meaning.**
+Every developer has lived this. You open a PR. CI is green. No merge conflicts. You merge confidently. And you break production. Because someone else's PR, also green, also conflict-free, changed a function signature or shifted what a return value means in something you depend on. Git told you everything was fine because **Git checks lines, not meaning.**
 
-Look at the whole ecosystem of band-aids we've built. CI pipelines, required status checks, "rebase on main before merge" policies, integration branches, merge queues. All of these exist because Git's merge model is semantically blind and everyone knows it. We've just normalized the pain. When a senior dev "knows" which files to check after a merge, that's a human doing semantic dependency resolution in their head because the tool won't do it.
+Take a step back and look at the whole ecosystem of band-aids we've built around this one flaw. CI pipelines. Required status checks. "Rebase on main before merge" policies. Integration branches. Merge queues. Every single one of these exists because Git's merge model is semantically blind and everyone knows it. We've just normalized the pain. When a senior dev "knows" which files to check after a merge, that's a human doing semantic dependency resolution in their head because the tool refuses to do it.
 
-The difference with agents is purely scale. A human team merges maybe 5-10 PRs a day, and the odds of a semantic collision are low enough that CI catches most of it. When 20 agents are committing every few minutes, the combinatorial explosion of potential semantic conflicts makes the band-aid approach collapse. You can't run full CI on every commit at that velocity, and you can't have a human reviewer eyeballing each merge for subtle dependency breaks.
+The difference with agents is purely scale. A human team merges maybe 5-10 PRs a day, and the odds of a semantic collision are low enough that CI catches most of it. But when 20 agents are committing every few minutes, the combinatorial explosion of potential semantic conflicts makes the band-aid approach fall apart. You can't run full CI on every commit at that velocity. And you definitely can't have a human reviewer eyeballing each merge for subtle dependency breaks. I've tried. The churn burns teams out.
 
 So the framing shifts. This isn't "Git is broken for agents." It's something more fundamental: **Git has always been broken for code. Humans were just slow enough to work around it.** Agents expose the flaw that was always there. Version control that treats code as text was always the wrong abstraction. We tolerated it because at human velocity, the failure rate was manageable.
+
+## The collapse at scale
+
+Think about what Git actually assumes. One person. One machine. One local copy of the codebase. You work on it. You push it. Someone reviews it. That was elegant when the bottleneck was how fast a human could think and type.
+
+Now picture what I see every day. Dozens of agents modifying the same codebase at the same time. You don't get "merge conflicts." You get chaos. **Branch-per-agent gives you thousands of divergent realities.** Filesystem locks are too blunt. And PR review? That's a single-threaded bottleneck choking a massively parallel system. The fastest engineer becomes the slowest reviewer. I've watched brilliant engineers spend their entire day reviewing agent-generated PRs instead of thinking about architecture and product. That's not engineering. That's bureaucracy.
+
+Here's the thing most people haven't internalized yet: **code is no longer something humans carefully craft and contemplate. Code is high-velocity data.** It should be stored, synchronized, and validated like data. Write atomicity, real-time subscriptions, conflict resolution, and continuous validation baked into the storage layer. Not bolted on through CI pipelines that run 20 minutes after the fact.
+
+If that sounds obvious, ask yourself: why is every tool in the market still built on top of Git?
 
 ## The core idea
 
 **Store code in a database, not a filesystem.**
 
-Treat the codebase as a live, transactional, event-sourced data system. Not a tree of files synchronized through patches and diffs.
+This is the core idea. Treat the codebase as a live, transactional, event-sourced data system. Not a tree of files synchronized through patches and diffs.
 
-Every write is a transaction. Agents acquire fine-grained locks at the function or block level and not the whole file. Changes are immediately visible to every other agent. No more rebasing a 78-commit branch against a target that moved while you were working.
+Every write is a transaction. An agent acquires a fine-grained lock at the function level or block level, not the whole file, makes its change, and that change is immediately visible to every other agent. No more "push and pray." No more rebasing a 78-commit branch against a target that moved while you were working.
+
+Every mutation is replayable. This is the part that excites me most. Humans couldn't externalize their thought process while coding. They just wrote code and left a commit message. Agents can capture everything: the reasoning, the alternatives they considered, the context they consumed, the confidence level. Your version history stops being a flat diff log and becomes a complete decision graph. That was literally never possible before.
+
+Review happens continuously, not at a gate. Real-time validation (lint, format, type-check, test, security scan) runs on every single transaction. Not in some CI pipeline that fires 20 minutes later. Review shifts from "human sitting in the critical path" to "continuous automated validation with human oversight on the things that actually matter." Engineers stop being bottlenecks and start being governors.
 
 ## The 9 Principles
 
@@ -87,7 +105,7 @@ Every write is a transaction. Agents acquire fine-grained locks at the function 
 
 ## Foundational design decisions
 
-These are the questions you have to get right before writing a single line of code. Get them wrong and you're rebuilding from scratch.
+These are the questions I went through before writing a single line of code. Every one of them affects the data model, and the data model is the one thing you can't change later without rebuilding everything. Get these wrong and you're starting from scratch.
 
 ### 1. What is the unit of work?
 
@@ -153,7 +171,7 @@ But if Agent A changes a shared utility function that Agent B depends on, Agent 
 
 ### 4. What does the reasoning trace look like?
 
-This is the moat. Every other part of this system is hard engineering. The reasoning trace is the thing that makes this genuinely new. Code that knows *why* it exists.
+This is the moat. And honestly, this is the part that got me most excited when I started thinking about all of this. Every other part of this system is hard engineering. The reasoning trace is the thing that makes it genuinely new. Code that knows *why* it exists.
 
 **The problem with "just store the LLM's reasoning":** an agent producing 100 mutations per minute, each with a paragraph of reasoning, generates gigabytes of unstructured text per day. Nobody will read it. It's unsearchable in any useful way. And most of it is noise.
 
@@ -187,9 +205,11 @@ Tier 3 is your escape hatch for when things go really wrong and you need forensi
 
 ### 5. How do humans interact?
 
-This is where most "AI-first" tools fail. They build for the machine and bolt on a human interface as an afterthought. But humans are the principal. Agents are the executors. The governance model has to be human-first.
+This is the one I feel most strongly about because I live it every single day. This is where most "AI-first" tools fail. They build for the machine and bolt on a human interface as an afterthought. But humans are the principal. Agents are the executors. The governance model has to be human-first.
 
 **The mental model shift: humans don't review code. Humans set policy and review outcomes.**
+
+I've seen what happens when you try to keep humans in the review loop at agent scale, both in my own work and across teams everywhere I've been recently. People burn out. The review queue becomes a graveyard. Good engineers start spending 100% of their time reading agent-generated diffs instead of thinking about architecture, product, or strategy. That's not a workflow problem. That's a fundamental mismatch between the volume of work being produced and the capacity of human attention.
 
 At 1000+ mutations per minute, line-by-line code review is dead. A human can't review that volume and shouldn't try. Instead, humans operate at three levels:
 
@@ -237,10 +257,12 @@ These seven questions form the design spec. Get alignment on these before writin
 
 ## How to contribute
 
-- **Challenge the premises**: Open an issue arguing why Git is actually fine. Seriously. Steelman it.
+I need people who have felt this pain to help shape the solution.
+
+- **Challenge the premises**: Open an issue arguing why Git is actually fine. Seriously. Steelman it. If I'm wrong, I want to know now.
 - **Extend the architecture**: Submit proposals for specific layers. The Reasoning Layer especially needs deeper thinking.
-- **Build prototypes**: A POC of any single layer would be incredibly valuable.
-- **Share war stories**: How is agent-scale code actually breaking your workflow today? Real examples > theory.
+- **Build prototypes**: A working POC of any single layer would be incredibly valuable. Code talks louder than manifestos.
+- **Share war stories**: How is agent-scale code actually breaking your workflow today? Real examples from real teams are worth more than theory.
 
 ## License
 
