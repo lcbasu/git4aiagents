@@ -16,13 +16,13 @@ Someone has to start writing down what comes after Git. This is that attempt. Pr
 
 Agents didn't create this problem. They just made it impossible to ignore.
 
-Every developer has lived this: you open a PR, CI is green, no merge conflicts, you merge confidently — and you break production. Because someone else's PR, also green, also conflict-free, changed a function signature or shifted what a return value means in something you depend on. Git told you everything was fine because **Git checks lines, not meaning.**
+Every developer has lived this: you open a PR, CI is green, no merge conflicts, you merge confidently, and you break production. Because someone else's PR, also green, also conflict-free, changed a function signature or shifted what a return value means in something you depend on. Git told you everything was fine because **Git checks lines, not meaning.**
 
-Look at the whole ecosystem of band-aids we've built. CI pipelines, required status checks, "rebase on main before merge" policies, integration branches, merge queues — all of these exist because Git's merge model is semantically blind and everyone knows it. We've just normalized the pain. When a senior dev "knows" which files to check after a merge, that's a human doing semantic dependency resolution in their head because the tool won't do it.
+Look at the whole ecosystem of band-aids we've built. CI pipelines, required status checks, "rebase on main before merge" policies, integration branches, merge queues. All of these exist because Git's merge model is semantically blind and everyone knows it. We've just normalized the pain. When a senior dev "knows" which files to check after a merge, that's a human doing semantic dependency resolution in their head because the tool won't do it.
 
-The difference with agents is purely scale. A human team merges maybe 5–10 PRs a day, and the odds of a semantic collision are low enough that CI catches most of it. When 20 agents are committing every few minutes, the combinatorial explosion of potential semantic conflicts makes the band-aid approach collapse. You can't run full CI on every commit at that velocity, and you can't have a human reviewer eyeballing each merge for subtle dependency breaks.
+The difference with agents is purely scale. A human team merges maybe 5-10 PRs a day, and the odds of a semantic collision are low enough that CI catches most of it. When 20 agents are committing every few minutes, the combinatorial explosion of potential semantic conflicts makes the band-aid approach collapse. You can't run full CI on every commit at that velocity, and you can't have a human reviewer eyeballing each merge for subtle dependency breaks.
 
-So the framing shifts. This isn't "Git is broken for agents." It's something more fundamental: **Git has always been broken for code. Humans were just slow enough to work around it.** Agents expose the flaw that was always there — version control that treats code as text was always the wrong abstraction. We tolerated it because at human velocity, the failure rate was manageable.
+So the framing shifts. This isn't "Git is broken for agents." It's something more fundamental: **Git has always been broken for code. Humans were just slow enough to work around it.** Agents expose the flaw that was always there. Version control that treats code as text was always the wrong abstraction. We tolerated it because at human velocity, the failure rate was manageable.
 
 ## The core idea
 
