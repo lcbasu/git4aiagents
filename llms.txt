@@ -1,0 +1,19 @@
+# git4aiagents
+
+> Git was designed for humans. Agents need something fundamentally different.
+
+git4aiagents is an open manifesto and design spec for agent-native version control. It argues that Git's merge model is semantically blind (it checks lines, not meaning) and that this flaw, tolerable at human speed, collapses at agent speed where 100s of agents commit to the same repo every few minutes.
+
+The manifesto proposes replacing Git with a transactional, database-native system built around semantic mutations (not commits), task DAGs (not branches), and reasoning traces (not commit messages). It answers 14 foundational design questions covering the unit of work, coordination model, consistency, reasoning traces, human interaction, migration from Git, failure recovery, agent identity and trust, semantic parsing, dependency tracking, task decomposition, observability, testing, and versioning.
+
+Key technical decisions:
+- Serializable Snapshot Isolation (SSI) over a semantic dependency graph for coordination
+- Three-tier reasoning traces (structured metadata, rationale, full LLM dump)
+- tree-sitter for cross-language semantic parsing
+- Policy-based human governance instead of line-by-line code review
+- Git bridge for incremental migration
+
+Website: https://www.git4aiagents.com/
+GitHub: https://github.com/lcbasu/git4aiagents
+Author: Lokesh Basu (@lcbasu)
+License: CC-BY-4.0

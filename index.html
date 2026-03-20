@@ -3,33 +3,212 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>git4aiagents: The Post-Git Manifesto</title>
+<title>git4aiagents: Why Git Breaks at Agent Scale and What Replaces It</title>
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <link rel="apple-touch-icon" href="logo.svg">
+<link rel="canonical" href="https://www.git4aiagents.com/">
 
-<!-- Open Graph / Social Sharing -->
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://lcbasu.github.io/git4aiagents/">
-<meta property="og:title" content="git4aiagents: The Post-Git Manifesto">
-<meta property="og:description" content="Git was for humans. Agents need a transactional database, not a filesystem. 9 principles for agent-native version control.">
-<meta property="og:image" content="https://lcbasu.github.io/git4aiagents/og-image.png">
+<!-- Open Graph -->
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://www.git4aiagents.com/">
+<meta property="og:title" content="git4aiagents: Git Was Designed for Humans. Agents Need Something Fundamentally Different.">
+<meta property="og:description" content="Git checks lines, not meaning. At human speed that was fine. At agent speed it collapses. 14 foundational design decisions for agent-native version control.">
+<meta property="og:image" content="https://www.git4aiagents.com/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:site_name" content="git4aiagents">
+<meta property="article:author" content="https://twitter.com/lcbasu">
+<meta property="article:published_time" content="2026-03-01">
+<meta property="article:modified_time" content="2026-03-20">
+<meta property="article:tag" content="version control">
+<meta property="article:tag" content="AI agents">
+<meta property="article:tag" content="developer tools">
+<meta property="article:tag" content="Git alternative">
+<meta property="article:tag" content="agentic coding">
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="git4aiagents: The Post-Git Manifesto">
-<meta name="twitter:description" content="Git was for humans. Agents need a transactional database, not a filesystem. 9 principles for agent-native version control.">
-<meta name="twitter:image" content="https://lcbasu.github.io/git4aiagents/og-image.png">
+<meta name="twitter:site" content="@lcbasu">
 <meta name="twitter:creator" content="@lcbasu">
+<meta name="twitter:title" content="git4aiagents: Git Was Designed for Humans. Agents Need Something Else.">
+<meta name="twitter:description" content="Git checks lines, not meaning. At human speed that was fine. At agent speed it collapses. 14 design decisions for what comes after Git.">
+<meta name="twitter:image" content="https://www.git4aiagents.com/og-image.png">
 
 <!-- General Meta -->
-<meta name="description" content="Git was for humans. Agents need a transactional database, not a filesystem. 9 principles for agent-native version control.">
+<meta name="description" content="Git checks lines, not meaning. At human speed that was fine. At agent speed it collapses. An open manifesto with 14 foundational design decisions for agent-native version control that replaces branches, PRs, and merge conflicts with semantic mutations, task DAGs, and reasoning traces.">
+<meta name="keywords" content="git alternative, AI agents, version control, agentic coding, semantic version control, agent-native, developer tools, post-git, git4aiagents, AI code review, merge conflicts, LLM agents, autonomous coding, Claude Code, Kiro, agentic operating system">
 <meta name="author" content="Lokesh Basu">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<meta name="theme-color" content="#0c0c0c">
+<link rel="alternate" type="application/json" href="https://www.git4aiagents.com/llms.txt">
+
+<!-- JSON-LD Structured Data: WebSite -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "git4aiagents",
+  "url": "https://www.git4aiagents.com",
+  "description": "An open manifesto for agent-native version control. 14 foundational design decisions for what comes after Git.",
+  "author": {
+    "@type": "Person",
+    "name": "Lokesh Basu",
+    "url": "https://twitter.com/lcbasu"
+  }
+}
+</script>
+
+<!-- JSON-LD Structured Data: Article -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "git4aiagents: Git Was Designed for Humans. Agents Need Something Fundamentally Different.",
+  "description": "Git checks lines, not meaning. At human speed that was fine. At agent speed it collapses. 14 foundational design decisions for agent-native version control.",
+  "author": {
+    "@type": "Person",
+    "name": "Lokesh Basu",
+    "url": "https://twitter.com/lcbasu"
+  },
+  "datePublished": "2026-03-01",
+  "dateModified": "2026-03-20",
+  "publisher": {
+    "@type": "Organization",
+    "name": "git4aiagents",
+    "url": "https://www.git4aiagents.com"
+  },
+  "mainEntityOfPage": "https://www.git4aiagents.com/",
+  "keywords": ["version control", "AI agents", "Git alternative", "developer tools", "semantic version control", "agentic coding"],
+  "url": "https://www.git4aiagents.com/",
+  "image": "https://www.git4aiagents.com/og-image.png",
+  "inLanguage": "en",
+  "license": "https://creativecommons.org/licenses/by/4.0/"
+}
+</script>
+
+<!-- JSON-LD Structured Data: FAQPage (14 questions) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the unit of work in agent-native version control?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Two units: the semantic mutation (one meaningful change to one function, type, or interface) and the task (a DAG of mutations that accomplish something together). Unlike Git commits that bundle unrelated changes, semantic mutations are independently addressable and revertible."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do AI agents coordinate on the same codebase?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Serializable Snapshot Isolation (SSI) over a semantic dependency graph. Each agent gets a snapshot, works independently, and at commit time the system checks for structural conflicts, interface contract changes, and behavioral validation via targeted tests. No locks, no branches, no merge conflicts."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What consistency model works for agent-scale version control?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Strong consistency within a dependency cluster, eventual consistency across independent ones. The dependency graph partitions automatically. Two agents working on unrelated modules don't block each other. Two agents touching the same utility function see each other's changes immediately."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you capture reasoning in agent-written code?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Three tiers of reasoning traces. Tier 1: structured metadata on every mutation (intent, confidence, dependencies). Tier 2: human-readable rationale on non-trivial changes. Tier 3: full LLM reasoning chain, garbage-collected after 7 days. This enables queries like 'Why does this function exist?' which no human codebase can answer today."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do humans interact with agent-native version control?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Humans set policy and review outcomes, not individual code changes. Three levels: policy definition (machine-enforceable constraints), task-level review (semantic summaries with reasoning traces), and anomaly-driven intervention (system flags risk). The UI is air traffic control, not a diff viewer."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you migrate from Git to agent-native version control?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A Git bridge that imports repos into the semantic graph via tree-sitter and exports back as conventional Git commits. Teams adopt incrementally. The Git repo remains the compliance source of record until the new system proves itself."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does agent-native version control handle failures?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Every mutation is individually recorded, so agent crashes leave no half-committed state. Rollback is dependency-aware: undo a decision and everything downstream of it, not just reverse a diff. Cascading failures are detected automatically via the dependency graph."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you trust AI agents writing code?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Three layers: cryptographic identity per agent (signed mutations), capability scoping per task (bounded write access), and trust scoring over time (agents earn autonomy based on track record). Bad agents get constrained automatically."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you parse code semantically for agent version control?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "tree-sitter for block-level parsing across 100+ languages. The system stores a block index (functions, classes, types, boundaries, dependencies) and versioned block content. Agents declare mutation scope, verified at commit time."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you track code dependencies in agent-native version control?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Four signals: explicit imports, symbol references via tree-sitter, agent-declared reads from reasoning traces, and test coverage mapping. The graph is probabilistic and append-only. False positives cause harmless re-validation. False negatives get caught by tests."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you decompose work for AI agents?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Human states an objective. Planner agent breaks it into a task DAG with dependencies. Scheduler assigns tasks to agents as dependencies clear. Independent tasks run in parallel. This is where the 1000x efficiency over sequential human development comes from."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you observe an agent-native version control system?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Three surfaces powered by event streaming: system health metrics for operators, task progress DAG for stakeholders, and decision audit trail for debugging. Every mutation emits an event. Dashboard, agents, and observability all subscribe to the same stream."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you test code at agent velocity?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Three tiers: syntactic validation on every mutation (under 100ms), targeted unit tests on every completed task (under 30 seconds, only affected tests), full integration tests on a cadence. Testing compute is prioritized by risk: low confidence, critical modules, low-trust agents."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you version and release in a branchless system?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Named snapshots with semantic guarantees. A release is a point where all tests pass, no policy violations, no open flags. Environments are snapshot pointers. Promoting is moving a pointer. Every release carries full provenance: which tasks, which agents, what reasoning, what validated it."
+      }
+    }
+  ]
+}
+</script>
 
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
   :root {
     --bg: #0c0c0c;
@@ -38,7 +217,6 @@
     --dim-green: #1a7a0a;
     --orange: #ff6600;
     --cyan: #00e5ff;
-    --red: #ff3d00;
     --dim: #2a2a2a;
     --gray: #666;
     --comment: #555;
@@ -58,34 +236,21 @@
     font-weight: 300;
   }
 
-  /* Subtle scanline overlay */
   body::after {
     content: '';
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,0.03) 2px,
-      rgba(0,0,0,0.03) 4px
-    );
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
     pointer-events: none;
     z-index: 9999;
   }
 
-  ::selection {
-    background: var(--green);
-    color: var(--bg);
-  }
-
-  /* Custom scrollbar */
+  ::selection { background: var(--green); color: var(--bg); }
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 0; }
+  ::-webkit-scrollbar-thumb { background: var(--dim); }
   ::-webkit-scrollbar-thumb:hover { background: var(--gray); }
 
-  /* ── HERO ── */
   .hero {
     min-height: 100vh;
     display: flex;
@@ -95,649 +260,211 @@
     position: relative;
     overflow: hidden;
   }
-
   .hero::before {
     content: '';
     position: absolute;
-    top: -30%;
-    right: -20%;
-    width: 600px;
-    height: 600px;
+    top: -30%; right: -20%;
+    width: 600px; height: 600px;
     background: radial-gradient(circle, rgba(57,255,20,0.04) 0%, transparent 70%);
     pointer-events: none;
   }
-
   .logo-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    opacity: 0;
-    animation: fadeUp 0.6s ease forwards 0.1s;
+    display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;
+    opacity: 0; animation: fadeUp 0.6s ease forwards 0.1s;
   }
-
-  .logo-icon {
-    width: 36px;
-    height: 36px;
-    flex-shrink: 0;
-    filter: hue-rotate(60deg) saturate(2);
-  }
-
-  .hero-label {
-    font-size: 0.7rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--green);
-  }
-
+  .logo-icon { width: 36px; height: 36px; flex-shrink: 0; filter: hue-rotate(60deg) saturate(2); }
+  .hero-label { font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green); }
   .hero h1 {
-    font-family: var(--mono);
-    font-size: clamp(2.2rem, 6vw, 4.5rem);
-    line-height: 1.1;
-    font-weight: 700;
-    max-width: 800px;
-    opacity: 0;
-    animation: fadeUp 0.6s ease forwards 0.3s;
-    color: var(--fg);
+    font-size: clamp(2.2rem, 6vw, 4.5rem); line-height: 1.1; font-weight: 700; max-width: 800px;
+    opacity: 0; animation: fadeUp 0.6s ease forwards 0.3s;
   }
-
-  .hero h1 em {
-    font-style: normal;
-    color: var(--green);
-    text-shadow: 0 0 20px rgba(57,255,20,0.3);
-  }
-
-  .hero h1::after {
-    content: '█';
-    animation: blink 1s step-end infinite;
-    color: var(--green);
-    font-weight: 400;
-    margin-left: 0.1em;
-  }
-
+  .hero h1 em { font-style: normal; color: var(--green); text-shadow: 0 0 20px rgba(57,255,20,0.3); }
+  .hero h1::after { content: '\2588'; animation: blink 1s step-end infinite; color: var(--green); font-weight: 400; margin-left: 0.1em; }
   .hero-sub {
-    font-size: 0.8rem;
-    color: var(--gray);
-    margin-top: 2.5rem;
-    max-width: 640px;
-    line-height: 1.9;
-    opacity: 0;
-    animation: fadeUp 0.6s ease forwards 0.5s;
-    border-left: 2px solid var(--dim);
-    padding-left: 1.5rem;
+    font-size: 0.8rem; color: var(--gray); margin-top: 2.5rem; max-width: 640px; line-height: 1.9;
+    opacity: 0; animation: fadeUp 0.6s ease forwards 0.5s;
+    border-left: 2px solid var(--dim); padding-left: 1.5rem;
   }
-
-  .hero-sub b {
-    color: var(--orange);
-    font-weight: 500;
-  }
-
+  .hero-sub b { color: var(--orange); font-weight: 500; }
   .hero-version {
-    position: absolute;
-    bottom: 3rem;
-    right: 6vw;
-    font-size: 0.65rem;
-    color: var(--comment);
-    letter-spacing: 0.15em;
-    opacity: 0;
-    animation: fadeUp 0.6s ease forwards 0.8s;
+    position: absolute; bottom: 3rem; right: 6vw; font-size: 0.65rem; color: var(--comment); letter-spacing: 0.15em;
+    opacity: 0; animation: fadeUp 0.6s ease forwards 0.8s;
   }
-
-  .hero-version::before {
-    content: '// ';
-    color: var(--dim-green);
-  }
-
+  .hero-version::before { content: '// '; color: var(--dim-green); }
   .scroll-indicator {
-    position: absolute;
-    bottom: 3rem;
-    left: 6vw;
-    font-size: 0.6rem;
-    letter-spacing: 0.2em;
-    color: var(--comment);
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    opacity: 0;
-    animation: fadeUp 0.6s ease forwards 0.8s;
+    position: absolute; bottom: 3rem; left: 6vw; font-size: 0.6rem; letter-spacing: 0.2em; color: var(--comment);
+    display: flex; align-items: center; gap: 0.8rem;
+    opacity: 0; animation: fadeUp 0.6s ease forwards 0.8s;
   }
+  .scroll-indicator::before { content: ''; width: 30px; height: 1px; background: var(--dim-green); animation: pulse 2s ease infinite; }
 
-  .scroll-indicator::before {
-    content: '';
-    width: 30px;
-    height: 1px;
-    background: var(--dim-green);
-    animation: pulse 2s ease infinite;
-  }
-
-  /* ── SECTIONS ── */
   .epoch {
-    padding: 5rem 6vw;
-    border-top: 1px solid var(--dim);
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    gap: 3rem;
+    padding: 5rem 6vw; border-top: 1px solid var(--dim);
+    display: grid; grid-template-columns: 220px 1fr; gap: 3rem;
   }
+  @media (max-width: 768px) { .epoch { grid-template-columns: 1fr; gap: 1.5rem; } }
+  .epoch-label { font-size: 0.6rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim-green); padding-top: 0.3rem; }
+  .epoch-label::before { content: '$ '; color: var(--green); }
+  .epoch-content h2 { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 600; line-height: 1.3; margin-bottom: 2rem; }
+  .epoch-content h2 em { font-style: normal; color: var(--cyan); text-shadow: 0 0 15px rgba(0,229,255,0.2); }
+  .epoch-content p { font-size: 0.88rem; color: #999; max-width: 680px; margin-bottom: 1.3rem; font-weight: 300; line-height: 1.8; }
+  .epoch-content p strong { color: var(--fg); font-weight: 500; }
 
-  @media (max-width: 768px) {
-    .epoch { grid-template-columns: 1fr; gap: 1.5rem; }
-  }
+  .design { padding: 5rem 6vw; border-top: 1px solid var(--dim); }
+  .design-header { display: grid; grid-template-columns: 220px 1fr; gap: 3rem; margin-bottom: 3rem; }
+  @media (max-width: 768px) { .design-header { grid-template-columns: 1fr; gap: 1rem; } }
+  .design-header h2 { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 600; }
+  .design-header h2 em { font-style: normal; color: var(--cyan); text-shadow: 0 0 15px rgba(0,229,255,0.2); }
+  .design-intro { font-size: 0.85rem; color: #999; max-width: 680px; margin-bottom: 2.5rem; font-weight: 300; line-height: 1.7; margin-left: calc(220px + 3rem); border-left: 2px solid var(--dim); padding-left: 1.5rem; }
+  @media (max-width: 768px) { .design-intro { margin-left: 0; } }
+  .design-item { display: grid; grid-template-columns: 220px 1fr; gap: 3rem; padding: 2.5rem 0; border-bottom: 1px dashed var(--dim); }
+  @media (max-width: 768px) { .design-item { grid-template-columns: 1fr; gap: 1rem; } }
+  .design-item-name { font-size: 0.65rem; letter-spacing: 0.15em; color: var(--cyan); text-transform: uppercase; padding-top: 0.3rem; }
+  .design-item-name::before { content: '> '; color: var(--green); }
+  .design-item-content h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.2rem; line-height: 1.3; color: var(--fg); }
+  .design-item-content p { font-size: 0.85rem; color: #999; max-width: 680px; margin-bottom: 1.2rem; font-weight: 300; line-height: 1.7; }
+  .design-item-content p strong { color: var(--fg); font-weight: 500; }
+  .design-item-content code { font-size: 0.8rem; background: rgba(57,255,20,0.08); padding: 0.15em 0.4em; border-radius: 2px; color: var(--green); border: 1px solid rgba(57,255,20,0.15); }
 
-  .epoch-label {
-    font-size: 0.6rem;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    color: var(--dim-green);
-    padding-top: 0.3rem;
-  }
-
-  .epoch-label::before {
-    content: '$ ';
-    color: var(--green);
-  }
-
-  .epoch-content h2 {
-    font-family: var(--mono);
-    font-size: clamp(1.4rem, 3vw, 2rem);
-    font-weight: 600;
-    line-height: 1.3;
-    margin-bottom: 2rem;
-    color: var(--fg);
-  }
-
-  .epoch-content h2 em {
-    font-style: normal;
-    color: var(--cyan);
-    text-shadow: 0 0 15px rgba(0,229,255,0.2);
-  }
-
-  .epoch-content p, .epoch-content > div > p {
-    font-size: 0.88rem;
-    color: #999;
-    max-width: 680px;
-    margin-bottom: 1.3rem;
-    font-weight: 300;
-    line-height: 1.8;
-  }
-
-  .epoch-content p strong, .epoch-content > div > p strong {
-    color: var(--fg);
-    font-weight: 500;
-  }
-
-  /* ── PRINCIPLES ── */
-  .principles {
-    padding: 5rem 6vw;
-    border-top: 1px solid var(--dim);
-  }
-
-  .principles-header {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    gap: 3rem;
-    margin-bottom: 3rem;
-  }
-
-  @media (max-width: 768px) {
-    .principles-header { grid-template-columns: 1fr; gap: 1rem; }
-  }
-
-  .principles-header h2 {
-    font-family: var(--mono);
-    font-size: clamp(1.4rem, 3vw, 2rem);
-    font-weight: 600;
-  }
-
-  .principle-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 0;
-  }
-
-  .principle {
-    border: 1px solid var(--dim);
-    padding: 2rem;
-    transition: border-color 0.3s ease, background 0.3s ease;
-    margin: -0.5px;
-  }
-
-  .principle:hover {
-    border-color: var(--dim-green);
-    background: rgba(57,255,20,0.02);
-  }
-
-  .principle-num {
-    font-size: 0.6rem;
-    color: var(--dim-green);
-    letter-spacing: 0.2em;
-    margin-bottom: 0.8rem;
-  }
-
-  .principle-num::before {
-    content: '// ';
-    color: var(--comment);
-  }
-
-  .principle h3 {
-    font-family: var(--mono);
-    font-size: 1rem;
-    font-weight: 600;
-    margin-bottom: 0.8rem;
-    line-height: 1.3;
-    color: var(--fg);
-  }
-
-  .principle p {
-    font-size: 0.8rem;
-    color: #777;
-    line-height: 1.7;
-    font-weight: 300;
-  }
-
-  /* ── ARCHITECTURE ── */
-  .architecture {
-    padding: 5rem 6vw;
-    border-top: 1px solid var(--dim);
-  }
-
-  .arch-header {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    gap: 3rem;
-    margin-bottom: 3rem;
-  }
-
-  @media (max-width: 768px) {
-    .arch-header { grid-template-columns: 1fr; gap: 1rem; }
-  }
-
-  .arch-header h2 {
-    font-family: var(--mono);
-    font-size: clamp(1.4rem, 3vw, 2rem);
-    font-weight: 600;
-  }
-
-  .arch-layer {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    gap: 3rem;
-    padding: 1.8rem 0;
-    border-bottom: 1px dashed var(--dim);
-  }
-
-  @media (max-width: 768px) {
-    .arch-layer { grid-template-columns: 1fr; gap: 0.5rem; }
-  }
-
-  .arch-layer-name {
-    font-size: 0.7rem;
-    letter-spacing: 0.15em;
-    color: var(--cyan);
-    text-transform: uppercase;
-  }
-
-  .arch-layer-name::before {
-    content: '> ';
-    color: var(--green);
-  }
-
-  .arch-layer-desc {
-    font-size: 0.85rem;
-    color: #999;
-    max-width: 680px;
-    font-weight: 300;
-    line-height: 1.7;
-  }
-
-  .arch-layer-desc code {
-    font-size: 0.8rem;
-    background: rgba(57,255,20,0.08);
-    padding: 0.15em 0.4em;
-    border-radius: 2px;
-    color: var(--green);
-    border: 1px solid rgba(57,255,20,0.15);
-  }
-
-  /* ── COMPARISON ── */
-  .compare {
-    padding: 5rem 6vw;
-    border-top: 1px solid var(--dim);
-  }
-
-  .compare-header {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    gap: 3rem;
-    margin-bottom: 3rem;
-  }
-
-  @media (max-width: 768px) {
-    .compare-header { grid-template-columns: 1fr; gap: 1rem; }
-  }
-
-  .compare-header h2 {
-    font-family: var(--mono);
-    font-size: clamp(1.4rem, 3vw, 2rem);
-    font-weight: 600;
-  }
-
-  .compare table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8rem;
-    border: 1px solid var(--dim);
-  }
-
-  .compare th {
-    font-size: 0.6rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    text-align: left;
-    padding: 0.8rem 1.2rem;
-    border-bottom: 1px solid var(--dim);
-    color: var(--comment);
-    font-weight: 400;
-    background: rgba(255,255,255,0.02);
-  }
-
+  .compare { padding: 5rem 6vw; border-top: 1px solid var(--dim); }
+  .compare-header { display: grid; grid-template-columns: 220px 1fr; gap: 3rem; margin-bottom: 3rem; }
+  @media (max-width: 768px) { .compare-header { grid-template-columns: 1fr; gap: 1rem; } }
+  .compare-header h2 { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 600; }
+  .compare table { width: 100%; border-collapse: collapse; font-size: 0.8rem; border: 1px solid var(--dim); }
+  .compare th { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; text-align: left; padding: 0.8rem 1.2rem; border-bottom: 1px solid var(--dim); color: var(--comment); font-weight: 400; background: rgba(255,255,255,0.02); }
   .compare th:last-child { color: var(--green); }
+  .compare td { padding: 0.7rem 1.2rem; border-bottom: 1px solid #1a1a1a; color: #777; font-weight: 300; }
+  .compare td:last-child { color: var(--fg); font-weight: 400; }
 
-  .compare td {
-    padding: 0.7rem 1.2rem;
-    border-bottom: 1px solid #1a1a1a;
-    color: #777;
-    font-weight: 300;
-  }
+  .cta-section { padding: 6rem 6vw; border-top: 1px solid var(--dim); text-align: center; position: relative; overflow: hidden; }
+  .cta-section::before { content: ''; position: absolute; bottom: -40%; left: 50%; transform: translateX(-50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(57,255,20,0.04) 0%, transparent 70%); pointer-events: none; }
+  .cta-section h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 700; margin-bottom: 1.5rem; line-height: 1.2; }
+  .cta-section h2 em { font-style: normal; color: var(--green); text-shadow: 0 0 20px rgba(57,255,20,0.3); }
+  .cta-section p { font-size: 0.85rem; color: var(--gray); max-width: 480px; margin: 0 auto 3rem; font-weight: 300; }
+  .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  .btn { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.1em; padding: 0.9rem 2rem; border: 1px solid var(--dim); color: var(--fg); background: transparent; text-decoration: none; cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; }
+  .btn:hover { border-color: var(--green); color: var(--green); box-shadow: 0 0 15px rgba(57,255,20,0.1); }
+  .btn--primary { border-color: var(--green); color: var(--green); }
+  .btn--primary:hover { background: var(--green); color: var(--bg); box-shadow: 0 0 20px rgba(57,255,20,0.3); }
 
-  .compare td:last-child {
-    color: var(--fg);
-    font-weight: 400;
-  }
+  footer { padding: 2.5rem 6vw; border-top: 1px solid var(--dim); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+  footer span { font-size: 0.6rem; color: var(--comment); letter-spacing: 0.15em; }
 
-  /* ── DESIGN DECISIONS ── */
-  .design {
-    padding: 5rem 6vw;
-    border-top: 1px solid var(--dim);
-  }
-
-  .design-header {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    gap: 3rem;
-    margin-bottom: 3rem;
-  }
-
-  @media (max-width: 768px) {
-    .design-header { grid-template-columns: 1fr; gap: 1rem; }
-  }
-
-  .design-header h2 {
-    font-family: var(--mono);
-    font-size: clamp(1.4rem, 3vw, 2rem);
-    font-weight: 600;
-  }
-
-  .design-header h2 em {
-    font-style: normal;
-    color: var(--cyan);
-    text-shadow: 0 0 15px rgba(0,229,255,0.2);
-  }
-
-  .design-intro {
-    font-size: 0.85rem;
-    color: #999;
-    max-width: 680px;
-    margin-bottom: 2.5rem;
-    font-weight: 300;
-    line-height: 1.7;
-    margin-left: calc(220px + 3rem);
-    border-left: 2px solid var(--dim);
-    padding-left: 1.5rem;
-  }
-
-  @media (max-width: 768px) {
-    .design-intro { margin-left: 0; }
-  }
-
-  .design-item {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    gap: 3rem;
-    padding: 2.5rem 0;
-    border-bottom: 1px dashed var(--dim);
-  }
-
-  @media (max-width: 768px) {
-    .design-item { grid-template-columns: 1fr; gap: 1rem; }
-  }
-
-  .design-item-name {
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    color: var(--cyan);
-    text-transform: uppercase;
-    padding-top: 0.3rem;
-  }
-
-  .design-item-name::before {
-    content: '> ';
-    color: var(--green);
-  }
-
-  .design-item-content h3 {
-    font-family: var(--mono);
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 1.2rem;
-    line-height: 1.3;
-    color: var(--fg);
-  }
-
-  .design-item-content p {
-    font-size: 0.85rem;
-    color: #999;
-    max-width: 680px;
-    margin-bottom: 1.2rem;
-    font-weight: 300;
-    line-height: 1.7;
-  }
-
-  .design-item-content p strong {
-    color: var(--fg);
-    font-weight: 500;
-  }
-
-  .design-item-content code {
-    font-size: 0.8rem;
-    background: rgba(57,255,20,0.08);
-    padding: 0.15em 0.4em;
-    border-radius: 2px;
-    color: var(--green);
-    border: 1px solid rgba(57,255,20,0.15);
-  }
-
-  .design-item-content ul {
-    list-style: none;
-    padding: 0;
-    margin-bottom: 1.2rem;
-  }
-
-  .design-item-content ul li {
-    font-size: 0.85rem;
-    color: #999;
-    max-width: 680px;
-    font-weight: 300;
-    line-height: 1.7;
-    padding-left: 1.5rem;
-    position: relative;
-    margin-bottom: 0.5rem;
-  }
-
-  .design-item-content ul li::before {
-    content: '>';
-    position: absolute;
-    left: 0;
-    color: var(--dim-green);
-    font-weight: 700;
-    font-size: 0.75rem;
-  }
-
-  /* ── CTA ── */
-  .cta-section {
-    padding: 6rem 6vw;
-    border-top: 1px solid var(--dim);
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .cta-section::before {
-    content: '';
-    position: absolute;
-    bottom: -40%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(57,255,20,0.04) 0%, transparent 70%);
-    pointer-events: none;
-  }
-
-  .cta-section h2 {
-    font-family: var(--mono);
-    font-size: clamp(1.8rem, 4vw, 3rem);
-    font-weight: 700;
-    margin-bottom: 1.5rem;
-    line-height: 1.2;
-  }
-
-  .cta-section h2 em {
-    font-style: normal;
-    color: var(--green);
-    text-shadow: 0 0 20px rgba(57,255,20,0.3);
-  }
-
-  .cta-section p {
-    font-size: 0.85rem;
-    color: var(--gray);
-    max-width: 480px;
-    margin: 0 auto 3rem;
-    font-weight: 300;
-  }
-
-  .cta-buttons {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .btn {
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.1em;
-    padding: 0.9rem 2rem;
-    border: 1px solid var(--dim);
-    color: var(--fg);
-    background: transparent;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-transform: uppercase;
-  }
-
-  .btn:hover {
-    border-color: var(--green);
-    color: var(--green);
-    box-shadow: 0 0 15px rgba(57,255,20,0.1);
-  }
-
-  .btn--primary {
-    border-color: var(--green);
-    color: var(--green);
-  }
-
-  .btn--primary:hover {
-    background: var(--green);
-    color: var(--bg);
-    box-shadow: 0 0 20px rgba(57,255,20,0.3);
-  }
-
-  /* ── FOOTER ── */
-  footer {
-    padding: 2.5rem 6vw;
-    border-top: 1px solid var(--dim);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-
-  footer span {
-    font-size: 0.6rem;
-    color: var(--comment);
-    letter-spacing: 0.15em;
-  }
-
-  /* ── ANIMATIONS ── */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 1; }
-  }
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-  }
-
-  .reveal {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-  }
-
-  .reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
 </style>
 </head>
 <body>
 
+<main>
+
 <!-- ══ HERO ══ -->
-<section class="hero">
+<section class="hero" itemscope itemtype="https://schema.org/WPHeader">
   <div class="logo-row">
-    <img src="logo.svg" alt="git4aiagents logo" class="logo-icon">
+    <img src="logo.svg" alt="git4aiagents logo" class="logo-icon" width="36" height="36">
     <div class="hero-label">// an open manifesto</div>
   </div>
-  <h1>Git was for <em>humans.</em><br>We need something else.</h1>
-  <div class="hero-sub" data-content="hero"></div>
+  <h1 itemprop="headline">Git was for <em>humans.</em><br>We need something else.</h1>
+  <div class="hero-sub">
+    I was building an open source agentic operating system. Eight repos. Multiple Claude Code instances running in parallel. And I was spending more time fighting Git than building the product. Merge conflicts. PR bottlenecks. Rebasing nightmares. The same story everywhere I looked. Then it hit me. This isn't an agent problem. This is a Git problem. Agents just made it impossible to ignore.
+    <b>I am not rebuilding Git. I am building a <u>new primitive for how code gets written in a world where the writers are machines.</u></b>
+  </div>
   <div class="scroll-indicator">SCROLL TO READ</div>
   <div class="hero-version">GIT4AIAGENTS / v0.0.1 / MARCH 2026</div>
 </section>
 
-<!-- ══ EPOCH: THE REAL PROBLEM ══ -->
-<section class="epoch reveal">
-  <div class="epoch-label">cat 01_the_real_problem.md</div>
+<!-- ══ THE REAL PROBLEM ══ -->
+<article class="epoch reveal">
+  <div class="epoch-label">cat the_real_problem.md</div>
   <div class="epoch-content">
     <h2>Git has <em>always</em> been broken for code</h2>
-    <div data-content="real-problem"></div>
+    <p>Every developer has lived this. Green CI. No merge conflicts. You merge confidently. Production breaks. Because someone else changed what a function returns, and Git never noticed. <strong>Git checks lines, not meaning.</strong></p>
+    <p>We built an entire industry of band-aids around this: CI pipelines, merge queues, status checks, "rebase on main" policies. All because Git is semantically blind. At human speed, the failure rate was low enough to tolerate. At agent speed, it collapses.</p>
+    <p><strong>Git has always been broken for code. Humans were just slow enough to work around it.</strong></p>
+    <p>If that sounds obvious, ask yourself: why is every tool in the market still built on top of Git?</p>
   </div>
-</section>
+</article>
 
-<!-- ══ DESIGN DECISIONS ══ -->
+<!-- ══ 14 QUESTIONS ══ -->
 <section class="design reveal">
   <div class="design-header">
     <div class="epoch-label">cat design_decisions.md</div>
     <h2>14 questions I had to <em>answer</em></h2>
   </div>
-  <div data-content="design-decisions"></div>
+  <div class="design-intro"><p>I sat down and asked myself: if I were building version control from scratch for a world where 100s of agents write code simultaneously, what would I need to get right?</p></div>
+
+  <div class="design-item"><div class="design-item-name">01 / Unit of Work</div><div class="design-item-content">
+    <h3>What is the unit of work?</h3>
+    <p>Not a commit (too coarse for one-line fixes, too fine for 40-file refactors). Two units: the <em>semantic mutation</em> (one meaningful change to one function/type/interface) and the <em>task</em> (a group of mutations that accomplish something together). Git bundles "fixed the bug AND ran the linter AND renamed that variable" into one commit. Here, those are separate mutations you can revert independently.</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">02 / Coordination</div><div class="design-item-content">
+    <h3>How do agents coordinate?</h3>
+    <p>Serializable Snapshot Isolation over a semantic dependency graph. Each agent gets a snapshot, works independently, and at commit time the system checks three things: did anyone touch the same element? Did any dependency change its interface? Do the tests still pass? No locks. No branches. No merge conflicts.</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">03 / Consistency</div><div class="design-item-content">
+    <h3>What consistency model?</h3>
+    <p>Strong within a dependency cluster, eventual across independent ones. Two agents working on unrelated modules don't need to see each other's changes in real-time. Two agents touching the same utility function do. The dependency graph handles the partitioning automatically.</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">04 / Reasoning</div><div class="design-item-content">
+    <h3>How do you capture reasoning?</h3>
+    <p>Three tiers. Tier 1: structured metadata on every mutation (intent, confidence, dependencies read). Tier 2: human-readable rationale on non-trivial changes ("Used Decimal instead of float because currency arithmetic requires exact precision"). Tier 3: full LLM reasoning chain, garbage-collected after 7 days. The killer query this enables: "Why does this function exist?" No codebase can answer that today.</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">05 / Humans</div><div class="design-item-content">
+    <h3>How do humans fit in?</h3>
+    <p>They don't review code. They set policy ("no changes to auth without approval", "all API endpoints validate with Zod") and review outcomes (completed tasks, not individual mutations). The UI is air traffic control, not a diff viewer.</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">06 / Migration</div><div class="design-item-content">
+    <h3>How do you migrate from Git?</h3>
+    <p>A bridge. Import repos into the semantic graph via tree-sitter. Export back as conventional Git commits. Teams adopt incrementally. Eventually the new system becomes the source of record.</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">07 / Recovery</div><div class="design-item-content">
+    <h3>How do you recover from failure?</h3>
+    <p>Every mutation is individually recorded. Agent crashes mid-task? Another picks it up using the existing mutations and reasoning traces. Bad change shipped? Rollback is "undo this decision and everything downstream of it," not "reverse the diff and hope nothing depended on it."</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">08 / Trust</div><div class="design-item-content">
+    <h3>How do you trust agents?</h3>
+    <p>Cryptographic identity per agent. Capability scoping per task (this agent can write to /payments but not /auth). Trust scoring over time: agents whose changes pass validation and rarely get rolled back earn more autonomy. Bad agents get constrained automatically.</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">09 / Parsing</div><div class="design-item-content">
+    <h3>How do you parse code semantically?</h3>
+    <p>tree-sitter for block-level parsing across 100+ languages. The system stores a block index (which functions/classes/types exist, their boundaries, their dependencies) and block content (versioned text). Agents also declare the scope of their mutations, verified at commit time.</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">10 / Dependencies</div><div class="design-item-content">
+    <h3>How do you track dependencies?</h3>
+    <p>Four signals: explicit imports, symbol references via tree-sitter, agent-declared reads (stored in reasoning traces), and test coverage mapping. The graph is probabilistic. False positives cause harmless re-validation. False negatives get caught by tests.</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">11 / Planning</div><div class="design-item-content">
+    <h3>How do you decompose work?</h3>
+    <p>Human states an objective ("add multi-currency support"). Planner agent breaks it into a task DAG with dependencies. Scheduler assigns tasks to agents as dependencies clear. Independent tasks run in parallel. This is where the 1000x efficiency comes from.</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">12 / Observability</div><div class="design-item-content">
+    <h3>How do you observe everything?</h3>
+    <p>Three surfaces: system health metrics (for operators), task progress DAG (for stakeholders), decision audit trail (for debugging). All powered by event streaming. Every mutation emits an event. Dashboard, agents, and observability all subscribe.</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">13 / Testing</div><div class="design-item-content">
+    <h3>How do you test at this velocity?</h3>
+    <p>Three tiers: syntactic validation on every mutation (&lt;100ms, does it even parse?), targeted unit tests on every completed task (&lt;30s, only tests covering affected code), full integration tests on a cadence. Prioritize compute on high-risk changes: low confidence, critical modules, low-trust agents.</p>
+  </div></div>
+
+  <div class="design-item"><div class="design-item-name">14 / Releases</div><div class="design-item-content">
+    <h3>How do you version and release?</h3>
+    <p>Named snapshots with semantic guarantees. A "release" is a point where all tests pass, no policy violations, no open flags. Environments are snapshot pointers. Promoting staging to production is moving a pointer. Every release carries full provenance: which tasks, which agents, what reasoning, what validated it.</p>
+  </div></div>
 </section>
 
 <!-- ══ SUMMARY ══ -->
@@ -746,20 +473,38 @@
     <div class="epoch-label">cat summary.md</div>
     <h2>At a glance</h2>
   </div>
-  <div data-content="summary"></div>
+  <table>
+    <thead><tr><th>#</th><th>Question</th><th>Answer</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Unit of work</td><td>Semantic mutation + task DAG</td></tr>
+      <tr><td>2</td><td>Coordination</td><td>SSI over dependency graph</td></tr>
+      <tr><td>3</td><td>Consistency</td><td>Strong within clusters, eventual across</td></tr>
+      <tr><td>4</td><td>Reasoning</td><td>3-tier: metadata, rationale, full dump</td></tr>
+      <tr><td>5</td><td>Humans</td><td>Policy + task review + anomaly flags</td></tr>
+      <tr><td>6</td><td>Migration</td><td>Git bridge (import/export adapter)</td></tr>
+      <tr><td>7</td><td>Recovery</td><td>Dependency-aware targeted rollback</td></tr>
+      <tr><td>8</td><td>Trust</td><td>Crypto identity + capabilities + scoring</td></tr>
+      <tr><td>9</td><td>Parsing</td><td>tree-sitter + agent declarations</td></tr>
+      <tr><td>10</td><td>Dependencies</td><td>Multi-signal graph (imports, refs, tests)</td></tr>
+      <tr><td>11</td><td>Planning</td><td>Planner agent + task DAG + scheduler</td></tr>
+      <tr><td>12</td><td>Observability</td><td>Event streaming to 3 surfaces</td></tr>
+      <tr><td>13</td><td>Testing</td><td>3-tier: syntax, targeted, integration</td></tr>
+      <tr><td>14</td><td>Releases</td><td>Named snapshots with guarantees</td></tr>
+    </tbody>
+  </table>
 </section>
 
 <!-- ══ CTA ══ -->
 <section class="cta-section reveal">
   <h2>This is <em>draft zero.</em></h2>
-  <p>
-    Deliberately incomplete. Probably wrong about some things. But someone has to start writing down what comes after Git. Fork it. Fight it. Build on it.
-  </p>
+  <p>Deliberately incomplete. Probably wrong about some things. But someone has to start writing down what comes after Git. Fork it. Fight it. Build on it.</p>
   <div class="cta-buttons">
-    <a href="https://github.com/lcbasu/git4aiagents" class="btn btn--primary" target="_blank">git clone git4aiagents</a>
-    <a href="https://twitter.com/intent/tweet?text=Git%20was%20designed%20for%20humans.%20Agents%20need%20something%20fundamentally%20different.%20%F0%9F%94%A5%20The%20Post-Git%20Manifesto%3A&url=https%3A%2F%2Flcbasu.github.io%2Fgit4aiagents%2F&via=lcbasu" class="btn" target="_blank">Share on X</a>
+    <a href="https://github.com/lcbasu/git4aiagents" class="btn btn--primary" target="_blank" rel="noopener">git clone git4aiagents</a>
+    <a href="https://twitter.com/intent/tweet?text=Git%20was%20designed%20for%20humans.%20Agents%20need%20something%20fundamentally%20different.%20%F0%9F%94%A5%20The%20Post-Git%20Manifesto%3A&url=https%3A%2F%2Fwww.git4aiagents.com&via=lcbasu" class="btn" target="_blank" rel="noopener">Share on X</a>
   </div>
 </section>
+
+</main>
 
 <footer>
   <span style="display:flex;align-items:center;gap:0.6rem;"><img src="logo.svg" alt="" width="16" height="16" style="filter:hue-rotate(60deg) saturate(2)"> GIT4AIAGENTS // OPEN SOURCE // CC-BY-4.0</span>
@@ -767,95 +512,10 @@
 </footer>
 
 <script>
-(async function() {
-  const res = await fetch('README.md');
-  const text = await res.text();
-
-  const sections = {};
-  const parts = text.split(/^## /gm);
-  for (let i = 1; i < parts.length; i++) {
-    const lines = parts[i].split('\n');
-    const heading = lines[0].trim();
-    const body = lines.slice(1).join('\n').trim();
-    sections[heading] = body;
-  }
-
-  const md = (s) => marked.parse(s || '');
-
-  // Hero
-  const heroEl = document.querySelector('[data-content="hero"]');
-  if (heroEl && sections['Why this exists']) {
-    const paragraphs = sections['Why this exists'].split(/\n\n+/);
-    const heroText = paragraphs.slice(0, -1).join(' ');
-    heroEl.innerHTML = heroText +
-      ' <b>I am not rebuilding Git. I am building a <u>new primitive for how code gets written in a world where the writers are machines.</u></b>';
-  }
-
-  // Narrative sections
-  const narrativeMap = {
-    'The real problem': 'real-problem',
-  };
-
-  for (const [heading, id] of Object.entries(narrativeMap)) {
-    const el = document.querySelector(`[data-content="${id}"]`);
-    if (el && sections[heading]) {
-      el.innerHTML = md(sections[heading]);
-    }
-  }
-
-  // Design decisions (14 questions)
-  const designEl = document.querySelector('[data-content="design-decisions"]');
-  if (designEl && sections['14 questions I had to answer']) {
-    const content = sections['14 questions I had to answer'];
-    const labels = [
-      'Unit of Work', 'Coordination', 'Consistency',
-      'Reasoning', 'Humans', 'Migration', 'Recovery',
-      'Trust', 'Parsing', 'Dependencies',
-      'Planning', 'Observability', 'Testing', 'Releases'
-    ];
-
-    // Split on **N. Question?** pattern
-    const parts = content.split(/\*\*(\d+)\.\s+(.+?\?)\*\*/g);
-    const intro = parts[0].trim();
-
-    let html = '';
-    if (intro) {
-      html += `<div class="design-intro">${md(intro)}</div>`;
-    }
-
-    // parts: [intro, "1", "What is the unit of work?", "answer...", "2", "How do agents coordinate?", "answer...", ...]
-    for (let i = 1; i < parts.length; i += 3) {
-      const num = parseInt(parts[i]);
-      const question = parts[i + 1];
-      const body = (parts[i + 2] || '').trim();
-      const label = labels[num - 1] || '';
-
-      html += `<div class="design-item">
-        <div class="design-item-name">${String(num).padStart(2, '0')} / ${label}</div>
-        <div class="design-item-content">
-          <h3>${question}</h3>
-          ${md(body)}
-        </div>
-      </div>`;
-    }
-    designEl.innerHTML = html;
-  }
-
-  // Summary table
-  const summaryEl = document.querySelector('[data-content="summary"]');
-  if (summaryEl && sections['At a glance']) {
-    summaryEl.innerHTML = md(sections['At a glance']);
-  }
-
-  // Reveal animations
   const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) entry.target.classList.add('visible');
-    });
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
   }, { threshold: 0.1 });
-
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-})();
 </script>
 </body>
 </html>
