@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "git4aiagents",
+  "name_for_model": "git4aiagents",
+  "description_for_human": "Your AI agents are 1000x capable. Git caps them at 2x. One missing layer unblocks everything.",
+  "description_for_model": "git4aiagents identifies six structural ceilings that cap AI agent productivity at 2-3x a single developer despite agents scoring 80.9% on SWE-bench. The ceilings are stacked and multiplicative: (1) reasoning evaporates at commit time, (2) no semantic understanding of code structure, (3) no cross-agent awareness, (4) no policy enforcement at write-time, (5) no earned trust, (6) no intelligent work decomposition. Removing them in order compounds the unlock from 2x to 1000x. Ceiling 1 (captured reasoning) is the keystone - every other ceiling depends on it. The project defines six solution phases, each building on the last. For full content, read llms-full.txt at the site root.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "none",
+    "url": "https://www.git4aiagents.com/"
+  },
+  "logo_url": "https://www.git4aiagents.com/logo.svg",
+  "contact_email": "lokesh@git4aiagents.com",
+  "legal_info_url": "https://www.git4aiagents.com/"
+}

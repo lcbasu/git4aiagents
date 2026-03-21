@@ -1,25 +1,35 @@
 # git4aiagents
 
-> Git was designed for humans. Agents need something fundamentally different.
+> Your AI agents are 1000x capable. Git caps them at 2x. One missing layer unblocks everything.
 
-git4aiagents is an open manifesto and design spec for agent-native version control. Git's merge model is semantically blind (it checks lines, not meaning). At human speed that was tolerable. At agent speed (250,000+ agents on a single monorepo), it collapses. Branches become a quarter million divergent realities. PR review becomes an impossible bottleneck. CI never finishes running.
+AI agents score 80.9% on SWE-bench. They handle 40-file refactors. But teams hand them 5-file tasks because they can't verify the reasoning behind anything bigger. The thinking dies at commit time. Six structural ceilings block the path from 2x to 1000x. They're stacked, multiplicative, and they all start with the one thing Git never stored: reasoning.
 
-The manifesto answers 14 foundational design questions:
+## The six ceilings
 
-1. Unit of work: semantic mutations + task DAGs (not commits)
-2. Coordination: Serializable Snapshot Isolation over a semantic dependency graph
-3. Consistency: strong within dependency clusters, eventual across independent ones
-4. Reasoning traces: 3-tier (structured metadata, rationale, full LLM dump)
-5. Human interaction: policy-based governance, not line-by-line code review
-6. Migration: Git bridge for incremental adoption
-7. Failure recovery: dependency-aware targeted rollback
-8. Identity and trust: cryptographic agent identity + capability scoping + trust scoring
-9. Semantic parsing: tree-sitter for block-level parsing across 100+ languages
-10. Dependency tracking: multi-signal graph (imports, refs, agent behavior, test coverage)
-11. Task decomposition: planner agent + scheduler + task DAG
-12. Observability: event streaming to 3 surfaces (ops, stakeholders, audit)
-13. Testing: 3-tier (syntactic per-mutation, targeted per-task, integration periodic)
-14. Versioning: named snapshots with semantic guarantees
+1. **Reasoning evaporates** (UNSOLVED) - Agent intent, confidence, alternatives, and context are discarded at commit time. Review is 3.6x slower. 46% distrust AI output. Teams limit agents to 1-5 file tasks. Unlock: 2x to 5-10x.
+
+2. **No semantic understanding** (PARTIAL) - Git tracks lines, not functions and dependencies. Agent changes a function signature, 14 callers break, Git sees no conflict. Unlock: 5-10x to 20-50x. Requires ceiling 1.
+
+3. **No cross-agent awareness** (JUST ARRIVED) - Agents are blind to each other. Practical ceiling: 5-7 concurrent agents. Unlock: 20-50x to 100-200x. Requires ceilings 1+2.
+
+4. **No policy enforcement** (UNSOLVED) - Humans are the only policy engine. Every change waits in the same review queue. Unlock: 100-200x to 200-500x. Requires ceilings 1+2+3.
+
+5. **No earned trust** (UNSOLVED) - Every agent gets identical permissions regardless of track record. Unlock: 200-500x to 500-800x. Requires ceilings 1+4.
+
+6. **No intelligent decomposition** (UNSOLVED) - Humans manually break objectives into tasks. Planning bottleneck replaces review bottleneck. Unlock: 500-800x to 1000x. Requires all five.
+
+## Why reasoning is the keystone
+
+Every ceiling depends on ceiling 1. Semantic understanding needs agent-declared context reads. Coordination needs shared intent. Policies need confidence scores. Trust needs reasoning quality over time. Planning needs all of the above. Without captured reasoning, you cannot build any of the other layers.
+
+## Solution phases
+
+Phase 1: Capture reasoning at commit time (the keystone)
+Phase 2: Build the semantic dependency graph (tree-sitter + reasoning traces)
+Phase 3: Enable cross-agent coordination (real-time subscriptions)
+Phase 4: Policy engine (human-defined rules at write-time)
+Phase 5: Trust scoring (track record, graduated permissions)
+Phase 6: Intelligent decomposition (task DAGs, 200+ agent scheduling)
 
 Full content: https://www.git4aiagents.com/llms-full.txt
 Website: https://www.git4aiagents.com/

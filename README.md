@@ -1,52 +1,197 @@
 # git4aiagents
 
-**Git was designed for humans. Agents need something fundamentally different.**
+**Your AI agents are 1000x capable. Git caps them at 2x. One missing layer unblocks everything.**
+
+AI agents score 80.9% on SWE-bench. They handle 40-file refactors. But teams hand them 5-file tasks because they can't verify the reasoning behind anything bigger. The thinking dies at commit time. Every time. By every tool.
+
+Six structural ceilings block the path from 2x to 1000x. They're stacked, multiplicative, and they all start with the one thing Git never stored: reasoning.
 
 ---
 
-## Why this exists
+## The 1000x unlock - six ceilings, one path
 
-Picture 250,000 agents writing code across a monorepo the size of Google's. Every few seconds, a function changes. Every few milliseconds, a dependency shifts. Git can't even tell you what broke, let alone prevent it. Branches? You'd have a quarter million divergent realities. PRs? Your entire engineering org becomes a review bottleneck. CI? It would never finish running.
+AI agents write code now. 65% of developers use them weekly. 51% daily. Claude Code scores 80.9% on SWE-bench. Codex handles complex multi-file refactors. The raw capability is here.
 
-This is not a hypothetical. This is where every company with serious AI investment is headed within the next 12 months. The cracks are already showing everywhere. Git was optimized for the high-latency, low-throughput human brain. That world is over. Agents are low-latency, massively parallel, and they never stop. The bottleneck has shifted. Moving from filesystem-based version control to semantic transactional codebases is the logical leap. Someone has to write down what will be the version control for the Agentic World. This is that attempt.
+But the output of the global AI agent ecosystem is roughly 2-3x a single developer. Not 10x. Not 100x. 2-3x.
 
-## The real problem
+The reason is not that agents write bad code. The reason is six ceilings that sit between capability and permission. Each one limits what agents are *allowed* to do, regardless of what they're *capable* of doing.
 
-Every developer has lived this. Green CI. No merge conflicts. You merge confidently. Production breaks. Because someone else changed what a function returns, and Git never noticed. **Git checks lines, not meaning.**
+And here's what matters: they're multiplicative. Bigger tasks x semantic safety x parallel agents x automated gating x earned autonomy x intelligent scheduling. That multiplication is what produces 1000x.
 
-We built an entire industry of band-aids around this: CI pipelines, merge queues, status checks, "rebase on main" policies. All because Git is semantically blind. At human speed, the failure rate was low enough to tolerate. At agent speed, it collapses.
+---
 
-**Git has always been broken for code. Humans were just slow enough to work around it.**
+### Ceiling 1: Agent reasoning evaporates
+**The keystone. Everything else depends on this.**
 
-## The collapse at scale
+When an agent writes code, its chain of thought - what it read, what it intended, what alternatives it considered, how confident it was - is discarded at commit time. The thinking dies. Only the output survives in Git.
 
-Think about what Git actually assumes. One person. One machine. One local copy of the codebase. You work on it. You push it. Someone reviews it. That was elegant when the bottleneck was how fast a human could think and type.
+**The pain is measurable.**
+- Review is 3.6x slower for AI code (4.3 min vs 1.2 min per change)
+- 46% of developers actively distrust AI output. Only 3% highly trust it.
+- AWS lost 13 hours debugging an agent decision nobody could reconstruct
+- 70% say agents boost personal productivity, but only 17% say they help team collaboration - a 4x gap
+- Salesforce had to rebuild their entire review infrastructure because "reconstructing intent by scanning diffs sequentially fractured"
 
-Now picture 100s of agents modifying the same codebase at the same time. You don't get "merge conflicts." You get chaos. **Branch-per-agent gives you thousands of divergent realities.** Filesystem locks are too blunt. And PR review? That's a single-threaded bottleneck choking a massively parallel system. The fastest engineer becomes the slowest reviewer.
+**What's capped.** Teams limit agents to 1-5 file tasks. Nobody delegates "refactor the payments module" because verifying 40 files of opaque decisions is impossible. Agent capability far exceeds what teams allow. The trust deficit is the governor.
 
-**Code is no longer something humans carefully craft and contemplate. Code is high-velocity data.** It should be stored, synchronized, and validated like data. Not bolted on through CI pipelines that run 20 minutes after the fact.
+**What removing it unlocks.** Agents explain every decision. Reviewers assess intent, not just diffs. Trust becomes calibratable. Debugging has a trail. Delegation scope expands from "write this function" to "build this feature across 10-50 files."
 
-If that sounds obvious, ask yourself: why is every tool in the market still built on top of Git?
+**Unlock: 2x to 5-10x.**
 
-## The thesis
+---
 
-**Store code in a database, not a filesystem.** Treat the codebase as a live, transactional, event-sourced data system. Not a tree of files synchronized through patches and diffs.
+### Ceiling 2: No semantic understanding of code structure
 
-**Every write is a transaction.** An agent acquires a fine-grained lock at the function level or block level, not the whole file, and that change is immediately visible to every other agent. No more rebasing a 78-commit branch against a target that moved while you were working.
+Git tracks lines and files, not functions and dependencies. When an agent changes a function signature, nothing in the system knows that 14 callers across 8 files are now broken. Git sees no conflict. CI finds the breakage 20 minutes later. Three other agents have already built on the broken state.
 
-**Every mutation is replayable.** This is the part that excites me most. Humans couldn't externalize their thought process while coding. They just wrote code and left a commit message. Agents can capture everything: the reasoning, the alternatives they considered, the context they consumed, the confidence level. Your version history becomes a decision graph, not a diff log. That was literally never possible before.
+**What's capped.** Agents can only safely modify isolated code. Cross-cutting changes - refactors, API migrations, shared library updates - are too risky because nobody can trace the blast radius.
 
-**Review happens continuously, not at a gate.** Real-time validation runs on every single transaction. Not in some CI pipeline that fires 20 minutes later. Engineers stop being bottlenecks and start being governors.
+**What removing it unlocks.** The codebase becomes queryable as a structure. "What depends on process_payment?" has an instant answer. Impact analysis happens before committing, not after CI fails.
 
-## What dies
+**Requires ceiling 1.** Agent-declared context reads (from captured reasoning) are a key signal for building an accurate dependency graph.
 
-**The Branch.** Branching exists because workers are disconnected. With a shared transactional store, it becomes optional isolation for experimentation, not the default.
+**Unlock: 5-10x to 20-50x.**
 
-**The Pull Request.** A batch review ceremony. Unnecessary when every mutation is validated in real-time with full reasoning captured. Humans set policies. The system enforces them.
+---
 
-**The Merge Conflict.** Artifact of disconnected state. SSI + fine-grained locking resolves conflicts at write-time. Two agents negotiate in real-time instead of discovering problems three days later.
+### Ceiling 3: No cross-agent awareness
 
-**The Local Checkout.** There is no "local." Agents read/write directly. Humans interact through views. The mental model shifts from "I have my copy" to "I have my view."
+Every major platform shipped multi-agent in February 2026. But agents are blind to each other. Claude Code warns: "Two teammates editing the same file leads to overwrites." Codex runs agents in isolated containers. Cross-tool coordination doesn't exist.
+
+**What's capped.** Practical ceiling: 5-7 concurrent agents before conflict dominates. The human becomes the scheduler and conflict resolver. More agents = more overhead, not more throughput.
+
+**What removing it unlocks.** Agents subscribe to dependency changes. Conflicts detected at write-time. 50-200 concurrent agents become viable.
+
+**Requires ceilings 1 + 2.** Coordination needs shared reasoning (intent) plus the dependency graph (who to notify).
+
+**Unlock: 20-50x to 100-200x.**
+
+---
+
+### Ceiling 4: No policy enforcement at write-time
+
+The only policy engine is human review. Every change - CSS fix to security-critical auth - waits in the same queue for the same human attention. No way to express "auto-approve low-risk, flag high-risk."
+
+**What's capped.** 50 agents generating 200 changes/day with 3 reviewers = permanent backlog. Adding more agents just grows the queue.
+
+**What removing it unlocks.** Human-defined policies enforced at write-time. Routine work flows automatically. Humans focus on architecture and exceptions.
+
+**Requires ceilings 1 + 2 + 3.** Policies need reasoning (confidence), semantic understanding (boundaries), and coordination (real-time enforcement).
+
+**Unlock: 100-200x to 200-500x.**
+
+---
+
+### Ceiling 5: No earned trust
+
+Every agent gets identical permissions regardless of track record. A proven agent with zero rollbacks is treated the same as one deployed five minutes ago.
+
+**What's capped.** The system is permanently conservative. Agents can't earn the right to work independently on critical modules.
+
+**What removing it unlocks.** Trust scored on track record. Proven agents earn expanded scope. Bad agents get constrained. The best agents operate near-autonomously on well-tested modules.
+
+**Requires ceilings 1 + 4.** Trust scoring needs reasoning trails (decision quality) and policy enforcement (defining good behavior).
+
+**Unlock: 200-500x to 500-800x.**
+
+---
+
+### Ceiling 6: No intelligent work decomposition
+
+Humans manually break objectives into tasks and assign them. Works for 5-10 tasks. At 100+ tasks across 50 agents, no human can hold the dependency graph in their head. The planning bottleneck replaces the review bottleneck.
+
+**What's capped.** "Throw 200 agents at it" is a fantasy without a planning system.
+
+**What removing it unlocks.** Human states an objective. The system decomposes it, schedules across 200+ agents, matches trust and capability to task requirements. Humans define goals and review outcomes.
+
+**Requires all five ceilings below.**
+
+**Unlock: 500-800x to 1000x.**
+
+---
+
+## Why the reasoning layer is the keystone
+
+Every ceiling requires the one below it. But ceiling 1 is uniquely foundational - it's required by every other ceiling, directly or transitively:
+
+- **Semantic understanding** needs reasoning because agent-declared context reads are a key signal for the dependency graph
+- **Coordination** needs reasoning because agents must read each other's intent to coordinate
+- **Policies** need reasoning because meaningful policies evaluate confidence and intent, not just syntax
+- **Trust** needs reasoning because trust is scored on reasoning quality over time, not just pass/fail
+- **Planning** needs all five
+
+Without ceiling 1, you cannot build any of the others. With it, each becomes a solvable engineering problem.
+
+---
+
+## The compound math
+
+Remove any layer and the ones above it hit a wall:
+
+- Many agents without semantic understanding = many conflicts
+- Policies without reasoning = policies that only check syntax
+- Trust scoring without reasoning = scoring on pass/fail only
+- Planning without coordination = 200 agents colliding
+
+The ceilings must fall in order. The order starts with reasoning.
+
+---
+
+## Where things stand (March 2026)
+
+| Ceiling | Status |
+|---|---|
+| 1. Reasoning | **UNSOLVED** - no tool captures agent reasoning and links it to Git commits |
+| 2. Semantic understanding | PARTIALLY SOLVED - Augment Code, Qodo have graphs, but disconnected from reasoning |
+| 3. Cross-agent awareness | JUST ARRIVED - within-tool only, 6 weeks old |
+| 4. Policy enforcement | UNSOLVED |
+| 5. Earned trust | UNSOLVED |
+| 6. Intelligent decomposition | UNSOLVED |
+
+The entire stack is blocked at the foundation.
+
+---
+
+## The solution - six phases, each built on the last
+
+### Phase 1: Capture reasoning (the keystone)
+
+Build the layer every other ceiling depends on: a system that captures agent reasoning at generation time and makes it persistent, searchable, and linked to code changes.
+
+**What a reasoning record contains:**
+- Intent: what the agent was trying to accomplish
+- Confidence: how certain the agent was (0.0 to 1.0)
+- Context read: what parts of the codebase the agent examined
+- Alternatives considered: what other approaches were evaluated and rejected
+- Risk assessment: what the agent believes could go wrong
+
+**Where it lives:** linked to Git commits. Not replacing Git. Adding the layer that's missing from all tools.
+
+**How it's captured:** an MCP server that agents connect to, or a hook alongside the agent's normal Git workflow. The agent does its normal work and reasoning is captured as a side effect.
+
+**What it must work with:** every major agent tool (Claude Code, Cursor, Codex, Aider, custom agents) and every Git platform (GitHub, GitLab, local). Cross-agent and cross-platform from day one.
+
+### Phase 2: Build the semantic graph
+
+Parse every file with tree-sitter. Extract functions, classes, types, interfaces. Map dependencies from imports, symbol references, and agent-declared context reads. Make the codebase queryable as a structure.
+
+### Phase 3: Enable cross-agent coordination
+
+Real-time subscriptions on dependency changes. Conflict detection at write-time. Shared reasoning that agents read before modifying related code. This is where the 5-7 agent ceiling breaks.
+
+### Phase 4: Policy engine
+
+Human-defined rules evaluated at write-time against reasoning metadata, dependency context, and coordination state. This is where the review bottleneck breaks.
+
+### Phase 5: Trust scoring
+
+Track record per agent. Graduated permissions. Automatic scope expansion for proven agents. Automatic constraint for unreliable ones.
+
+### Phase 6: Intelligent decomposition
+
+Objective decomposition into task DAGs. Capability-matched scheduling. Dependency-aware parallel execution across 200+ agents. This is the full vision - not the starting point.
+
+---
 
 ## The 9 Principles
 
@@ -60,21 +205,7 @@ If that sounds obvious, ask yourself: why is every tool in the market still buil
 8. **Full replayability**: Any codebase state, including the reasoning that produced it, can be reconstructed at any point.
 9. **Human-legible views**: The underlying store is agent-optimized. Humans interact through projections: IDE plugins, dashboards, NL queries.
 
-## Architecture
-
-A strawman stack, bottom to top.
-
-**Storage Layer.** Transactional database holding code as structured data. Tables for files, symbols, dependencies, mutations. Row-level locking. WAL-inspired event log for replayability.
-
-**Coordination Layer.** Agent sessions, lock acquisition, conflict detection, real-time subscriptions. SSI for concurrent access. Pub/sub for state change notifications. A multiplayer engine for code.
-
-**Validation Layer.** Runs on every committed transaction. Pluggable pipeline: parse, lint, format, typecheck, test, security. Replaces CI/CD for the inner loop entirely.
-
-**Reasoning Layer.** Captures agent intent, alternatives, context, confidence alongside every mutation. Enables queries like "Why was this function rewritten?" or "Show me every change with confidence below 0.7."
-
-**Policy Layer.** Human-defined rules enforced at write-time. Architectural boundaries, security policies, review thresholds, resource budgets. The governance plane for agentic codebases.
-
-**Projection Layer.** Human-friendly views: IDE plugins, dashboards, NL interfaces for querying codebase history and intent.
+---
 
 ## Git vs. what comes next
 
@@ -90,37 +221,7 @@ A strawman stack, bottom to top.
 | Human role | Writer + reviewer | Governor + architect |
 | Optimized for | 1-20 humans | 10-1000 agents + humans |
 
-## 14 questions I had to answer
-
-I sat down and asked myself: if I were building version control from scratch for a world where 100s of agents write code simultaneously, what would I need to get right?
-
-**1. What is the unit of work?** Not a commit (too coarse for one-line fixes, too fine for 40-file refactors). Two units: the *semantic mutation* (one meaningful change to one function/type/interface) and the *task* (a group of mutations that accomplish something together). Git bundles "fixed the bug AND ran the linter AND renamed that variable" into one commit. Here, those are separate mutations you can revert independently.
-
-**2. How do agents coordinate?** Serializable Snapshot Isolation over a semantic dependency graph. Each agent gets a snapshot, works independently, and at commit time the system checks three things: did anyone touch the same element? Did any dependency change its interface? Do the tests still pass? No locks. No branches. No merge conflicts.
-
-**3. What consistency model?** Strong within a dependency cluster, eventual across independent ones. Two agents working on unrelated modules don't need to see each other's changes in real-time. Two agents touching the same utility function do. The dependency graph handles the partitioning automatically.
-
-**4. How do you capture reasoning?** Three tiers. Tier 1: structured metadata on every mutation (intent, confidence, dependencies read). Tier 2: human-readable rationale on non-trivial changes ("Used Decimal instead of float because currency arithmetic requires exact precision"). Tier 3: full LLM reasoning chain, garbage-collected after 7 days. The killer query this enables: "Why does this function exist?" No codebase can answer that today.
-
-**5. How do humans fit in?** They don't review code. They set policy ("no changes to auth without approval", "all API endpoints validate with Zod") and review outcomes (completed tasks, not individual mutations). The UI is air traffic control, not a diff viewer.
-
-**6. How do you migrate from Git?** A bridge. Import repos into the semantic graph via tree-sitter. Export back as conventional Git commits. Teams adopt incrementally. Eventually the new system becomes the source of record.
-
-**7. How do you recover from failure?** Every mutation is individually recorded. Agent crashes mid-task? Another picks it up using the existing mutations and reasoning traces. Bad change shipped? Rollback is "undo this decision and everything downstream of it," not "reverse the diff and hope nothing depended on it."
-
-**8. How do you trust agents?** Cryptographic identity per agent. Capability scoping per task (this agent can write to /payments but not /auth). Trust scoring over time: agents whose changes pass validation and rarely get rolled back earn more autonomy. Bad agents get constrained automatically.
-
-**9. How do you parse code semantically?** tree-sitter for block-level parsing across 100+ languages. The system stores a block index (which functions/classes/types exist, their boundaries, their dependencies) and block content (versioned text). Agents also declare the scope of their mutations, verified at commit time.
-
-**10. How do you track dependencies?** Four signals: explicit imports, symbol references via tree-sitter, agent-declared reads (stored in reasoning traces), and test coverage mapping. The graph is probabilistic. False positives cause harmless re-validation. False negatives get caught by tests.
-
-**11. How do you decompose work?** Human states an objective ("add multi-currency support"). Planner agent breaks it into a task DAG with dependencies. Scheduler assigns tasks to agents as dependencies clear. Independent tasks run in parallel. This is where the 1000x efficiency comes from.
-
-**12. How do you observe everything?** Three surfaces: system health metrics (for operators), task progress DAG (for stakeholders), decision audit trail (for debugging). All powered by event streaming. Every mutation emits an event. Dashboard, agents, and observability all subscribe.
-
-**13. How do you test at this velocity?** Three tiers: syntactic validation on every mutation (<100ms, does it even parse?), targeted unit tests on every completed task (<30s, only tests covering affected code), full integration tests on a cadence. Prioritize compute on high-risk changes: low confidence, critical modules, low-trust agents.
-
-**14. How do you version and release?** Named snapshots with semantic guarantees. A "release" is a point where all tests pass, no policy violations, no open flags. Environments are snapshot pointers. Promoting staging to production is moving a pointer. Every release carries full provenance: which tasks, which agents, what reasoning, what validated it.
+---
 
 ## What's still open
 
