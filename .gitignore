@@ -38,6 +38,7 @@ uploads/
 **/uploads/
 *.pdf
 *.png
+!og-image.png
 *.jpg
 *.jpeg
 !**/src/main/**/*.pdf
