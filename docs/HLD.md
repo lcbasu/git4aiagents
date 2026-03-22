@@ -2254,25 +2254,30 @@ exit 0
 
 ---
 
-## Appendix C: Reasoning record example (CBOR, shown as JSON)
+## Appendix C: Record examples (CBOR, shown as JSON)
 
-**Commit record** (`.g4a/commits/a1b2c3d.g4a`):
+### C.1 Commit record (`.g4a/commits/a1b2c3d.g4a`)
 
 ```json
 {
   "version": "1.0",
   "commit_sha": "a1b2c3d4e5f6",
+  "parent_sha": "z9y8x7w6v5u4",
   "timestamp": "2026-03-22T10:15:03Z",
 
-  "session_id": "542e0ff9-b7aa-490f-ab02-f6b1f6952727",
-  "session_msg_start": 0,
-  "session_msg_end": 120,
-  "session_total_messages": 147,
+  "contributing_sessions": [
+    {
+      "session_id": "542e0ff9",
+      "agent": "claude-code",
+      "msg_start": 0,
+      "msg_end": 120,
+      "step_count": 121
+    }
+  ],
 
   "source": "captured",
-  "agent": "claude-code",
-  "agent_version": "2.1.81",
-  "model": "claude-opus-4-6",
+  "agents": ["claude-code"],
+  "primary_agent": "claude-code",
 
   "files_changed": [
     {"path": "checkout.py", "lines_added": 5, "lines_removed": 5, "change_type": "modified"},
@@ -2323,45 +2328,121 @@ exit 0
   "tools_used": ["Read", "Edit", "Bash", "Grep"],
   "tests_run": ["python -m pytest tests/test_payment.py"],
   "errors_encountered": [],
-  "dead_ends": ["Tried integer cents approach - tests failed because existing APIs expect decimal format"],
-  "user_prompts_count": 14,
-  "thinking_blocks_count": 23,
+  "dead_ends": ["Tried integer cents approach (steps 46-68) - tests failed because existing APIs expect decimal format"],
+
+  "total_steps": 121,
+  "total_user_prompts": 14,
+  "total_thinking_blocks": 23,
+  "total_agent_sessions": 1,
 
   "capture_duration_ms": 487,
   "record_size_bytes": 3241
 }
 ```
 
-**Session trace** (`.g4a/sessions/542e0ff9.g4a`, abbreviated):
+### C.2 Multi-agent commit record (2 agents contributed)
 
 ```json
 {
   "version": "1.0",
-  "session_id": "542e0ff9-b7aa-490f-ab02-f6b1f6952727",
+  "commit_sha": "m3n4o5p6q7r8",
+  "parent_sha": "a1b2c3d4e5f6",
+  "timestamp": "2026-03-22T11:30:00Z",
+
+  "contributing_sessions": [
+    {
+      "session_id": "542e0ff9",
+      "agent": "claude-code",
+      "msg_start": 121,
+      "msg_end": 147,
+      "step_count": 27
+    },
+    {
+      "session_id": "b2b35939",
+      "agent": "claude-code",
+      "msg_start": 0,
+      "msg_end": 12,
+      "step_count": 13
+    }
+  ],
+
+  "source": "captured",
+  "agents": ["claude-code"],
+  "primary_agent": "claude-code",
+  "total_steps": 40,
+  "total_user_prompts": 5,
+  "total_thinking_blocks": 8,
+  "total_agent_sessions": 2
+}
+```
+
+### C.3 Human-only commit record (0 steps)
+
+```json
+{
+  "version": "1.0",
+  "commit_sha": "h1i2j3k4l5m6",
+  "parent_sha": "m3n4o5p6q7r8",
+  "timestamp": "2026-03-22T14:00:00Z",
+
+  "contributing_sessions": [],
+
+  "source": "metadata-only",
+  "agents": [],
+  "primary_agent": null,
+
+  "files_changed": [
+    {"path": "package.json", "lines_added": 2, "lines_removed": 2, "change_type": "modified"}
+  ],
+  "commit_message": "chore: Update dependencies",
+
+  "intent": null,
+  "total_steps": 0,
+  "total_user_prompts": 0,
+  "total_thinking_blocks": 0,
+  "total_agent_sessions": 0,
+
+  "capture_duration_ms": 12,
+  "record_size_bytes": 384
+}
+```
+
+### C.4 Session trace (`.g4a/sessions/542e0ff9.g4a`, abbreviated)
+
+```json
+{
+  "version": "1.0",
+  "session_id": "542e0ff9",
   "agent": "claude-code",
   "agent_version": "2.1.81",
   "model": "claude-opus-4-6",
   "started_at": "2026-03-22T09:30:00Z",
-  "last_captured_at": "2026-03-22T10:15:03Z",
-  "commits_in_session": ["a1b2c3d4e5f6", "e4f5g6h7i8j9"],
+  "last_captured_at": "2026-03-22T11:30:00Z",
+  "commits_in_session": ["a1b2c3d4e5f6", "m3n4o5p6q7r8"],
   "total_user_prompts": 18,
   "total_thinking_blocks": 31,
   "total_tool_calls": 89,
   "total_files_read": 12,
   "total_files_written": 8,
   "total_errors": 2,
-  "messages": [
+  "events": [
     {
       "index": 0,
       "type": "user_prompt",
       "timestamp": "2026-03-22T09:30:12Z",
-      "content": "Refactor payment processing to use Decimal instead of float"
+      "content": "Refactor payment processing to use Decimal instead of float",
+      "parent_event": null,
+      "is_dead_end": false,
+      "phase": "exploration"
     },
     {
       "index": 1,
       "type": "thinking",
       "timestamp": "2026-03-22T09:30:15Z",
-      "content": "I need to understand the current payment system. Let me read the relevant files first..."
+      "content": "I need to understand the current payment system. Let me read the relevant files first...",
+      "parent_event": 0,
+      "is_dead_end": false,
+      "phase": "exploration"
     },
     {
       "index": 2,
@@ -2369,48 +2450,68 @@ exit 0
       "timestamp": "2026-03-22T09:30:16Z",
       "content": "",
       "tool_name": "Read",
-      "tool_input": {"file_path": "checkout.py"}
+      "tool_input": {"file_path": "checkout.py"},
+      "tool_duration_ms": 45,
+      "parent_event": 1,
+      "is_dead_end": false,
+      "phase": "exploration"
     },
-    "... (messages 3-45: reading files, exploring codebase) ...",
+    "... (events 3-45: reading files, exploring codebase) ...",
     {
       "index": 46,
       "type": "thinking",
       "timestamp": "2026-03-22T09:52:03Z",
-      "content": "Let me try using integer cents. This avoids floating point entirely..."
+      "content": "Let me try using integer cents. This avoids floating point entirely...",
+      "parent_event": 0,
+      "is_dead_end": true,
+      "phase": "implementation"
     },
-    "... (messages 47-65: integer cents attempt, writing code, running tests) ...",
+    "... (events 47-65: integer cents attempt, all marked is_dead_end: true) ...",
     {
       "index": 66,
       "type": "tool_call",
       "timestamp": "2026-03-22T10:01:22Z",
       "content": "",
       "tool_name": "Bash",
-      "tool_input": {"command": "python -m pytest tests/test_payment.py"}
+      "tool_input": {"command": "python -m pytest tests/test_payment.py"},
+      "tool_duration_ms": 6000,
+      "parent_event": 46,
+      "is_dead_end": true,
+      "phase": "testing"
     },
     {
       "index": 67,
       "type": "tool_result",
       "timestamp": "2026-03-22T10:01:28Z",
-      "content": "FAILED tests/test_payment.py::test_api_response - AssertionError: expected Decimal, got int"
+      "content": "FAILED tests/test_payment.py::test_api_response - AssertionError: expected Decimal, got int",
+      "parent_event": 66,
+      "is_dead_end": true,
+      "phase": "testing"
     },
     {
       "index": 68,
       "type": "thinking",
       "timestamp": "2026-03-22T10:01:30Z",
-      "content": "Integer cents won't work - the existing APIs expect decimal format. I'd have to touch 23 files to update all the API contracts. Let me try Decimal everywhere instead..."
+      "content": "Integer cents won't work - the existing APIs expect decimal format. I'd have to touch 23 files. Let me try Decimal everywhere instead...",
+      "parent_event": 0,
+      "is_dead_end": false,
+      "phase": "implementation"
     },
-    "... (messages 69-119: Decimal approach, implementation, testing) ...",
+    "... (events 69-119: Decimal approach, implementation, testing) ...",
     {
       "index": 120,
-      "type": "tool_call",
+      "type": "commit",
       "timestamp": "2026-03-22T10:15:01Z",
-      "content": "",
+      "content": "refactor: Update payment calculation to use Decimal",
       "tool_name": "Bash",
-      "tool_input": {"command": "git commit -m 'refactor: Update payment calculation to use Decimal'"}
+      "tool_input": {"command": "git commit -m 'refactor: Update payment calculation to use Decimal'"},
+      "parent_event": 68,
+      "is_dead_end": false,
+      "phase": "implementation"
     },
-    "... (messages 121-147: second task, reporting module update, second commit) ..."
+    "... (events 121-147: second task, reporting module update, second commit) ..."
   ]
 }
 ```
 
-The session trace shows the full story: 14 prompts, 23 thinking blocks, a dead end with integer cents (messages 46-68), the pivot to Decimal, and the final commit. All captured. Nothing lost.
+The session trace shows the full story: 14 prompts, 23 thinking blocks, a dead end with integer cents (events 46-68, all marked `is_dead_end: true`), the pivot to Decimal, and the final commit. Two commits in one session, both linked. All captured. Nothing lost.
