@@ -13,13 +13,17 @@ Then at commit time, all of that thinking is thrown away. This happens with ever
 
 ## What this causes
 
-**Code review takes 3.6x longer.** Reviewers stare at diffs and reverse-engineer intent. AI-generated changes take 4.3 minutes to review vs 1.2 minutes for human-written changes.
+**PR review time increased 91%.** Teams using AI merge 98% more PRs that are 154% larger, but review time increased 91%. Reviewers stare at diffs and reverse-engineer intent. (Source: Faros AI, 10,000+ devs across 1,255 teams)
 
-**46% of developers actively distrust AI-written code.** Not because the code is bad - because they can't see the reasoning. Only 3% highly trust it.
+**46% of developers actively distrust AI-written code.** Not because the code is bad - because they can't see the reasoning. Only 3% highly trust it. (Source: Stack Overflow 2025 Survey, 49,000+ respondents)
+
+**66% waste time on "almost right" AI code.** The biggest frustration: AI solutions that are close but not quite. Debugging AI-generated code is more time-consuming than writing it yourself - because the reasoning behind it is invisible. (Source: Stack Overflow 2025 Survey)
 
 **Debugging is terrifying.** When agent code breaks in production, there's no trail. The agent is gone. Its reasoning is gone. You're reverse-engineering intent from diffs while the clock is ticking.
 
-**Teams don't benefit.** 70% say agents boost personal productivity, only 17% say they help team collaboration. Reasoning lives in private sessions and dies there.
+**Teams don't benefit.** 70% say agents boost personal productivity, only 17% say they help team collaboration. Reasoning lives in private sessions and dies there. (Source: Stack Overflow 2025 Survey, AI Agents section)
+
+Salesforce already rebuilt their review infrastructure because "traditional pull request review assumes reviewers can reconstruct intent by scanning diffs sequentially" - and that assumption broke under AI code volume. Code grew 30%, PRs expanded beyond 20 files and 1,000+ lines, and review latency rose quarter over quarter. g4a makes that intent-reconstruction capability available to every team. (Source: Salesforce Engineering Blog, January 2026 - https://engineering.salesforce.com/scaling-code-reviews-adapting-to-a-surge-in-ai-generated-code/)
 
 **AI agents start from zero, every time.** Every agent re-discovers the same things. Every rejected alternative is re-explored. Every deliberate tradeoff is invisible. The codebase has no memory of the decisions that shaped it.
 
@@ -82,7 +86,7 @@ Commands:
 ## Storage
 
 - .g4a/ directory inside your repo. No server. No account.
-- One file per commit, one file per session. CBOR + zstd compression.
+- One file per commit, one file per session. CBOR (IETF RFC 8949) + zstd compression. An internet standard, not a proprietary format.
 - Secret masking before any data hits disk. Irreversible.
 - 10-50 KB per commit. 1,000 commits = 10-50 MB.
 - Self-describing JSON Schema for future compatibility.

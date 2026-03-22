@@ -8,10 +8,11 @@ Every AI coding agent thinks deeply while writing code - reading files, consider
 
 ## What this causes
 
-- Code review is 3.6x slower for AI-generated changes (4.3 min vs 1.2 min)
-- 46% of developers actively distrust AI-written code, only 3% highly trust it
+- PR review time increased 91% on AI-heavy teams (Faros AI, 10K+ devs, 1,255 teams)
+- 46% of developers actively distrust AI-written code, only 3% highly trust it (Stack Overflow 2025, 49K+ devs)
+- 66% waste time on "almost right" AI code (Stack Overflow 2025)
 - Debugging is terrifying - no trail of WHY agent decisions were made
-- 70% individual productivity gain, only 17% team collaboration gain
+- 70% individual productivity gain, only 17% team collaboration gain (Stack Overflow 2025)
 - AI agents start from zero every time - no memory of past decisions, rejected alternatives, or tradeoffs
 
 ## How g4a helps humans

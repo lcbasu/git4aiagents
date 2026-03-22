@@ -108,7 +108,7 @@
       "name": "What is the reasoning evaporation problem in AI coding?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "When an AI agent writes code, its chain of thought - what it read, what it intended, what alternatives it considered, how confident it was - is discarded the moment the code is committed. Git stores the diff and a commit message. The thinking is gone forever. This makes agent code harder to trust, review, and debug. Review is 3.6x slower for AI code. 46% of developers actively distrust AI output."
+        "text": "When an AI agent writes code, its chain of thought - what it read, what it intended, what alternatives it considered, how confident it was - is discarded the moment the code is committed. Git stores the diff and a commit message. The thinking is gone forever. This makes agent code harder to trust, review, and debug. PR review time is up 91% on AI-heavy teams (Faros AI). 46% of developers actively distrust AI output (Stack Overflow 2025)."
       }
     },
     {
@@ -283,6 +283,42 @@
   }
 
   .stat .label { color: var(--dim); font-size: 13px; line-height: 1.5; }
+
+  .source {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--accent2);
+    text-decoration: none;
+    margin-top: 8px;
+    padding: 3px 8px;
+    background: rgba(102, 217, 239, 0.06);
+    border: 1px solid rgba(102, 217, 239, 0.15);
+    transition: border-color 0.2s;
+  }
+
+  .source:hover { border-color: var(--accent2); text-decoration: underline; }
+
+  .source img {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+
+  .callout {
+    margin: 24px 0;
+    padding: 16px 20px;
+    border-left: 3px solid var(--orange);
+    background: var(--code-bg);
+    font-size: 13px;
+    color: var(--fg);
+    line-height: 1.6;
+  }
+
+  .callout .callout-source { color: var(--dim); font-size: 12px; margin-top: 8px; }
+  .callout a { color: var(--accent2); text-decoration: none; }
+  .callout a:hover { text-decoration: underline; }
 
   /* --- Scenario --- */
   .scenario {
@@ -563,25 +599,35 @@
     <h2>What this causes</h2>
     <div class="stats">
       <div class="stat">
-        <span class="number">3.6x slower code review</span>
-        <span class="label">Reviewers stare at diffs and reverse-engineer intent. "Why did the agent change the auth middleware order?" has no answer. AI-generated changes take 4.3 minutes to review vs 1.2 minutes for human-written changes.</span>
+        <span class="number">PR review time up 91%</span>
+        <span class="label">Teams using AI merge 98% more PRs that are 154% larger, but review time increased 91%. Reviewers stare at diffs and reverse-engineer intent. "Why did the agent change the auth middleware order?" has no answer.</span>
+        <a class="source" href="https://www.faros.ai/blog/ai-software-engineering" target="_blank" rel="noopener"><img src="https://www.google.com/s2/favicons?domain=faros.ai&sz=32" alt="">Faros AI, 10,000+ devs across 1,255 teams</a>
       </div>
       <div class="stat">
         <span class="number">46% actively distrust AI code</span>
         <span class="label">Not because the code is bad - because they can't see the reasoning. Only 3% highly trust it. When the thinking is invisible, distrust is rational.</span>
+        <a class="source" href="https://survey.stackoverflow.co/2025/ai" target="_blank" rel="noopener"><img src="https://www.google.com/s2/favicons?domain=stackoverflow.com&sz=32" alt="">Stack Overflow 2025 Survey, 49,000+ devs</a>
       </div>
       <div class="stat">
-        <span class="number">Debugging is terrifying</span>
-        <span class="label">When agent code breaks in production, there's no trail. The agent is gone. Its reasoning is gone. You're reverse-engineering intent from diffs while the clock is ticking.</span>
+        <span class="number">66% waste time on "almost right" AI code</span>
+        <span class="label">The biggest frustration: AI solutions that are close but not quite. Debugging AI-generated code is more time-consuming than writing it yourself - because the reasoning behind it is invisible.</span>
+        <a class="source" href="https://survey.stackoverflow.co/2025/ai" target="_blank" rel="noopener"><img src="https://www.google.com/s2/favicons?domain=stackoverflow.com&sz=32" alt="">Stack Overflow 2025 Survey, 49,000+ devs</a>
       </div>
       <div class="stat">
         <span class="number">70% individual gain, 17% team gain</span>
         <span class="label">Reasoning lives in private sessions and dies there. Your teammate's agent made a smart architectural choice yesterday. The next agent that touches that code will undo it - because it doesn't know the choice was deliberate.</span>
+        <a class="source" href="https://survey.stackoverflow.co/2025/ai" target="_blank" rel="noopener"><img src="https://www.google.com/s2/favicons?domain=stackoverflow.com&sz=32" alt="">Stack Overflow 2025 Survey, AI Agents section</a>
       </div>
       <div class="stat">
         <span class="number">AI agents start from zero, every time</span>
-        <span class="label">Every agent re-discovers the same things. Every rejected alternative is re-explored. Every deliberate tradeoff is invisible. The codebase has no memory of the decisions that shaped it.</span>
+        <span class="label">"Each Claude Code session begins with a fresh context window." Every agent re-discovers the same things. Every rejected alternative is re-explored. Every deliberate tradeoff is invisible. The codebase has no memory of the decisions that shaped it.</span>
+        <a class="source" href="https://docs.anthropic.com/en/docs/claude-code/memory" target="_blank" rel="noopener"><img src="https://www.google.com/s2/favicons?domain=anthropic.com&sz=32" alt="">Anthropic, Claude Code Memory docs</a>
       </div>
+    </div>
+
+    <div class="callout">
+      Salesforce already rebuilt their review infrastructure because "traditional pull request review assumes reviewers can reconstruct intent by scanning diffs sequentially" - and that assumption broke under AI code volume. Code grew 30%, PRs expanded beyond 20 files and 1,000+ lines, and review latency rose quarter over quarter. g4a makes that intent-reconstruction capability available to every team.
+      <a class="source" href="https://engineering.salesforce.com/scaling-code-reviews-adapting-to-a-surge-in-ai-generated-code/" target="_blank" rel="noopener"><img src="https://www.google.com/s2/favicons?domain=salesforce.com&sz=32" alt="">Salesforce Engineering Blog, January 2026</a>
     </div>
   </section>
 
@@ -594,7 +640,7 @@
     <div class="scenario scenario-git">
       <div class="scenario-header">What the reviewer sees in the PR</div>
       <div class="scenario-body">
-        <p><strong style="color:#fff">refactor: Update payment calculation to use Decimal</strong></p>
+        <p><strong style="color:var(--fg)">refactor: Update payment calculation to use Decimal</strong></p>
         <p>8 files changed. Float replaced with Decimal in checkout, billing, refunds, and settlement. Some rounding logic changed. Tests updated.</p>
         <p style="margin-top:16px">Why? No idea. Was it a precision bug? A compliance requirement? Did the agent know about the nightly settlement job? Did it test batch operations?</p>
         <p style="margin-top:12px">The reviewer spends 25 minutes reading 8 diffs, checking rounding logic, and ultimately approves because the tests pass and they're behind on 14 other PRs.</p>
@@ -664,20 +710,20 @@
     <h2>How g4a helps AI agents</h2>
     <div class="value-grid">
       <div class="value-item agent">
-        <div class="value-title">Agents understand past decisions</div>
-        <div class="value-desc">A new agent reads .g4a/ and immediately knows: this was changed to Decimal because of precision drift in batch settlements. Integer cents was rejected because it would touch 23 files. The agent doesn't re-explore. It doesn't accidentally revert a deliberate choice.</div>
+        <div class="value-title">Every future agent will have context</div>
+        <div class="value-desc">The .g4a/ directory is institutional memory. A new agent reads it and immediately knows: this was changed to Decimal because of precision drift in batch settlements. Integer cents was rejected because it would touch 23 files. No re-exploration. No accidentally reverting a deliberate choice.</div>
       </div>
       <div class="value-item agent">
         <div class="value-title">Agents stop duplicating work</div>
         <div class="value-desc">Without g4a, every agent re-discovers the same things. Agent A found that the payment module has a tricky dependency on the settlement job. Agent B comes along the next day and has to discover that from scratch. With g4a, Agent B starts where Agent A left off.</div>
       </div>
       <div class="value-item agent">
-        <div class="value-title">Agents coordinate through shared context</div>
-        <div class="value-desc">Agent A is refactoring payments with Decimal. Agent B is building new billing features. Agent B reads Agent A's reasoning, sees the Decimal migration, and writes its code with Decimal from the start instead of creating a conflict.</div>
+        <div class="value-title">Agent coordination becomes possible</div>
+        <div class="value-desc">When multiple agents work on the same codebase, they need shared context to avoid conflicts. g4a provides the foundation: captured reasoning that any agent can read before modifying shared code. As agent-to-agent coordination matures, the reasoning is already there.</div>
       </div>
       <div class="value-item agent">
-        <div class="value-title">Your codebase gets smarter over time</div>
-        <div class="value-desc">The .g4a/ directory is institutional memory. Every decision, every rejected alternative, every risk assessment - accumulated over months. The longer g4a runs, the more context every future agent has.</div>
+        <div class="value-title">Your codebase compounds intelligence</div>
+        <div class="value-desc">Every decision, every rejected alternative, every risk assessment - accumulated over months. The longer g4a runs, the more context every future agent has. Your codebase goes from a collection of files to a documented history of decisions.</div>
       </div>
     </div>
   </section>
@@ -730,7 +776,7 @@
     <div class="storage-grid">
       <div class="storage-item">
         <span class="key">Format</span>
-        <span class="val">One file per commit, one file per session. CBOR + zstd compression. Binary in git diffs.</span>
+        <span class="val">One file per commit, one file per session. CBOR (<a href="https://www.rfc-editor.org/rfc/rfc8949" target="_blank" rel="noopener" style="color:var(--accent2)">IETF RFC 8949</a>) + zstd compression. An internet standard, not a proprietary format.</span>
       </div>
       <div class="storage-item">
         <span class="key">Security</span>
@@ -759,7 +805,7 @@
 
   <footer class="footer">
     <p>g4a - the reasoning layer for AI-written code</p>
-    <p>Git stores what changed. g4a stores why. Add it to your existing project and unlock 10x for both humans and AI agents.</p>
+    <p>Git stores what changed. g4a stores why. 10x from reasoning alone. The path to 1000x starts here.</p>
     <p style="margin-top: 16px">Started March 2026 by <a href="https://twitter.com/lcbasu">Lokesh Basu</a></p>
   </footer>
 
