@@ -236,10 +236,14 @@ Minimal dependencies keep install fast and attack surface small:
 
 ### 4.1 Capture flow (Claude Code - direct)
 
+**Key insight:** Between two commits, a developer may exchange 100+ prompts with Claude Code. The agent reads dozens of files, considers multiple approaches, hits dead ends, backtracks, and explores alternatives - all before a single commit. A single session can produce multiple commits, or a single commit can come after hours of exploration. **g4a captures everything - the full session trace, not just a slice around the commit.**
+
 ```
 1. Developer uses Claude Code normally
 2. Claude Code writes session transcript to:
    ~/.claude/projects/{project-slug}/{session-id}.jsonl
+   This transcript grows with every prompt, every thinking block,
+   every tool call, every response - hundreds of entries.
 3. Developer commits (or Claude Code commits for them)
 4. Post-commit hook fires:
    a. Hook shim reads the commit SHA
@@ -248,21 +252,49 @@ Minimal dependencies keep install fast and attack surface small:
 5. Background process:
    a. detector.py checks for Claude Code transcripts
       - Looks at ~/.claude/projects/ for the current project
-      - Finds the most recent transcript modified within the last 60 seconds
-      - Falls back to git hook adapter if no transcript found
-   b. claude_code.py parses the JSONL transcript:
-      - Extracts all tool_use blocks (Read, Edit, Write, Bash, Grep, Glob)
-      - Extracts all text blocks (agent's visible reasoning)
-      - Extracts all thinking blocks (extended thinking, if available)
-      - Maps tool_use calls to files read/written
-      - Identifies the diff window: only messages between the last
-        commit and this commit are relevant
-   c. extractor.py normalizes to ReasoningRecord
-   d. masker.py scans and redacts secrets
-   e. engine.py serializes to CBOR, compresses with zstd
-   f. Writes to .g4a/commits/{sha}.g4a
-   g. Updates .g4a/index.g4a (append-only search index)
+      - Finds the active transcript (most recently modified .jsonl)
+      - Falls back to metadata-only if no transcript found
+   b. claude_code.py does TWO things:
+
+      STEP 1 - Capture the full session (if not already captured):
+      - Parse the ENTIRE .jsonl transcript from start to current point
+      - Extract every message: user prompts, assistant thinking,
+        tool calls, tool results, errors, corrections
+      - This captures the full chain of reasoning including dead ends,
+        backtracks, and multi-step explorations
+      - Mask secrets across the entire session
+      - Write to .g4a/sessions/{session-id}.g4a
+      - If the session file already exists (from a previous commit in
+        the same session), APPEND the new messages since last capture
+
+      STEP 2 - Create a commit record linking to the session:
+      - Record which session produced this commit
+      - Record the message range within the session (start_index to
+        commit_index) so queries can find the relevant reasoning
+      - Synthesize a summary: intent, alternatives, risks, confidence
+        from the messages in this commit's range
+      - Write to .g4a/commits/{sha}.g4a
+
+   c. Updates .g4a/index.g4a (append-only search index)
 ```
+
+**Why capture the full session, not just a window:**
+
+A developer asks Claude Code to refactor payment processing. Over the next 45 minutes:
+
+- Prompt 1-3: "Refactor payments to use Decimal" - agent reads 8 files
+- Prompt 4-6: Agent tries approach A (integer cents), writes code, runs tests - tests fail
+- Prompt 7-8: "That didn't work, the API expects decimal format" - agent backtracks
+- Prompt 9-12: Agent tries approach B (Decimal everywhere), reads settlement job, finds CSV risk
+- Prompt 13: Agent writes final code, runs tests - tests pass
+- Prompt 14: Agent commits
+
+If g4a only captured prompts 12-14 (the "window" around the commit), it would miss:
+- The dead end with integer cents (prompt 4-6) - critical context for WHY Decimal was chosen
+- The discovery of the settlement job dependency (prompt 9-12)
+- The full exploration of 8 files (prompt 1-3)
+
+The **session file** captures all of this. The **commit record** points into the session and provides a synthesized summary. Queries can drill into the full session when needed.
 
 ### 4.2 Capture flow (no Claude Code transcript found - metadata only)
 
@@ -302,48 +334,249 @@ This ensures `.g4a/` is never empty. Even metadata-only records power `g4a log` 
 
 ---
 
-## 5. Reasoning record schema
+## 5. Data model
 
-The core data structure. Every reasoning record follows this schema regardless of which agent or adapter produced it.
+### 5.1 The timeline between commits
+
+The most important insight for the data model: **between any two git commits, there is a rich timeline of events.** This timeline could be:
+
+- **Hundreds of steps** when an agent explored, hit dead ends, backtracked, and iterated
+- **Parallel branches** when 2+ agents worked on the same repo concurrently
+- **Just two commit markers** when a human wrote code manually with no agent
+
+g4a captures this timeline as a **directed acyclic graph (DAG)** of events, not a flat list. Each event has a timestamp, an actor (which agent or "human"), and edges to related events.
+
+```
+Commit A                                                    Commit B
+  |                                                            |
+  +-- [agent-1: claude-code session 542e]                      |
+  |     |                                                      |
+  |     +-- step 0: user prompt "refactor payments"            |
+  |     +-- step 1: thinking (reads files)                     |
+  |     +-- step 2: tool_call Read checkout.py                 |
+  |     +-- step 3: tool_call Read billing.py                  |
+  |     +-- ...                                                |
+  |     +-- step 46: thinking "try integer cents"              |
+  |     +-- step 47-65: dead end (integer cents)               |
+  |     +-- step 66: test fails                                |
+  |     +-- step 68: thinking "pivot to Decimal"               |
+  |     +-- ...                                                |
+  |     +-- step 120: git commit --> Commit B                  |
+  |                                                            |
+  +-- [agent-2: claude-code session b2b3]                      |
+  |     |                                                      |
+  |     +-- step 0: user prompt "update docs"                  |
+  |     +-- step 1-8: reads and edits README                   |
+  |     +-- step 9: git commit --> Commit C (different branch) |
+  |                                                            |
+  +-- [human: no agent session]                                |
+        |                                                      |
+        +-- (no steps captured, just the commit markers)       |
+```
+
+**Key design decisions:**
+
+1. **Every commit gets a record,** even human-only commits with zero agent steps. The minimum record is two markers: "commit A ended here" and "commit B starts here." This ensures the timeline has no gaps.
+
+2. **Multiple agents produce parallel branches.** When two Claude Code sessions run concurrently on the same repo, each session is a separate branch in the DAG. They converge at commits (which are serialized by git).
+
+3. **The graph is queryable by both humans and AI agents.** Humans see a visual timeline. Agents read the structured data to understand what happened and why.
+
+### 5.2 Schema
 
 ```python
+# =========================================================================
+# COMMIT RECORD - one per git commit
+# The fast-access summary. Queries read these.
+# =========================================================================
+
 @dataclass
-class ReasoningRecord:
+class CommitRecord:
     # Identity
     version: str                    # Schema version, e.g. "1.0"
-    commit_sha: str                 # Git commit SHA this record is for
-    session_id: Optional[str]       # Agent session ID (if available)
+    commit_sha: str                 # Git commit SHA
+    parent_sha: Optional[str]       # Parent commit SHA (for DAG traversal)
     timestamp: str                  # ISO 8601 UTC
 
+    # Which sessions contributed to this commit
+    # Usually 1, but can be multiple if 2+ agents worked between
+    # the previous commit and this one
+    contributing_sessions: List[SessionLink]
+
     # Source
-    source: str                     # "captured" | "inferred" | "metadata-only"
-    agent: str                      # "claude-code" | "cursor" | "copilot" | "codex"
-                                    # | "windsurf" | "aider" | "unknown"
-    agent_version: Optional[str]    # e.g. "2.1.81"
-    model: Optional[str]           # e.g. "claude-opus-4-6"
+    source: str                     # "captured" | "metadata-only"
+    agents: List[str]               # ["claude-code"] or ["claude-code", "cursor"] etc.
+    primary_agent: Optional[str]    # The agent that made the commit (if detectable)
 
     # What changed
     files_changed: List[FileChange]
     commit_message: str
 
-    # Reasoning (the core value)
-    intent: Optional[str]           # WHY this change was made
-    exploration: Optional[str]      # What the agent read/tested before deciding
-    alternatives: Optional[List[Alternative]]  # Approaches considered + rejected
-    risks: Optional[List[Risk]]     # Flagged concerns with confidence levels
-    confidence: Optional[float]     # 0.0-1.0 overall confidence
-    confidence_details: Optional[Dict[str, float]]  # Per-area confidence
+    # Reasoning summary (synthesized from ALL contributing sessions)
+    intent: Optional[str]
+    exploration: Optional[str]
+    alternatives: Optional[List[Alternative]]
+    risks: Optional[List[Risk]]
+    confidence: Optional[float]
+    confidence_details: Optional[Dict[str, float]]
 
-    # Context
-    files_read: Optional[List[str]] # Files the agent read during the session
-    tools_used: Optional[List[str]] # Tools the agent invoked (Bash, grep, etc.)
-    tests_run: Optional[List[str]]  # Test commands executed
-    errors_encountered: Optional[List[str]]  # Errors the agent hit and recovered from
+    # Context (aggregated across ALL contributing sessions)
+    files_read: Optional[List[str]]
+    tools_used: Optional[List[str]]
+    tests_run: Optional[List[str]]
+    errors_encountered: Optional[List[str]]
+    dead_ends: Optional[List[str]]
+
+    # Stats across all contributing sessions for this commit
+    total_steps: int                # Total events between prev commit and this one
+    total_user_prompts: int
+    total_thinking_blocks: int
+    total_agent_sessions: int       # How many agents contributed
 
     # Metadata
-    capture_duration_ms: int        # How long capture took
-    record_size_bytes: int          # Size after compression
+    capture_duration_ms: int
+    record_size_bytes: int
 
+
+@dataclass
+class SessionLink:
+    """Pointer from a commit record into a session trace."""
+    session_id: str
+    agent: str                      # "claude-code" | "unknown"
+    msg_start: int                  # First message index in session for this commit
+    msg_end: int                    # Last message index in session for this commit
+    step_count: int                 # Number of steps in this range
+    # A commit may have multiple SessionLinks if multiple agents
+    # contributed between the previous commit and this one
+
+
+# =========================================================================
+# SESSION RECORD - one per agent session
+# The full trace. Detailed queries and drill-downs read these.
+# =========================================================================
+
+@dataclass
+class SessionRecord:
+    """Full session trace - captures EVERYTHING the agent did."""
+    version: str
+    session_id: str
+    agent: str
+    agent_version: Optional[str]
+    model: Optional[str]
+    started_at: str                 # ISO 8601 UTC
+    last_captured_at: str           # Updated on each commit within this session
+
+    # The full event stream (masked)
+    events: List[Event]             # Every event in order
+    commits_in_session: List[str]   # SHAs of all commits made during this session
+
+    # Aggregate stats
+    total_user_prompts: int
+    total_thinking_blocks: int
+    total_tool_calls: int
+    total_files_read: int
+    total_files_written: int
+    total_errors: int
+
+
+# =========================================================================
+# EVENT - one step in the timeline
+# The atomic unit of the DAG.
+# =========================================================================
+
+@dataclass
+class Event:
+    """One step in the reasoning timeline."""
+    index: int                      # Position in the session (0-based)
+    type: str                       # See EventType below
+    timestamp: str                  # ISO 8601 UTC
+    content: str                    # Masked content
+
+    # Tool-specific fields
+    tool_name: Optional[str]        # For tool_call/tool_result
+    tool_input: Optional[dict]      # For tool_call: arguments
+    tool_duration_ms: Optional[int] # How long the tool call took
+
+    # Graph edges
+    parent_event: Optional[int]     # Index of the event that caused this one
+    # e.g., a tool_result's parent is the tool_call that triggered it
+    # e.g., a thinking block's parent is the user_prompt it responds to
+    # This builds the DAG within a session
+
+    # Classification (helps visualization)
+    is_dead_end: bool               # True if this event was part of an abandoned approach
+    phase: Optional[str]            # "exploration" | "implementation" | "testing" | "debugging"
+    # Phase is auto-detected from content patterns:
+    #   Read/Grep/Glob -> exploration
+    #   Edit/Write -> implementation
+    #   Bash with test commands -> testing
+    #   Bash after test failure -> debugging
+
+
+class EventType:
+    USER_PROMPT = "user_prompt"     # Developer typed something
+    THINKING = "thinking"           # Agent's internal reasoning (extended thinking)
+    TEXT = "text"                   # Agent's visible response
+    TOOL_CALL = "tool_call"         # Agent invoked a tool
+    TOOL_RESULT = "tool_result"     # Tool returned a result
+    ERROR = "error"                 # Something went wrong
+    COMMIT = "commit"               # A git commit was made (marks a boundary)
+    SESSION_START = "session_start" # Agent session began
+    SESSION_END = "session_end"     # Agent session ended
+
+
+# =========================================================================
+# TIMELINE - the unified view between two commits
+# Built on-the-fly from commit records + session traces.
+# This is what the CLI and UI render.
+# =========================================================================
+
+@dataclass
+class Timeline:
+    """The complete picture between two commits. Built at query time."""
+    from_commit: str                # Parent commit SHA (or None for first commit)
+    to_commit: str                  # This commit SHA
+    timestamp_start: str            # Timestamp of parent commit
+    timestamp_end: str              # Timestamp of this commit
+
+    # Branches: one per agent session active in this range
+    branches: List[TimelineBranch]
+
+    # Summary stats
+    total_events: int               # Across all branches
+    total_agents: int               # How many agents were active
+    has_parallel_work: bool         # True if 2+ agents overlapped in time
+
+
+@dataclass
+class TimelineBranch:
+    """One agent's work between two commits."""
+    session_id: str
+    agent: str
+    agent_version: Optional[str]
+    events: List[Event]             # This agent's events in the time range
+    phases: List[Phase]             # Grouped events by phase
+
+    # Stats for this branch
+    step_count: int
+    user_prompts: int
+    dead_end_count: int
+    files_touched: List[str]
+
+
+@dataclass
+class Phase:
+    """A group of related events within a branch."""
+    name: str                       # "exploration" | "implementation" | "testing" | "debugging" | "dead_end"
+    start_index: int
+    end_index: int
+    summary: Optional[str]          # One-line summary of what happened in this phase
+    duration_ms: int
+
+
+# =========================================================================
+# SUPPORTING TYPES
+# =========================================================================
 
 @dataclass
 class FileChange:
@@ -355,26 +588,97 @@ class FileChange:
 
 @dataclass
 class Alternative:
-    description: str                # What was considered
-    rejected_reason: str            # Why it was rejected
-    effort_estimate: Optional[str]  # e.g. "would touch 23 files"
+    description: str
+    rejected_reason: str
+    effort_estimate: Optional[str]
 
 
 @dataclass
 class Risk:
     description: str
-    confidence: float               # 0.0-1.0 - how confident the agent is this is NOT a problem
-    file: Optional[str]             # Which file the risk applies to
-    line: Optional[int]             # Which line
+    confidence: float               # 0.0-1.0
+    file: Optional[str]
+    line: Optional[int]
 ```
 
-### Schema versioning
+### 5.3 Why a DAG, not a flat list
+
+**Scenario 1: Single agent, single commit** (most common)
+
+```
+Commit A ---- [agent-1: 47 steps] ---- Commit B
+```
+
+The timeline has one branch with 47 events. Simple.
+
+**Scenario 2: Single agent, multiple commits in one session**
+
+```
+Commit A ---- [agent-1: steps 0-120] ---- Commit B
+                                            |
+              [agent-1: steps 121-147] ---- Commit C
+```
+
+Same session, two commit ranges. Each commit record has a `SessionLink` pointing to its range.
+
+**Scenario 3: Two agents working concurrently**
+
+```
+Commit A ---- [agent-1: 85 steps, refactoring payments] ----+---- Commit B
+         \                                                   /
+          +-- [agent-2: 12 steps, updating docs] -----------+
+```
+
+Both agents worked between commit A and commit B. The timeline has two branches. The commit record has two `SessionLink` entries. The visualization shows them as parallel tracks.
+
+**Scenario 4: Human-only commit (no agent)**
+
+```
+Commit A ---- (no agent steps) ---- Commit B
+```
+
+The timeline has zero branches and zero events. The commit record exists with `source="metadata-only"`, `total_steps=0`, `contributing_sessions=[]`. The visualization shows just the two commit markers with nothing between them. This is the minimum viable timeline entry.
+
+**Scenario 5: Mixed - agent + human edits in same commit range**
+
+```
+Commit A ---- [agent-1: 30 steps] ---- (human edits files manually) ---- Commit B
+```
+
+g4a captures the 30 agent steps. The human edits have no trace (unless they used an agent). The commit record shows `total_steps=30` from one session, and the diff may include changes not covered by the agent's reasoning. The commit record notes this: `source="partial"` (agent reasoning covers some but not all changes).
+
+### 5.4 How multiple agents are detected
+
+When a commit is made, the post-commit hook:
+
+1. Scans `~/.claude/projects/{project}/` for ALL `.jsonl` transcripts modified since the previous commit's timestamp
+2. Each modified transcript is a separate agent session
+3. All are captured as separate session traces
+4. The commit record links to all of them via `contributing_sessions`
+
+```python
+def find_contributing_sessions(repo_root: str, prev_commit_ts: str) -> List[str]:
+    """Find all agent sessions active between the previous commit and now."""
+    project_slug = repo_to_slug(repo_root)
+    transcripts_dir = Path.home() / ".claude" / "projects" / project_slug
+
+    sessions = []
+    for jsonl in transcripts_dir.glob("*.jsonl"):
+        # Check if the transcript was modified after the previous commit
+        if jsonl.stat().st_mtime > parse_timestamp(prev_commit_ts):
+            session_id = jsonl.stem
+            sessions.append(session_id)
+
+    return sessions  # Could be 0, 1, or many
+```
+
+### 5.5 Schema versioning
 
 The schema version is stored in every record. The `.g4a/schema.json` file in the repo defines the current schema. Older records are always readable - new fields are additive, never breaking. If a field is missing from an older record, queries treat it as `null`.
 
-### Self-describing format
+### 5.6 Self-describing format
 
-`.g4a/schema.json` is a JSON Schema document that describes the ReasoningRecord format. This means any future tool can parse `.g4a/` files without knowing about g4a. The schema is committed to the repo alongside the records.
+`.g4a/schema.json` is a JSON Schema document that describes all record types. Any future tool can parse `.g4a/` files without knowing about g4a. The schema is committed to the repo alongside the records.
 
 ---
 
@@ -385,17 +689,35 @@ The schema version is stored in every record. The `.g4a/schema.json` file in the
 ```
 your-project/
   .g4a/
-    schema.json                    # JSON Schema for reasoning records
-    config.json                    # g4a configuration (agent detection, etc.)
+    schema.json                    # JSON Schema for all record types
+    config.json                    # g4a configuration
+    pending.json                   # Retry queue for failed captures
     commits/
-      a1b2c3d.g4a                  # Reasoning for commit a1b2c3d
-      e4f5g6h.g4a                  # Reasoning for commit e4f5g6h
+      a1b2c3d.g4a                  # Commit record: summary + session links
+      e4f5g6h.g4a                  # May link to 1 or more sessions
+      i7j8k9l.g4a                  # Human-only commit: metadata-only, 0 sessions
       ...
     sessions/
-      {session-id}.g4a             # Full session trace (Claude Code only)
-      ...
+      542e0ff9.g4a                 # Agent session: full event trace
+      b2b35939.g4a                 # Another agent (may overlap in time)
+      ...                          # Append-only within a session
     index.g4a                      # Search index (binary, append-only)
 ```
+
+**Two-level storage model:**
+
+| Level | File | Contains | Size |
+|-------|------|----------|------|
+| Commit record | `.g4a/commits/{sha}.g4a` | Summary + `contributing_sessions[]` with links into session traces. Even human-only commits get a record (with 0 sessions). | 1-50 KB |
+| Session trace | `.g4a/sessions/{id}.g4a` | Every event in order: prompts, thinking, tool calls, results, dead ends. Shared across commits if a session spans multiple commits. | 50-500 KB |
+
+**Why two levels:**
+- `g4a log` and `g4a why` read **commit records** only - fast, small, summarized
+- `g4a show --full` or `g4a session {id}` reads the **session trace** - complete, detailed, includes dead ends and phases
+- A session may produce 3 commits. Each commit record links to the same session with different message ranges.
+- A commit may have 2+ contributing sessions if multiple agents worked concurrently.
+- Human-only commits still get a commit record (`total_steps=0, contributing_sessions=[]`) so the timeline has no gaps.
+- The session trace is append-only: when a second commit happens in the same session, g4a appends new events rather than rewriting.
 
 ### 6.2 File format: .g4a files
 
@@ -549,63 +871,173 @@ for message in transcript:
                 })
 ```
 
-**Commit window detection:**
-
-A single Claude Code session may span multiple commits. g4a must isolate the reasoning for THIS commit only:
+**Session capture (full trace):**
 
 ```python
-def extract_commit_window(transcript, commit_sha):
-    # Find the tool_use block where the commit was made
-    # This is a Bash tool call containing "git commit"
-    commit_index = find_commit_tool_call(transcript, commit_sha)
+def capture_session(transcript_path: str, session_id: str) -> SessionRecord:
+    """Capture the ENTIRE session - every message, every dead end."""
 
-    # Walk backward to find the start of this unit of work
-    # Heuristics:
-    #   - Previous commit (if any) marks the start
-    #   - A user message that starts a new task marks the start
-    #   - Beginning of session if no other marker
-    start_index = find_work_start(transcript, commit_index)
+    existing = load_existing_session(session_id)  # May exist from prior commit
+    last_captured_index = existing.last_index if existing else -1
 
-    # The reasoning window is [start_index, commit_index]
-    return transcript[start_index:commit_index + 1]
+    session = existing or SessionRecord(session_id=session_id)
+
+    # Parse ALL new messages since last capture
+    for i, line in enumerate(read_jsonl(transcript_path)):
+        if i <= last_captured_index:
+            continue  # Already captured in a prior commit
+
+        msg = parse_message(line)
+        if msg is None:
+            continue  # Skip progress/snapshot messages
+
+        # Mask secrets BEFORE adding to session
+        msg.content = mask_secrets(msg.content)
+        if msg.tool_input:
+            msg.tool_input = mask_secrets_in_dict(msg.tool_input)
+
+        # Truncate tool results to keep session file manageable
+        # Full content is always in the original transcript on disk
+        if msg.type == "tool_result" and len(msg.content) > 2000:
+            msg.content = msg.content[:2000] + "\n[TRUNCATED - full content in original transcript]"
+
+        msg.index = len(session.messages)
+        session.messages.append(msg)
+
+    session.last_captured_at = now()
+    return session
 ```
 
-**Reasoning synthesis:**
+**Commit range detection:**
 
-From the extracted window, g4a synthesizes the ReasoningRecord fields:
+A session may contain multiple commits. Each commit record needs to know which messages in the session led to it. g4a finds the range by locating commit boundaries:
 
 ```python
-def synthesize_reasoning(window):
+def find_commit_range(session: SessionRecord, commit_sha: str) -> Tuple[int, int]:
+    """Find the message range in the session that produced this commit."""
+
+    # Find the message where this commit was made
+    # (a Bash tool_call containing "git commit" that produced this SHA)
+    commit_msg_index = None
+    for msg in reversed(session.messages):
+        if (msg.type == "tool_call" and msg.tool_name == "Bash"
+                and "git commit" in str(msg.tool_input)
+                and is_commit_for_sha(msg, commit_sha)):
+            commit_msg_index = msg.index
+            break
+
+    if commit_msg_index is None:
+        # Commit wasn't made through a tool call we can find
+        # (e.g. user committed manually) - use all messages since last commit
+        return (last_commit_end_index(session, commit_sha) + 1,
+                len(session.messages) - 1)
+
+    # Walk backward to find start of this unit of work
+    # Start is whichever comes first:
+    #   1. The message after the PREVIOUS commit in this session
+    #   2. The first message in the session (if this is the first commit)
+    previous_commits = [m.index for m in session.messages
+                        if m.type == "tool_call"
+                        and m.tool_name == "Bash"
+                        and "git commit" in str(m.tool_input)
+                        and m.index < commit_msg_index]
+
+    if previous_commits:
+        start_index = previous_commits[-1] + 1  # Message after last commit
+    else:
+        start_index = 0  # First commit in session - include everything
+
+    return (start_index, commit_msg_index)
+```
+
+**Why the full range matters:**
+
+```
+Session with 147 messages, 2 commits:
+
+Messages 0-15:    User asks to refactor payments
+Messages 16-45:   Agent reads 8 files, explores codebase
+Messages 46-78:   Agent tries integer cents approach, tests fail, backtracks
+Messages 79-110:  Agent tries Decimal approach, reads settlement job
+Messages 111-120: Agent writes code, runs tests, commits (SHA: a1b2c3d)
+                  ^^^ Commit 1 range: messages 0-120 (ALL of the above)
+
+Messages 121-130: User asks to also update the reporting module
+Messages 131-140: Agent reads report.py, updates it
+Messages 141-147: Agent commits (SHA: e4f5g6h)
+                  ^^^ Commit 2 range: messages 121-147
+
+Both commit records link to the same session file.
+Commit 1's range captures the dead end with integer cents.
+Commit 2's range is short because the exploration was minimal.
+```
+
+**Reasoning synthesis (from the commit range):**
+
+```python
+def synthesize_reasoning(session: SessionRecord,
+                         start: int, end: int) -> ReasoningRecord:
+    """Synthesize a commit summary from ALL messages in the range."""
+
+    messages = session.messages[start:end + 1]
+
+    # Collect ALL thinking blocks - this is where dead ends and
+    # alternatives live
+    all_thinking = [m.content for m in messages if m.type == "thinking"]
+
+    # Collect ALL text blocks - agent's visible reasoning
+    all_text = [m.content for m in messages if m.type == "text"]
+
+    # Collect ALL tool calls - what the agent actually did
+    all_tool_calls = [m for m in messages if m.type == "tool_call"]
+
+    # Collect ALL user prompts - the developer's requests and corrections
+    all_user_prompts = [m for m in messages if m.type == "user_prompt"]
+
+    # Collect errors - things that went wrong and the agent recovered from
+    all_errors = [m for m in messages if m.type == "error"]
+
     record = ReasoningRecord()
 
-    # Intent: from thinking blocks and text blocks
-    # Look for patterns like "I need to...", "The goal is...",
-    # "This change will..."
-    record.intent = extract_intent(window.thinking + window.text)
+    # Intent: from thinking + text across the ENTIRE range
+    record.intent = extract_intent(all_thinking + all_text)
 
-    # Exploration: from tool_use blocks
-    # Which files were Read, what Bash commands were run
-    record.files_read = [t.input["file_path"] for t in window.tool_calls
-                         if t.tool == "Read"]
-    record.tools_used = list(set(t.tool for t in window.tool_calls))
+    # Exploration: EVERY file read, not just the last few
+    record.files_read = deduplicate([
+        m.tool_input["file_path"] for m in all_tool_calls
+        if m.tool_name == "Read" and "file_path" in (m.tool_input or {})
+    ])
 
-    # Alternatives: from thinking blocks
-    # Look for patterns like "Option 1...", "I could also...",
-    # "rejected because..."
-    record.alternatives = extract_alternatives(window.thinking)
+    record.tools_used = deduplicate([m.tool_name for m in all_tool_calls])
 
-    # Risks: from thinking blocks and text blocks
-    # Look for patterns like "risk", "concern", "might break",
-    # "low confidence", "not sure about"
-    record.risks = extract_risks(window.thinking + window.text)
+    # Alternatives: from thinking blocks across the full range
+    # This is where dead ends (like integer cents) get captured
+    record.alternatives = extract_alternatives(all_thinking)
 
-    # Confidence: from explicit mentions or inferred from
-    # hedging language and exploration depth
-    record.confidence = estimate_confidence(window)
+    # Dead ends: approaches that were tried, produced code/tests, but
+    # were then abandoned. Detected by finding Edit/Write tool calls
+    # followed by reverts or different approaches
+    record.dead_ends = detect_dead_ends(all_tool_calls, all_thinking)
 
-    # Tests: from Bash tool calls containing test commands
-    record.tests_run = [t.input["command"] for t in window.tool_calls
-                        if t.tool == "Bash" and is_test_command(t.input["command"])]
+    # Risks: from thinking + text
+    record.risks = extract_risks(all_thinking + all_text)
+
+    # Confidence
+    record.confidence = estimate_confidence(all_thinking + all_text)
+
+    # Tests: every test command run, including ones that failed
+    record.tests_run = [
+        m.tool_input.get("command", "") for m in all_tool_calls
+        if m.tool_name == "Bash"
+        and is_test_command(m.tool_input.get("command", ""))
+    ]
+
+    # Errors encountered and recovered from
+    record.errors_encountered = [m.content for m in all_errors]
+
+    # Stats
+    record.user_prompts_count = len(all_user_prompts)
+    record.thinking_blocks_count = len(all_thinking)
 
     return record
 ```
@@ -978,11 +1410,14 @@ def rank(record: ReasoningRecord, query: str) -> float:
 
 ```
 g4a init                           Initialize g4a in current repo
-g4a log [--limit N]                Show recent commits with reasoning summaries
-g4a show <commit>                  Show diff + reasoning side by side
+g4a log [--limit N]                Show recent commits with step counts and agent info
+g4a log --timeline <commit>        Show full step-by-step trace between two commits
+g4a show <commit>                  Show diff + reasoning summary side by side
+g4a show <commit> --full           Show diff + full session trace for this commit
 g4a why <term>                     Decision trail for a file, function, or keyword
+g4a session <id>                   Browse full session: every prompt, dead end, correction
 g4a web [--port PORT]              Open visual report in browser
-g4a status                         Show g4a health: pending captures, index stats
+g4a status                         Show g4a health: pending captures, index stats, session count
 g4a backfill [--since COMMIT]      Re-process past commits (e.g. after fixing a parse bug)
 g4a reindex                        Rebuild search index from .g4a/ files
 g4a config [key] [value]           Get/set configuration
@@ -1031,71 +1466,118 @@ $ g4a init
 
 ### 10.3 `g4a log` output
 
+The default view shows commits with step counts and agent info:
+
 ```
 $ g4a log
 
-  a1b2c3d  2 hours ago  captured via claude-code
+  a1b2c3d  2 hours ago  claude-code (120 steps, 14 prompts, 1 dead end)
   refactor: Update payment calculation to use Decimal
   Intent: Switch from float to Decimal for currency precision.
           Batch settlements accumulate floating-point errors.
   Confidence: 0.85  |  Files: 8  |  Risks: 1 flagged
   ──────────────────────────────────────────────────────
 
-  e4f5g6h  yesterday  inferred via git-hook (haiku)
-  fix: Handle null user in auth middleware
-  Intent: Prevent NullPointerException when unauthenticated
-          request hits the /api/settings endpoint.
-  Confidence: 0.72  |  Files: 2  |  Risks: 0
+  e4f5g6h  yesterday  2 agents (claude-code: 85 steps, claude-code: 12 steps)
+  feat: Add billing dashboard + update docs
+  Intent: New billing dashboard with real-time settlement data.
+  Confidence: 0.78  |  Files: 11  |  Risks: 0
   ──────────────────────────────────────────────────────
 
-  i7j8k9l  3 days ago  metadata-only
+  i7j8k9l  3 days ago  human (0 steps)
   chore: Update dependencies
-  Intent: (no Claude Code transcript found for this commit)
+  (no agent reasoning captured)
   Files: 2
 ```
 
 Key UX decisions:
-- Source quality is always visible: "captured", "inferred", "metadata-only"
-- Confidence is always visible when available
-- Risk count draws attention to flagged commits
-- Metadata-only records gently prompt for LLM configuration
+- Step count tells you how much exploration went into a commit (120 steps vs 0 steps)
+- Multi-agent commits show each agent's contribution
+- Human-only commits show "0 steps" - the minimum timeline entry
+- Dead end count draws attention to non-obvious reasoning paths
 
-### 10.4 `g4a why` output
+### 10.4 `g4a log --timeline` output
+
+Expanded view showing every step between commits:
+
+```
+$ g4a log --timeline a1b2c3d
+
+  ── Commit e4f5g6h (yesterday) ────────────────────────────────
+  |
+  |  [claude-code session 542e] 85 steps
+  |  |
+  |  |  09:30:12  PROMPT   "Refactor payment processing to use Decimal"
+  |  |  09:30:15  THINKING "I need to understand the current payment system..."
+  |  |  09:30:16  READ     checkout.py
+  |  |  09:30:18  READ     billing.py
+  |  |  09:30:20  READ     refunds.py
+  |  |  09:30:22  READ     settlement.py
+  |  |  ...       (12 more reads)
+  |  |
+  |  |  09:52:03  THINKING "Let me try using integer cents..."
+  |  |  09:52:10  EDIT     checkout.py (integer cents approach)
+  |  |  09:55:00  BASH     python -m pytest tests/
+  |  |  09:55:06  ERROR    test_api_response FAILED
+  |  |  09:55:08  THINKING "Integer cents won't work, APIs expect decimal..."
+  |  |            ^^^ DEAD END (steps 46-68, abandoned after test failure)
+  |  |
+  |  |  10:01:30  THINKING "Pivot to Decimal everywhere..."
+  |  |  10:01:35  EDIT     checkout.py (Decimal approach)
+  |  |  10:02:10  EDIT     billing.py
+  |  |  ...       (6 more edits)
+  |  |  10:12:00  BASH     python -m pytest tests/
+  |  |  10:12:08  PASS     all tests
+  |  |  10:15:01  COMMIT   a1b2c3d
+  |  |
+  |  [claude-code session b2b3] 12 steps
+  |  |
+  |  |  10:00:00  PROMPT   "Update README with new payment API docs"
+  |  |  10:00:05  READ     README.md
+  |  |  10:00:10  EDIT     README.md
+  |  |  ...
+  |  |  10:05:00  (no commit - changes staged but not committed separately)
+  |
+  ── Commit a1b2c3d (2 hours ago) ──────────────────────────────
+```
+
+### 10.5 `g4a why` output
 
 ```
 $ g4a why process_payment
 
   Decision trail for "process_payment"
-  Found in 3 commits across 2 files
+  Found in 3 commits, 4 agent sessions, 267 total steps
 
-  ── a1b2c3d (2 hours ago, captured, confidence: 0.85) ──────────
+  ── a1b2c3d (2 hours ago, 120 steps, confidence: 0.85) ──────────
+  Agents: claude-code (session 542e)
   Intent: Switch from float to Decimal for currency precision.
-  Exploration: Read checkout.py, billing.py, refunds.py, settlement.py.
-               Found 14 call sites. Tested 10,000 simulated transactions.
+  Exploration: Read 6 files, found 14 call sites, ran 10K simulated transactions.
+  Dead ends:
+    - Integer cents approach (steps 46-68): abandoned after API test failures
   Alternatives:
     1. Keep float + round at end     REJECTED: error accumulates in batches
-    2. Integer cents                  REJECTED: would touch 23 files
+    2. Integer cents                  REJECTED: would touch 23 files (tried and failed)
     3. Decimal everywhere             CHOSEN: cleanest path, 8 files
   Risks:
     - batch_settlement_job.py:47 CSV export formatting  [LOW confidence: 0.6]
-  Files read: checkout.py, billing.py, refunds.py, settlement.py,
-              batch_settlement_job.py, tests/
+  Run "g4a log --timeline a1b2c3d" for the full 120-step trace.
 
-  ── f2g3h4i (2 weeks ago, captured, confidence: 0.91) ──────────
+  ── f2g3h4i (2 weeks ago, 34 steps, confidence: 0.91) ──────────
+  Agents: claude-code (session 8a9b)
   Intent: Add retry logic to process_payment for transient gateway errors.
-  Exploration: Read payment_gateway.py, found 3 timeout scenarios.
-               Tested with mock gateway returning 503.
+  Dead ends: none
   Alternatives:
-    1. Exponential backoff            CHOSEN: standard pattern, 3 retries max
-    2. Circuit breaker                REJECTED: overkill for 3 retries
+    1. Exponential backoff            CHOSEN
+    2. Circuit breaker                REJECTED: overkill
   Risks: none flagged
 
-  ── b5c6d7e (1 month ago, inferred, confidence: 0.68) ──────────
-  Intent: Initial implementation of process_payment function.
-  (Inferred reasoning - original agent session not available)
+  ── b5c6d7e (1 month ago, 0 steps) ──────────────────────────────
+  Human commit (no agent reasoning captured)
+  Initial implementation of process_payment function.
 ```
 
-### 10.5 `g4a show` output
+### 10.6 `g4a show` output
 
 ```
 $ g4a show a1b2c3d
@@ -1104,21 +1586,22 @@ $ g4a show a1b2c3d
   │ checkout.py                 │  │ Intent: Switch from float to    │
   │ @@ -45,7 +45,7 @@          │  │ Decimal for currency precision  │
   │ -  total = float(sum)       │  │                                 │
-  │ +  total = Decimal(sum)     │  │ This file: 3 of 14 call sites  │
-  │                             │  │ Confidence: 0.85                │
+  │ +  total = Decimal(sum)     │  │ 120 steps | 14 prompts          │
+  │                             │  │ 1 dead end | Confidence: 0.85   │
   │ billing.py                  │  │                                 │
   │ @@ -12,5 +12,5 @@          │  │ Alternatives considered:        │
   │ -  amount = float(price)    │  │ 1. float + round -> rejected    │
-  │ +  amount = Decimal(price)  │  │ 2. integer cents -> rejected    │
-  │                             │  │                                 │
-  │ settlement.py               │  │ Risk flagged:                   │
-  │ @@ -47,3 +47,3 @@          │  │ CSV export on line 47 may      │
-  │ -  f"{total:.2f}"           │  │ truncate Decimal [conf: 0.6]   │
-  │ +  f"{total:.2f}"           │  │                                 │
+  │ +  amount = Decimal(price)  │  │ 2. integer cents -> tried,      │
+  │                             │  │    failed (steps 46-68)         │
+  │ settlement.py               │  │                                 │
+  │ @@ -47,3 +47,3 @@          │  │ Risk flagged:                   │
+  │ -  f"{total:.2f}"           │  │ CSV export on line 47 may       │
+  │ +  f"{total:.2f}"           │  │ truncate Decimal [conf: 0.6]    │
   └─────────────────────────────┘  └─────────────────────────────────┘
-```
 
-Side-by-side diff + reasoning. The reviewer sees WHAT changed on the left and WHY on the right.
+  Agents: claude-code (session 542e, steps 0-120)
+  Run "g4a log --timeline a1b2c3d" for the full step-by-step trace.
+```
 
 ---
 
@@ -1128,24 +1611,29 @@ Side-by-side diff + reasoning. The reviewer sees WHAT changed on the left and WH
 
 ### 11.1 Features
 
-- Timeline view of all commits with reasoning
-- Per-commit detail pages (diff + reasoning side by side)
-- Search across all reasoning records
-- Filter by: source (captured/inferred), confidence range, agent, date range
-- Risk dashboard: all flagged risks across commits
-- Statistics: commits per day, average confidence, source distribution
+- **Timeline view:** Visual DAG showing commits as nodes, with expandable step traces between them. Parallel agent branches shown as parallel tracks.
+- **Per-commit detail:** Diff + reasoning side by side, with "expand timeline" to see all steps
+- **Step-level drill-down:** Click any step to see the full content (thinking text, tool call details, error messages)
+- **Multi-agent view:** When 2+ agents worked between commits, show them as parallel swim lanes with timestamps aligned
+- **Dead end highlighting:** Steps that were part of abandoned approaches are visually marked (dimmed or strikethrough) so reviewers can see what was tried and rejected
+- **Phase grouping:** Steps are auto-grouped into phases (exploration, implementation, testing, debugging) with collapsible sections
+- **Search:** Full-text search across all reasoning records and session events
+- **Filter by:** agent, confidence range, date range, step count, has-dead-ends
+- **Risk dashboard:** All flagged risks across commits
+- **Statistics:** Commits per day, average steps per commit, dead end frequency, agent distribution
 
 ### 11.2 Implementation
 
 - Single static HTML file with embedded CSS/JS (no server required)
-- All data embedded as a JSON blob in a `<script>` tag
+- Commit records embedded as a JSON blob (fast loading)
+- Session traces loaded on-demand via `fetch()` when user expands a timeline (avoids loading 100s of session files upfront)
 - Uses vanilla JavaScript - no framework, no build step
 - Opens with `python -m webbrowser` (stdlib)
-- Optional: `g4a web --serve` starts a local HTTP server for live reload
+- Optional: `g4a web --serve` starts a local HTTP server for live reload and lazy session loading
 
 ### 11.3 Size budget
 
-The HTML report for 1,000 commits should be < 2 MB. For larger repos, `g4a web` paginates and uses lazy loading.
+The HTML report with commit records for 1,000 commits should be < 2 MB. Session traces are loaded on-demand. For larger repos, the timeline view paginates.
 
 ---
 
@@ -1495,7 +1983,7 @@ Everything fails including error logging
 |-----------|-----------|
 | Secret masker | Every pattern in PATTERNS list, entropy thresholds, false positive rates |
 | CBOR codec | Round-trip serialization, schema validation, corrupt data handling |
-| Claude Code adapter | Parse real transcript fixtures, commit window detection |
+| Claude Code adapter | Parse real transcript fixtures, session capture, commit range detection, multi-commit sessions |
 | Query engine | Index building, search accuracy, ranking correctness |
 | Agent detector | Claude Code detection, fallback to metadata-only |
 
@@ -1724,16 +2212,24 @@ exit 0
 
 ## Appendix C: Reasoning record example (CBOR, shown as JSON)
 
+**Commit record** (`.g4a/commits/a1b2c3d.g4a`):
+
 ```json
 {
   "version": "1.0",
   "commit_sha": "a1b2c3d4e5f6",
-  "session_id": "542e0ff9-b7aa-490f-ab02-f6b1f6952727",
   "timestamp": "2026-03-22T10:15:03Z",
+
+  "session_id": "542e0ff9-b7aa-490f-ab02-f6b1f6952727",
+  "session_msg_start": 0,
+  "session_msg_end": 120,
+  "session_total_messages": 147,
+
   "source": "captured",
   "agent": "claude-code",
   "agent_version": "2.1.81",
   "model": "claude-opus-4-6",
+
   "files_changed": [
     {"path": "checkout.py", "lines_added": 5, "lines_removed": 5, "change_type": "modified"},
     {"path": "billing.py", "lines_added": 3, "lines_removed": 3, "change_type": "modified"},
@@ -1742,6 +2238,7 @@ exit 0
     {"path": "tests/test_payment.py", "lines_added": 25, "lines_removed": 12, "change_type": "modified"}
   ],
   "commit_message": "refactor: Update payment calculation to use Decimal",
+
   "intent": "Switch from float to Decimal for currency precision. Batch settlements accumulate floating-point errors. After testing with 10,000 simulated transactions, float arithmetic drifted by $0.03 while Decimal was exact.",
   "exploration": "Read checkout.py, billing.py, refunds.py, settlement.py. Found 14 call sites across 5 files. Ran test with 10,000 simulated transactions. Checked batch_settlement_job.py - it calls calculate_total() which now returns Decimal.",
   "alternatives": [
@@ -1774,18 +2271,102 @@ exit 0
     "overall": 0.85,
     "csv_export_formatting": 0.6
   },
+
   "files_read": [
-    "checkout.py",
-    "billing.py",
-    "refunds.py",
-    "settlement.py",
-    "batch_settlement_job.py",
-    "tests/test_payment.py"
+    "checkout.py", "billing.py", "refunds.py", "settlement.py",
+    "batch_settlement_job.py", "tests/test_payment.py"
   ],
   "tools_used": ["Read", "Edit", "Bash", "Grep"],
   "tests_run": ["python -m pytest tests/test_payment.py"],
   "errors_encountered": [],
+  "dead_ends": ["Tried integer cents approach - tests failed because existing APIs expect decimal format"],
+  "user_prompts_count": 14,
+  "thinking_blocks_count": 23,
+
   "capture_duration_ms": 487,
-  "record_size_bytes": 2847
+  "record_size_bytes": 3241
 }
 ```
+
+**Session trace** (`.g4a/sessions/542e0ff9.g4a`, abbreviated):
+
+```json
+{
+  "version": "1.0",
+  "session_id": "542e0ff9-b7aa-490f-ab02-f6b1f6952727",
+  "agent": "claude-code",
+  "agent_version": "2.1.81",
+  "model": "claude-opus-4-6",
+  "started_at": "2026-03-22T09:30:00Z",
+  "last_captured_at": "2026-03-22T10:15:03Z",
+  "commits_in_session": ["a1b2c3d4e5f6", "e4f5g6h7i8j9"],
+  "total_user_prompts": 18,
+  "total_thinking_blocks": 31,
+  "total_tool_calls": 89,
+  "total_files_read": 12,
+  "total_files_written": 8,
+  "total_errors": 2,
+  "messages": [
+    {
+      "index": 0,
+      "type": "user_prompt",
+      "timestamp": "2026-03-22T09:30:12Z",
+      "content": "Refactor payment processing to use Decimal instead of float"
+    },
+    {
+      "index": 1,
+      "type": "thinking",
+      "timestamp": "2026-03-22T09:30:15Z",
+      "content": "I need to understand the current payment system. Let me read the relevant files first..."
+    },
+    {
+      "index": 2,
+      "type": "tool_call",
+      "timestamp": "2026-03-22T09:30:16Z",
+      "content": "",
+      "tool_name": "Read",
+      "tool_input": {"file_path": "checkout.py"}
+    },
+    "... (messages 3-45: reading files, exploring codebase) ...",
+    {
+      "index": 46,
+      "type": "thinking",
+      "timestamp": "2026-03-22T09:52:03Z",
+      "content": "Let me try using integer cents. This avoids floating point entirely..."
+    },
+    "... (messages 47-65: integer cents attempt, writing code, running tests) ...",
+    {
+      "index": 66,
+      "type": "tool_call",
+      "timestamp": "2026-03-22T10:01:22Z",
+      "content": "",
+      "tool_name": "Bash",
+      "tool_input": {"command": "python -m pytest tests/test_payment.py"}
+    },
+    {
+      "index": 67,
+      "type": "tool_result",
+      "timestamp": "2026-03-22T10:01:28Z",
+      "content": "FAILED tests/test_payment.py::test_api_response - AssertionError: expected Decimal, got int"
+    },
+    {
+      "index": 68,
+      "type": "thinking",
+      "timestamp": "2026-03-22T10:01:30Z",
+      "content": "Integer cents won't work - the existing APIs expect decimal format. I'd have to touch 23 files to update all the API contracts. Let me try Decimal everywhere instead..."
+    },
+    "... (messages 69-119: Decimal approach, implementation, testing) ...",
+    {
+      "index": 120,
+      "type": "tool_call",
+      "timestamp": "2026-03-22T10:15:01Z",
+      "content": "",
+      "tool_name": "Bash",
+      "tool_input": {"command": "git commit -m 'refactor: Update payment calculation to use Decimal'"}
+    },
+    "... (messages 121-147: second task, reporting module update, second commit) ..."
+  ]
+}
+```
+
+The session trace shows the full story: 14 prompts, 23 thinking blocks, a dead end with integer cents (messages 46-68), the pivot to Decimal, and the final commit. All captured. Nothing lost.
