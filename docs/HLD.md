@@ -13,7 +13,7 @@
 2. [Architecture overview](#2-architecture-overview)
 3. [Component design](#3-component-design)
 4. [Data flow](#4-data-flow)
-5. [Reasoning record schema](#5-reasoning-record-schema)
+5. [Data model](#5-data-model)
 6. [Storage engine](#6-storage-engine)
 7. [Capture engine](#7-capture-engine)
 8. [Secret masking pipeline](#8-secret-masking-pipeline)
@@ -187,8 +187,8 @@ g4a/
       metadata.py          # Fallback: metadata-only capture
   extract/
     __init__.py
-    extractor.py           # Normalize raw capture to ReasoningRecord
-    schema.py              # ReasoningRecord dataclass + validation
+    extractor.py           # Normalize raw capture to CommitRecord + SessionRecord
+    schema.py              # CommitRecord, SessionRecord, Event dataclasses + validation
   security/
     __init__.py
     masker.py              # Secret masking pipeline
@@ -404,7 +404,10 @@ class CommitRecord:
     contributing_sessions: List[SessionLink]
 
     # Source
-    source: str                     # "captured" | "metadata-only"
+    source: str                     # "captured" | "partial" | "metadata-only"
+                                    # captured: full reasoning from agent transcript
+                                    # partial: agent reasoning covers some but not all changes
+                                    # metadata-only: no agent transcript, just git metadata
     agents: List[str]               # ["claude-code"] or ["claude-code", "cursor"] etc.
     primary_agent: Optional[str]    # The agent that made the commit (if detectable)
 
@@ -447,7 +450,17 @@ class SessionLink:
     msg_end: int                    # Last message index in session for this commit
     step_count: int                 # Number of steps in this range
     # A commit may have multiple SessionLinks if multiple agents
-    # contributed between the previous commit and this one
+    # contributed between the previous commit and this one.
+    #
+    # The pointer chain:
+    #   CommitRecord.contributing_sessions[0].session_id = "542e"
+    #   CommitRecord.contributing_sessions[0].msg_start = 0
+    #   CommitRecord.contributing_sessions[0].msg_end = 120
+    #     -> Load .g4a/sessions/542e.g4a
+    #     -> Read events[0:120] for the full reasoning trace
+    #
+    # This lets queries start fast (read commit record only) and
+    # drill down on demand (load session trace when user asks for detail)
 
 
 # =========================================================================
@@ -976,7 +989,7 @@ Commit 2's range is short because the exploration was minimal.
 
 ```python
 def synthesize_reasoning(session: SessionRecord,
-                         start: int, end: int) -> ReasoningRecord:
+                         start: int, end: int) -> CommitRecord:
     """Synthesize a commit summary from ALL messages in the range."""
 
     messages = session.messages[start:end + 1]
@@ -997,7 +1010,7 @@ def synthesize_reasoning(session: SessionRecord,
     # Collect errors - things that went wrong and the agent recovered from
     all_errors = [m for m in messages if m.type == "error"]
 
-    record = ReasoningRecord()
+    record = CommitRecord()
 
     # Intent: from thinking + text across the ENTIRE range
     record.intent = extract_intent(all_thinking + all_text)
@@ -1036,8 +1049,8 @@ def synthesize_reasoning(session: SessionRecord,
     record.errors_encountered = [m.content for m in all_errors]
 
     # Stats
-    record.user_prompts_count = len(all_user_prompts)
-    record.thinking_blocks_count = len(all_thinking)
+    record.total_user_prompts = len(all_user_prompts)
+    record.total_thinking_blocks = len(all_thinking)
 
     return record
 ```
@@ -1342,7 +1355,7 @@ text_index:     "decimal"            -> [sha2, sha3, sha5]
 `g4a why <term>` resolves through multiple strategies:
 
 ```python
-def resolve_query(term: str) -> List[ReasoningRecord]:
+def resolve_query(term: str) -> List[CommitRecord]:
     results = []
 
     # 1. Exact file match
@@ -1374,7 +1387,7 @@ def resolve_query(term: str) -> List[ReasoningRecord]:
 ### 9.3 Ranking
 
 ```python
-def rank(record: ReasoningRecord, query: str) -> float:
+def rank(record: CommitRecord, query: str) -> float:
     score = 0.0
 
     # Recency: newer records score higher
@@ -1382,18 +1395,19 @@ def rank(record: ReasoningRecord, query: str) -> float:
     score += max(0, 100 - age_days)  # 100 points for today, 0 for 100+ days ago
 
     # Relevance: exact matches score higher
-    if query in record.files_changed:
+    if any(query in fc.path for fc in record.files_changed):
         score += 200  # Exact file match
-    if query in record.function_index:
-        score += 150  # Exact function match
-    if query.lower() in record.intent.lower():
+    if query.lower() in (record.intent or "").lower():
         score += 100  # Mentioned in intent
+    if query.lower() in (record.exploration or "").lower():
+        score += 75   # Mentioned in exploration
 
-    # Source quality
+    # Source quality (POC: captured > partial > metadata-only)
     if record.source == "captured":
-        score += 50   # Direct transcript (Claude Code)
+        score += 50
+    elif record.source == "partial":
+        score += 25
     # metadata-only: +0
-    # Future: "inferred" records will score between captured and metadata-only
 
     # Confidence: higher confidence records are more useful
     if record.confidence:
@@ -1654,7 +1668,7 @@ The HTML report with commit records for 1,000 commits should be < 2 MB. Session 
 | Background: write to disk | 10ms | Single file write |
 | Background: update index | 50ms | Append to index file |
 | **Total hook latency** | **< 20ms** | Developer never waits |
-| **Total background time** | **< 1s (captured), < 12s (inferred)** | Invisible |
+| **Total background time** | **< 1s** | Invisible (local file parsing only in POC) |
 
 ### 12.2 Query path (must feel instant)
 
@@ -1831,27 +1845,47 @@ def drain_pending_retries():
 Every stage in the capture pipeline has its own try/catch. A failure in one stage triggers the appropriate fallback without killing the entire pipeline:
 
 ```python
-def capture(commit_sha: str) -> ReasoningRecord:
-    record = ReasoningRecord(commit_sha=commit_sha, timestamp=now())
+def capture(commit_sha: str) -> CommitRecord:
+    record = CommitRecord(commit_sha=commit_sha, timestamp=now())
+    record.parent_sha = git_parent_sha(commit_sha)
+    record.files_changed = git_files_changed(commit_sha)
+    record.commit_message = git_commit_message(commit_sha)
 
-    # Stage 1: Find transcript
+    # Stage 1: Find contributing sessions
     try:
-        transcript = find_claude_code_transcript(commit_sha)
-        record.source = "captured"
-        record.agent = "claude-code"
-    except TranscriptNotFound:
-        # No transcript available - write metadata-only record
-        record.source = "metadata-only"
-        record = populate_metadata_only(record, commit_sha)
-        return mask_and_return(record)
+        prev_commit_ts = git_timestamp(record.parent_sha)
+        session_paths = find_contributing_sessions(repo_root, prev_commit_ts)
     except Exception as e:
-        # Unexpected error finding transcript - queue retry, write nothing
-        raise CaptureError(f"transcript lookup: {e}")
+        raise CaptureError(f"session lookup: {e}")
 
-    # Stage 2: Parse transcript
+    if not session_paths:
+        # No agent sessions found - write metadata-only record
+        record.source = "metadata-only"
+        record.contributing_sessions = []
+        record.total_steps = 0
+        record.total_agent_sessions = 0
+        return mask_and_write(record)
+
+    # Stage 2: Capture sessions and build commit record
     try:
-        window = extract_commit_window(transcript, commit_sha)
-        reasoning = synthesize_reasoning(window)
+        record.contributing_sessions = []
+        for session_path in session_paths:
+            session = capture_session(session_path, session_path.stem)
+            start, end = find_commit_range(session, commit_sha)
+            link = SessionLink(
+                session_id=session.session_id,
+                agent=session.agent,
+                msg_start=start,
+                msg_end=end,
+                step_count=end - start + 1
+            )
+            record.contributing_sessions.append(link)
+            write_session(session)  # Append-only
+
+        # Synthesize reasoning summary from all contributing sessions
+        reasoning = synthesize_from_all_sessions(
+            record.contributing_sessions, commit_sha
+        )
         record.intent = reasoning.intent
         record.exploration = reasoning.exploration
         record.alternatives = reasoning.alternatives
@@ -1860,12 +1894,23 @@ def capture(commit_sha: str) -> ReasoningRecord:
         record.files_read = reasoning.files_read
         record.tools_used = reasoning.tools_used
         record.tests_run = reasoning.tests_run
+        record.dead_ends = reasoning.dead_ends
+        record.total_steps = sum(s.step_count for s in record.contributing_sessions)
+        record.total_user_prompts = reasoning.total_user_prompts
+        record.total_thinking_blocks = reasoning.total_thinking_blocks
+        record.total_agent_sessions = len(record.contributing_sessions)
+        record.agents = list(set(s.agent for s in record.contributing_sessions))
+        record.primary_agent = detect_committing_agent(commit_sha)
+        record.source = "captured"
+
     except Exception as e:
-        # Transcript exists but parsing failed
-        # Write what we have (metadata) + queue retry for full parse
+        # Session exists but parsing failed
+        # Write metadata-only + queue retry for full parse
         log_error(commit_sha, e, stage="parse")
         record.source = "metadata-only"
-        record = populate_metadata_only(record, commit_sha)
+        record.contributing_sessions = []
+        record.total_steps = 0
+        record.total_agent_sessions = 0
         add_to_retry_queue(commit_sha, error=str(e), stage="parse")
         # Fall through to masking - still write the metadata record
 
@@ -1873,13 +1918,12 @@ def capture(commit_sha: str) -> ReasoningRecord:
     try:
         record = mask_secrets(record)
     except Exception as e:
-        # Masking failure is critical - discard entire record rather than
-        # risk writing unmasked secrets to disk
+        # Masking failure is critical - discard entire record
         raise CaptureError(f"CRITICAL masking failure, record discarded: {e}")
 
     # Stage 4: Serialize and write
     try:
-        write_record(record)
+        write_commit_record(record)
     except Exception as e:
         raise CaptureError(f"write failed: {e}")
 
@@ -1948,7 +1992,7 @@ The log is append-only, capped at 1 MB (oldest entries rotated out). It is inclu
 
 ```
 Claude Code transcript found, parse succeeds
-  -> Full ReasoningRecord with all fields (best)
+  -> Full CommitRecord with all fields (best)
 
 Claude Code transcript found, parse fails
   -> Metadata-only record written immediately
