@@ -263,7 +263,7 @@ Minimal dependencies keep install fast and attack surface small:
       - This captures the full chain of reasoning including dead ends,
         backtracks, and multi-step explorations
       - Mask secrets across the entire session
-      - Write as git note on the anchor SHA (refs/notes/g4a-sessions)
+      - Write as git note on the anchor SHA (refs/notes/g4a-sessions/<client_id>)
       - If the session note already exists (from a previous commit in
         the same session), append new events and rewrite the note
         (git delta-packs the diff efficiently)
@@ -273,7 +273,7 @@ Minimal dependencies keep install fast and attack surface small:
       - Record the event range within each session (msg_start to
         msg_end) so queries can find the relevant reasoning
       - Synthesize a summary: intent, alternatives, risks, confidence
-      - Write as git note on this commit (refs/notes/g4a-commits)
+      - Write as git note on this commit (refs/notes/g4a-commits/<client_id>)
 
    c. Updates .git/g4a/index.db (local search index)
 ```
@@ -672,15 +672,15 @@ When a commit is made, the post-commit hook:
 4. The commit record links to all of them via `contributing_sessions`
 
 ```python
-def find_contributing_sessions(repo_root: str, prev_commit_ts: str) -> List[str]:
-    """Find all agent sessions active between the previous commit and now."""
+def find_contributing_sessions(repo_root: str) -> List[str]:
+    """Find all agent sessions modified since the last capture."""
     project_slug = repo_to_slug(repo_root)
     transcripts_dir = Path.home() / ".claude" / "projects" / project_slug
+    watermark = read_capture_watermark()  # .git/g4a/last_capture_mtime
 
     sessions = []
     for jsonl in transcripts_dir.glob("*.jsonl"):
-        # Check if the transcript was modified after the previous commit
-        if jsonl.stat().st_mtime > parse_timestamp(prev_commit_ts):
+        if jsonl.stat().st_mtime > watermark:
             session_id = jsonl.stem
             sessions.append(session_id)
 
@@ -855,7 +855,7 @@ REPO=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 
 while read old_sha new_sha _rest; do
   # Scan all client namespaces for commit notes on the old SHA
-  for ref in $(git for-each-ref --format='%(refname:short)' refs/notes/g4a-commits/); do
+  for ref in $(git for-each-ref --format='%(refname)' refs/notes/g4a-commits/); do
     if git notes --ref="$ref" show "$old_sha" >/dev/null 2>&1; then
       git notes --ref="$ref" copy "$old_sha" "$new_sha" 2>/dev/null
       git notes --ref="$ref" remove "$old_sha" 2>/dev/null
@@ -863,7 +863,7 @@ while read old_sha new_sha _rest; do
   done
 
   # Same for session notes (anchors may live on any client)
-  for ref in $(git for-each-ref --format='%(refname:short)' refs/notes/g4a-sessions/); do
+  for ref in $(git for-each-ref --format='%(refname)' refs/notes/g4a-sessions/); do
     if git notes --ref="$ref" show "$old_sha" >/dev/null 2>&1; then
       git notes --ref="$ref" copy "$old_sha" "$new_sha" 2>/dev/null
       git notes --ref="$ref" remove "$old_sha" 2>/dev/null
@@ -932,14 +932,15 @@ def ensure_index_fresh():
     if last_indexed_tree == current_tree:
         return  # Index is up to date
 
-    # Scan all client namespaces for new/changed notes
+    # Scan all client namespaces for new/changed notes.
+    # When multiple clients have notes for the same commit, the index
+    # applies merge rules (Section 6.3): captured > partial > metadata-only.
     for client_ref in all_refs:
         for sha in git_notes_list(client_ref):
-            if not is_indexed(sha):
-                note = git_notes_show(client_ref, sha)
-                if note:
-                    record = deserialize(note)
-                    add_to_index(record)
+            note = git_notes_show(client_ref, sha)
+            if note:
+                record = deserialize(note)
+                add_to_index_with_merge(record)  # Replaces existing if higher quality
 
     write_index_watermark(current_tree)
 ```
@@ -1033,7 +1034,10 @@ def find_session_by_id(session_id: str) -> SessionRecord:
     anchor_sha = index_lookup_session(session_id)
     if not anchor_sha:
         raise SessionNotFound(session_id)
-    return load_session_by_sha(anchor_sha)
+    # Reuse load_session with a minimal SessionLink
+    link = SessionLink(session_id=session_id, anchor_sha=anchor_sha,
+                       agent="", msg_start=0, msg_end=0, step_count=0)
+    return load_session(link)
 ```
 
 ---
@@ -1139,7 +1143,7 @@ def find_transcript_with_settle(commit_sha: str, repo_root: str,
     return None  # No transcript found after settle period
 ```
 
-**When no transcript is found:** The caller differentiates "slow flush" from "human commit" using an activity heuristic:
+**When no transcript is found:** This happens when `find_transcript_with_settle` returns `None` (no transcript contained the commit SHA after 2 seconds of polling). The capture process differentiates "slow flush" from "human commit" using an activity heuristic:
 
 ```python
 def should_retry_capture(repo_root: str) -> bool:
@@ -1157,9 +1161,10 @@ def should_retry_capture(repo_root: str) -> bool:
 - **Claude NOT recently active:** This is a human commit. Write metadata-only, do NOT queue a retry, do NOT log an error. Human commits are expected and normal - they should never pollute the error log or retry queue.
 
 **Key design decisions:**
-- Uses "modified since previous commit timestamp" (not "last 60 seconds") for detection
+- Uses "modified since last capture" (monotonic watermark in `.git/g4a/last_capture_mtime`), not the parent commit timestamp which can be arbitrarily old on long-lived branches
 - Reads transcript from the **tail** (last ~50 KB) to check for the commit SHA. The commit-producing event is always near the end at capture time (the hook fires immediately after commit). For retries on older commits, a full scan may be needed.
 - Polls every 200ms for up to 2 seconds total (10 attempts). Fixed interval keeps the implementation simple.
+- The watermark (`last_capture_mtime`) is updated immediately after a successful capture (whether full or metadata-only), before the capture process exits. This ensures the next commit only scans transcripts modified after this one.
 - Falls back to metadata-only if transcript never appears
 
 ### 7.3 Project slug algorithm
@@ -1931,8 +1936,8 @@ def mask_key_value_pairs(text: str) -> str:
     for key in SENSITIVE_KEYS:
         # Match: PASSWORD=foo, password: "foo", "password": "foo"
         # Bounded: stops at quotes, commas, braces, whitespace
-        # Character class: [^"'\s,}\]] - stops at quote, whitespace, comma, }, ]
-        pattern = rf'(?i)({key})\s*[=:]\s*["\']?([^"\x27\s,}}\]]+)["\']?'
+        # Excluded chars: " ' whitespace , } ]
+        pattern = rf'(?i)({key})\s*[=:]\s*["\']?([^"\x27\s,\}}\]]+)["\']?'
         text = re.sub(pattern, rf'\1=[REDACTED:CONTEXT:{key.upper()}]', text)
     return text
 ```
@@ -2186,12 +2191,15 @@ $ g4a uninit
     .git/hooks/post-rewrite  g4a hook block removed (other hooks preserved)
     git config               notes fetch/push refspecs removed
 
-  NOT removed (requires manual deletion):
-    Git notes (refs/notes/g4a-commits/*, refs/notes/g4a-sessions/*)
-    This client's ID: stored in .git/g4a/client_id
-    To remove this client's reasoning:
-      git update-ref -d refs/notes/g4a-commits/<client_id>
-      git update-ref -d refs/notes/g4a-sessions/<client_id>
+  NOT removed (reasoning data preserved in git notes):
+    To also remove this client's reasoning from git, run:
+      git update-ref -d refs/notes/g4a-commits/a3f8b2c1d4e5
+      git update-ref -d refs/notes/g4a-sessions/a3f8b2c1d4e5
+      git push origin :refs/notes/g4a-commits/a3f8b2c1d4e5
+      git push origin :refs/notes/g4a-sessions/a3f8b2c1d4e5
+```
+
+Note: `g4a uninit` reads `.git/g4a/client_id` and prints the exact commands with the real client ID **before** deleting `.git/g4a/`. This ensures the user can copy the commands even after uninit completes.
 ```
 
 **Record lifecycle (metadata-only to captured):**
@@ -3021,13 +3029,13 @@ REPO=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 while read old_sha new_sha _rest; do
   # Scan ALL client namespaces - developer may rebase commits
   # whose reasoning was created on a different machine
-  for ref in $(git for-each-ref --format='%(refname:short)' refs/notes/g4a-commits/); do
+  for ref in $(git for-each-ref --format='%(refname)' refs/notes/g4a-commits/); do
     if git notes --ref="$ref" show "$old_sha" >/dev/null 2>&1; then
       git notes --ref="$ref" copy "$old_sha" "$new_sha" 2>/dev/null
       git notes --ref="$ref" remove "$old_sha" 2>/dev/null
     fi
   done
-  for ref in $(git for-each-ref --format='%(refname:short)' refs/notes/g4a-sessions/); do
+  for ref in $(git for-each-ref --format='%(refname)' refs/notes/g4a-sessions/); do
     if git notes --ref="$ref" show "$old_sha" >/dev/null 2>&1; then
       git notes --ref="$ref" copy "$old_sha" "$new_sha" 2>/dev/null
       git notes --ref="$ref" remove "$old_sha" 2>/dev/null
@@ -3047,7 +3055,7 @@ exit 0
 
 ## Appendix C: Record examples (CBOR, shown as JSON)
 
-### C.1 Commit record (git note on commit a1b2c3d, ref: g4a-commits)
+### C.1 Commit record (git note on a1b2c3d, ref: g4a-commits/&lt;client_id&gt;)
 
 ```json
 {
@@ -3132,7 +3140,7 @@ exit 0
 }
 ```
 
-### C.2 Multi-agent commit record (git note, 2 agents contributed)
+### C.2 Multi-agent commit record (git note, ref: g4a-commits/&lt;client_id&gt;)
 
 ```json
 {
@@ -3201,7 +3209,7 @@ exit 0
 }
 ```
 
-### C.4 Session trace (git note on commit a1b2c3d, ref: g4a-sessions, abbreviated)
+### C.4 Session trace (git note on a1b2c3d, ref: g4a-sessions/&lt;client_id&gt;, abbreviated)
 
 ```json
 {
