@@ -102,12 +102,12 @@ Two commands to start: `pip install g4a` (or `brew install g4a`) then `g4a init`
 |  Storage        |
 |  Engine         |
 |                 |
-|  CBOR + zstd    |
-|  .g4a/ dir      |
+|  CBOR ->        |
+|  git notes      |
 +--------+--------+
          |
          |  Retry queue
-         |  (.g4a/pending.json)
+         |  (.git/g4a/pending.json)
          |
          +-------------+----------------+
          |             |                |
@@ -127,7 +127,7 @@ Two commands to start: `pip install g4a` (or `brew install g4a`) then `g4a init`
 | Claude Code adapter | Parse JSONL transcripts from `~/.claude/projects/` | < 500ms (background) |
 | Reasoning extractor | Normalize captured reasoning to unified schema | < 100ms (background) |
 | Secret masking pipeline | Scan and redact all sensitive data (80+ patterns) | < 200ms (background) |
-| Storage engine | Serialize to CBOR, compress with zstd, write to `.g4a/` | < 100ms (background) |
+| Storage engine | Serialize to CBOR, write as git note | < 100ms (background) |
 | Retry queue | Track failed captures, drain on next success | < 50ms (background) |
 | Query engine | Decompress, search, rank results | < 300ms (interactive) |
 | CLI | Parse commands, render output | < 50ms overhead |
@@ -179,7 +179,7 @@ g4a/
     detector.py            # Auto-detect which agent produced the commit
     hook_shim.py           # The actual post-commit hook script
     background.py          # Detached background process manager
-    retry.py               # Retry queue management (.g4a/pending.json)
+    retry.py               # Retry queue management (.git/g4a/pending.json)
     adapters/
       __init__.py
       base.py              # Abstract adapter interface
@@ -197,7 +197,7 @@ g4a/
   storage/
     __init__.py
     engine.py              # Read/write .g4a/ files
-    codec.py               # CBOR serialization + zstd compression
+    codec.py               # CBOR serialization + git notes I/O
     index.py               # Search index (file-to-commits, function-to-commits)
   query/
     __init__.py
@@ -220,7 +220,7 @@ Minimal dependencies keep install fast and attack surface small:
 | Dependency | Purpose | Size |
 |------------|---------|------|
 | `cbor2` | CBOR serialization (RFC 8949) | 45 KB |
-| `zstandard` | zstd compression | 1.2 MB (C extension) |
+| ~~`zstandard`~~ | ~~zstd compression~~ | Removed - git handles compression natively |
 | `click` | CLI framework | 300 KB |
 | `rich` | Terminal formatting | 700 KB |
 | `jinja2` | HTML template rendering (web report) | 500 KB |
@@ -311,7 +311,7 @@ If no Claude Code transcript is found (e.g. a manual commit, or an agent without
 
 This ensures `.g4a/` is never empty. Even metadata-only records power `g4a log` and provide a timeline. When additional adapters are added in the future, `g4a backfill` can re-process past commits.
 
-### 4.4 Query flow
+### 4.3 Query flow
 
 ```
 1. User runs: g4a why process_payment
@@ -323,7 +323,7 @@ This ensures `.g4a/` is never empty. Even metadata-only records power `g4a log` 
       - Reasoning text (intent, exploration, alternatives)
       - Function names extracted from diffs
    c. Loads matching .g4a/commits/{sha}.g4a files
-   d. Decompresses (zstd) and deserializes (CBOR)
+   d. Reads git note blobs and deserializes (CBOR)
    e. ranker.py scores results by:
       - Recency (newer = higher)
       - Relevance (exact function name match > file match > text match)
@@ -445,22 +445,24 @@ class CommitRecord:
 class SessionLink:
     """Pointer from a commit record into a session trace."""
     session_id: str
+    anchor_sha: str                 # Git SHA the session note is attached to
+                                    # (the first commit made during this session)
     agent: str                      # "claude-code" | "unknown"
-    msg_start: int                  # First message index in session for this commit
-    msg_end: int                    # Last message index in session for this commit
-    step_count: int                 # Number of steps in this range
+    msg_start: int                  # First event index in session for this commit
+    msg_end: int                    # Last event index in session for this commit
+    step_count: int                 # Number of events in this range
     # A commit may have multiple SessionLinks if multiple agents
     # contributed between the previous commit and this one.
     #
     # The pointer chain:
-    #   CommitRecord.contributing_sessions[0].session_id = "542e"
+    #   CommitRecord.contributing_sessions[0].anchor_sha = "a1b2c3d"
     #   CommitRecord.contributing_sessions[0].msg_start = 0
     #   CommitRecord.contributing_sessions[0].msg_end = 120
-    #     -> Load .g4a/sessions/542e.g4a
-    #     -> Read events[0:120] for the full reasoning trace
+    #     -> git notes --ref=g4a-sessions show a1b2c3d
+    #     -> Deserialize, read events[0:120]
     #
     # This lets queries start fast (read commit record only) and
-    # drill down on demand (load session trace when user asks for detail)
+    # drill down on demand (load session note when user asks for detail)
 
 
 # =========================================================================
@@ -602,7 +604,7 @@ class FileChange:
 @dataclass
 class Alternative:
     description: str
-    rejected_reason: str
+    rejected_reason: Optional[str]  # null for the chosen alternative
     effort_estimate: Optional[str]
 
 
@@ -697,67 +699,184 @@ The schema version is stored in every record. The `.g4a/schema.json` file in the
 
 ## 6. Storage engine
 
-### 6.1 Directory layout
+### 6.1 The three storage problems (and how we solve them)
+
+External audit identified three critical architectural flaws in the original "everything in .g4a/ tracked by git" design:
+
+| Problem | Impact | Solution |
+|---------|--------|----------|
+| **Dirty working tree** | post-commit hook writes .g4a/ files after commit, leaving untracked files that show in `git status` and get bundled into the next commit | **Git notes** for commit records (attached to SHA, never touch working tree) |
+| **Binary merge conflicts** | Binary index.g4a tracked in git conflicts on every branch merge, breaks team collaboration | **Local-only index** in `.git/g4a/` (never tracked, rebuilt lazily) |
+| **Git rewrites (rebase/amend/squash)** | SHA changes orphan reasoning files named after old SHAs | **post-rewrite hook** that remaps notes from old SHA to new SHA |
+
+### 6.2 Storage architecture (revised)
+
+g4a uses three storage locations, each chosen to avoid the problems above:
 
 ```
 your-project/
-  .g4a/
-    schema.json                    # JSON Schema for all record types
-    config.json                    # g4a configuration
-    pending.json                   # Retry queue for failed captures
-    commits/
-      a1b2c3d.g4a                  # Commit record: summary + session links
-      e4f5g6h.g4a                  # May link to 1 or more sessions
-      i7j8k9l.g4a                  # Human-only commit: metadata-only, 0 sessions
-      ...
-    sessions/
-      542e0ff9.g4a                 # Agent session: full event trace
-      b2b35939.g4a                 # Another agent (may overlap in time)
-      ...                          # Append-only within a session
-    index.g4a                      # Search index (binary, append-only)
+  .g4a/                            # IN GIT (committed, shared)
+    schema.json                    #   Schema definition
+    config.json                    #   g4a configuration
+
+  .git/
+    refs/notes/g4a-commits/        # GIT NOTES (synced via fetch/push)
+      {sha} -> CBOR commit record  #   Attached to exact commit SHA
+                                   #   Never touches working tree
+                                   #   Survives rebase via post-rewrite hook
+    refs/notes/g4a-sessions/       # GIT NOTES (synced via fetch/push)
+      {sha} -> CBOR session trace  #   Attached to the commit that triggered capture
+                                   #   Shared across commits via session_id
+
+    g4a/                           # LOCAL ONLY (never synced, never committed)
+      index.db                     #   Search index (rebuilt lazily from notes)
+      pending.json                 #   Retry queue
+      errors.log                   #   Error log
+      cache/                       #   Decompressed record cache for fast queries
 ```
 
-**Two-level storage model:**
+**What goes where:**
 
-| Level | File | Contains | Size |
-|-------|------|----------|------|
-| Commit record | `.g4a/commits/{sha}.g4a` | Summary + `contributing_sessions[]` with links into session traces. Even human-only commits get a record (with 0 sessions). | 1-50 KB |
-| Session trace | `.g4a/sessions/{id}.g4a` | Every event in order: prompts, thinking, tool calls, results, dead ends. Shared across commits if a session spans multiple commits. | 50-500 KB |
+| Data | Location | Synced? | Why |
+|------|----------|---------|-----|
+| Commit records | git notes (`refs/notes/g4a-commits`) | Yes, via fetch/push | Attached to exact SHA. No dirty tree. No merge conflicts. Survives rebase. |
+| Session traces | git notes (`refs/notes/g4a-sessions`) | Yes, via fetch/push | Same benefits. Attached to the first commit that triggered session capture. |
+| Schema + config | `.g4a/schema.json`, `.g4a/config.json` | Yes, committed | Small, rarely change, need to be visible in the repo. |
+| Search index | `.git/g4a/index.db` | No, local only | Rebuilt lazily. No merge conflicts. No binary blobs in git history. |
+| Operational state | `.git/g4a/pending.json`, `.git/g4a/errors.log` | No, local only | Machine-specific. Never leaks to remote. |
 
-**Why two levels:**
-- `g4a log` and `g4a why` read **commit records** only - fast, small, summarized
-- `g4a show --full` or `g4a session {id}` reads the **session trace** - complete, detailed, includes dead ends and phases
-- A session may produce 3 commits. Each commit record links to the same session with different message ranges.
-- A commit may have 2+ contributing sessions if multiple agents worked concurrently.
-- Human-only commits still get a commit record (`total_steps=0, contributing_sessions=[]`) so the timeline has no gaps.
-- The session trace is append-only: when a second commit happens in the same session, g4a appends new events rather than rewriting.
+### 6.3 Why git notes
 
-### 6.2 File format: .g4a files
+Git notes (`git notes`) attach arbitrary data to a commit **without modifying the commit's SHA and without touching the working tree.** This solves all three critical problems:
 
-Each `.g4a` file is:
+```bash
+# g4a attaches a commit record to SHA a1b2c3d
+git notes --ref=g4a-commits add -f -C $(echo "$CBOR_BLOB" | git hash-object -w --stdin) a1b2c3d
+
+# Anyone can read it
+git notes --ref=g4a-commits show a1b2c3d | python3 -m g4a decode
+
+# Notes sync with explicit fetch/push
+git fetch origin "refs/notes/g4a-commits:refs/notes/g4a-commits"
+git push origin "refs/notes/g4a-commits"
+```
+
+**How `g4a init` configures note syncing:**
+
+```bash
+# Add to .git/config so notes auto-fetch on every git fetch
+git config --add remote.origin.fetch "+refs/notes/g4a-commits:refs/notes/g4a-commits"
+git config --add remote.origin.fetch "+refs/notes/g4a-sessions:refs/notes/g4a-sessions"
+```
+
+**Push is handled by a pre-push hook** (not `remote.origin.push`). Setting `remote.origin.push` would override git's default branch push behavior, breaking `git push` for the developer. Instead, the pre-push hook silently pushes notes alongside code:
+
+```bash
+#!/bin/sh
+# .git/hooks/pre-push (installed by g4a init)
+remote="$1"
+[ "$G4A_DISABLE" = "1" ] && exit 0
+# Push notes quietly in the background - never block the push
+git push "$remote" refs/notes/g4a-commits refs/notes/g4a-sessions \
+  --no-verify -q >/dev/null 2>&1 &
+exit 0
+```
+
+After init, `git fetch` automatically pulls reasoning. `git push` automatically pushes reasoning via the pre-push hook. The developer never thinks about it.
+
+**Git notes vs. working tree files:**
+
+| Concern | Working tree (.g4a/) | Git notes |
+|---------|---------------------|-----------|
+| Dirty tree after commit | Yes (critical flaw) | No |
+| Merge conflicts | Yes (binary files) | No (notes merge per-commit) |
+| Survives rebase/amend | No (SHA changes) | Yes (with post-rewrite hook) |
+| Visible in `git status` | Yes (noise) | No |
+| Cloned by default | Yes | No (need fetch config) |
+| GitHub web UI | Not readable (binary) | Not displayed (but fetchable) |
+| Works with all git hosts | Yes | Yes (GitHub, GitLab, Bitbucket all support notes) |
+
+**Trade-off:** Notes are not cloned by default. A fresh clone needs `g4a init` to configure note fetching, then `git fetch` to pull the reasoning. This is an extra step compared to "clone and it's there," but it avoids all three critical problems.
+
+**Fresh clone flow:**
+
+```
+$ git clone git@github.com:team/project.git
+$ cd project
+$ g4a init         # Configures note fetch/push, installs hooks
+$ git fetch        # Pulls all reasoning notes from remote
+$ g4a log          # Reasoning is now available
+```
+
+If a developer runs `g4a log` before `git fetch`, g4a detects the empty state and prompts:
+
+```
+$ g4a log
+  No reasoning data found. Run "git fetch" to pull reasoning from remote.
+  (If this is a new repo, reasoning will appear after your first commit.)
+```
+
+Teams already using g4a can add `g4a init && git fetch` to their onboarding script or README.
+
+### 6.4 Handling git rewrites (rebase, amend, squash)
+
+Git provides a `post-rewrite` hook that fires after `git commit --amend` and `git rebase`. It receives `old-sha new-sha` pairs on stdin.
+
+```bash
+#!/bin/sh
+# .git/hooks/post-rewrite - installed by g4a init
+# Remaps reasoning notes from old SHAs to new SHAs after rebase/amend
+
+while read old_sha new_sha _rest; do
+  # Remap commit record note
+  if git notes --ref=g4a-commits show "$old_sha" >/dev/null 2>&1; then
+    git notes --ref=g4a-commits copy "$old_sha" "$new_sha" 2>/dev/null
+    git notes --ref=g4a-commits remove "$old_sha" 2>/dev/null
+  fi
+
+  # Remap session note if this SHA is a session anchor
+  if git notes --ref=g4a-sessions show "$old_sha" >/dev/null 2>&1; then
+    git notes --ref=g4a-sessions copy "$old_sha" "$new_sha" 2>/dev/null
+    git notes --ref=g4a-sessions remove "$old_sha" 2>/dev/null
+  fi
+done
+
+# Rebuild local index (anchor SHAs may have changed)
+python3 -m g4a reindex --quiet 2>/dev/null &
+```
+
+This means reasoning **survives rebases, amends, and squashes** seamlessly. Both commit records and session traces are remapped. The local index is rebuilt in the background since anchor SHAs may have changed.
+
+**Session note anchoring:** Each session trace is stored as a git note attached to the **first commit made during that session** (the "anchor SHA"). The `anchor_sha` is stored in every `SessionLink` so readers can look up the session note directly without scanning. When the anchor commit is rewritten, the post-rewrite hook remaps the session note to the new SHA, and `g4a reindex` updates the local `session_id -> anchor_sha` mapping.
+
+### 6.5 File format: .g4a payloads
+
+Each note payload (commit record or session trace) is:
 
 ```
 [4 bytes: magic number "G4A\x01"]
 [4 bytes: schema version as uint32]
-[4 bytes: uncompressed size as uint32]
-[N bytes: zstd-compressed CBOR payload]
+[N bytes: CBOR payload (uncompressed)]
 ```
 
-**Why this format:**
-- Magic number allows `file` command and git hooks to identify .g4a files
-- Schema version in the header means you can detect format without decompressing
-- Uncompressed size allows pre-allocating the decompression buffer (faster)
-- CBOR is ~30% smaller than JSON for structured data and much faster to parse
-- zstd at compression level 3 gives 3-5x compression at 500 MB/s speed
+**Why no zstd compression:** Git's object store already compresses with zlib and delta-packs similar objects. If we compress with zstd before handing data to git, the bytes look random and git cannot delta-compress them. A 100 KB session appended 20 times would store 20 full copies (~2 MB) instead of one base + 19 tiny deltas (~120 KB). Letting git handle compression natively is vastly more storage-efficient over the lifecycle of the repo.
 
-**Expected sizes:**
-- Simple commit (1-3 files, basic reasoning): 2-5 KB compressed
-- Complex commit (8+ files, detailed alternatives): 15-50 KB compressed
-- Full session trace (multi-hour Claude Code session): 100-500 KB compressed
+**Why CBOR (not JSON):**
+- ~30% smaller than JSON for structured data
+- Much faster to parse (binary format, no string escaping)
+- Self-describing (no external schema needed to decode)
+- IETF RFC 8949 standard
 
-### 6.3 Search index
+**Expected sizes (uncompressed CBOR, before git's native compression):**
+- Simple commit record (1-3 files, basic reasoning): 3-8 KB
+- Complex commit record (8+ files, detailed alternatives): 20-80 KB
+- Full session trace (multi-hour Claude Code session): 200 KB - 1 MB
 
-`.g4a/index.g4a` is an append-only index that maps:
+Git's zlib compression typically achieves 2-3x on CBOR. Git's delta packing achieves much more for session appends (only the diff between versions is stored).
+
+### 6.6 Search index (local only)
+
+The search index lives in `.git/g4a/index.db` and is **never tracked by git.** It is a custom binary format (sorted CBOR arrays, not SQLite), rebuilt lazily from git notes.
 
 ```
 file_path    -> [commit_sha, commit_sha, ...]
@@ -765,60 +884,261 @@ function_name -> [commit_sha, commit_sha, ...]
 keyword      -> [commit_sha, commit_sha, ...]
 ```
 
-The index is a sorted array of `(key, sha)` tuples, CBOR-encoded and zstd-compressed. Queries use binary search on the sorted keys. The index is rebuilt from scratch if corrupted or missing (`g4a reindex`).
+**Lazy rebuild strategy:**
 
-**Why not SQLite?** SQLite adds a 1.2 MB dependency and creates files that don't merge well in git. The append-only index is smaller, faster for the read patterns g4a needs, and produces clean git history.
+```python
+def ensure_index_fresh():
+    """Rebuild index if stale. Runs on every query."""
+    last_indexed_sha = read_index_watermark()
+    current_head = git_rev_parse("HEAD")
 
-### 6.4 Git integration
+    if last_indexed_sha == current_head:
+        return  # Index is up to date
 
-`.g4a/` is a normal directory tracked by git. The `.gitattributes` file marks `.g4a` files as binary:
+    # Find commits with notes that aren't indexed yet
+    new_commits = git_log_since(last_indexed_sha)
+    for sha in new_commits:
+        note = git_notes_show("g4a-commits", sha)
+        if note:
+            record = deserialize(note)
+            add_to_index(record)
 
+    write_index_watermark(current_head)
 ```
-*.g4a binary
+
+On first query after a clone, this indexes all existing commit notes. Subsequent queries only index new commits. Indexing 50 commits takes < 100ms since each commit record is 2-50 KB.
+
+**Corruption detection:** The index stores a SHA-256 checksum in its header. On load, the checksum is verified. If it fails (truncated write, disk error), the index is deleted and rebuilt from git notes on the next query. No data loss - git notes are the source of truth.
+
+### 6.7 Session trace append strategy
+
+A long session may span multiple commits. Each commit triggers a full rewrite of the session note (read, append new events, write). Since we store uncompressed CBOR and let git handle compression, git's delta packing stores only the diff between the old and new version of the note - making appends very storage-efficient.
+
+```python
+def append_to_session(anchor_sha: str, session_id: str, new_events: List[Event]):
+    """Append new events to an existing session note."""
+    # Load existing session (or create new)
+    existing_blob = git_notes_show("g4a-sessions", anchor_sha)
+    if existing_blob:
+        session = cbor_decode(strip_header(existing_blob))
+    else:
+        session = {"version": "1.0", "session_id": session_id, "events": []}
+
+    # Append new events
+    for event in new_events:
+        event.index = len(session["events"])
+        session["events"].append(event)
+
+    # Update stats
+    session["last_captured_at"] = now()
+
+    # Rewrite the note (git delta-packs the diff automatically)
+    blob = g4a_header() + cbor_encode(session)
+    git_notes_add("g4a-sessions", anchor_sha, blob)
 ```
 
-This prevents git from trying to diff them (which would be meaningless). Users see "binary file changed" in git diffs. The reasoning is only readable through g4a tools. This is intentional - it prevents accidental exposure of reasoning in GitHub PR diffs.
+**Why full rewrite is fine:** Git's object store delta-packs similar blobs during `git gc` and `git push`. Appending 5 KB of events to a 200 KB session creates a new 205 KB blob, but git stores only the ~5 KB delta. Over 20 commits in a session, git stores ~200 KB base + 19 tiny deltas, not 20 full copies.
+
+**Size limits:** If a session trace exceeds 1 MB (uncompressed CBOR), older `tool_result` content is pruned (replaced with `[PRUNED - see original transcript]`) while preserving all thinking, text, and tool_call events. The full content is always available in the original Claude Code transcript on the developer's machine.
+
+### 6.8 Session note lookup
+
+Session notes are keyed by git SHA (the anchor commit), not by `session_id`. To find a session note, the reader needs the `anchor_sha`. This is stored in two places:
+
+1. **In every CommitRecord:** `SessionLink.anchor_sha` provides direct lookup
+2. **In the local index:** `.git/g4a/index.db` maintains a `session_id -> anchor_sha` mapping, rebuilt lazily from commit notes
+
+```python
+def load_session(session_link: SessionLink) -> SessionRecord:
+    """Load a session trace using the anchor SHA from the SessionLink."""
+    blob = git_notes_show("g4a-sessions", session_link.anchor_sha)
+    if not blob:
+        raise SessionNotFound(session_link.session_id)
+    return deserialize_session(blob)
+```
+
+For `g4a session <id>` (lookup by session_id without a commit context), the local index provides the mapping:
+
+```python
+def find_session_by_id(session_id: str) -> SessionRecord:
+    """Look up session by ID via local index."""
+    anchor_sha = index_lookup_session(session_id)
+    if not anchor_sha:
+        raise SessionNotFound(session_id)
+    return load_session_by_sha(anchor_sha)
+```
 
 ---
 
 ## 7. Capture engine
 
-### 7.1 Agent detection
+### 7.1 Concurrency and locking
 
-When the post-commit hook fires, g4a must determine which agent produced the commit. Detection order:
+Multiple commits in quick succession (e.g., during a rebase, or two terminals committing simultaneously) could spawn multiple background capture processes. g4a uses a simple file lock to serialize capture:
 
 ```python
-def detect_agent(commit_sha: str) -> str:
-    # 1. Check for Claude Code session transcript
-    #    Look in ~/.claude/projects/{project-slug}/
-    #    for a .jsonl file modified within last 60 seconds
-    if claude_code_transcript_found():
-        return "claude-code"
+LOCK_FILE = ".git/g4a/capture.lock"
 
-    # 2. Check commit trailers
-    #    "Co-Authored-By: Claude" -> claude-code
-    #    "Generated by Cursor" -> cursor
-    #    "Co-Authored-By: Copilot" -> copilot
-    trailer = parse_commit_trailers(commit_sha)
-    if trailer:
-        return trailer
+def acquire_lock(timeout_seconds=30) -> bool:
+    """Acquire exclusive capture lock. Returns False if already held."""
+    lock_path = Path(LOCK_FILE)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # 3. Check for agent-specific markers
-    #    .cursor/ directory exists -> cursor
-    #    .github/copilot/ -> copilot
-    if agent_markers_found():
-        return detected_agent
+    try:
+        # Atomic create - fails if file exists
+        fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(fd, f"{os.getpid()}\n{time.time()}\n".encode())
+        os.close(fd)
+        return True
+    except FileExistsError:
+        # Lock exists - check if it's stale (holder crashed)
+        try:
+            content = lock_path.read_text()
+            pid, timestamp = content.strip().split("\n")
+            age = time.time() - float(timestamp)
+            if age > timeout_seconds:
+                # Stale lock - remove and retry
+                lock_path.unlink()
+                return acquire_lock(timeout_seconds)
+        except Exception:
+            lock_path.unlink(missing_ok=True)
+            return acquire_lock(timeout_seconds)
+        return False
 
-    # 4. Heuristic: AI-generated commit message patterns
-    #    Multiple files changed with formulaic message -> likely AI
-    if looks_ai_generated(commit_sha):
-        return "unknown-ai"
-
-    # 5. Default
-    return "unknown"
+def release_lock():
+    Path(LOCK_FILE).unlink(missing_ok=True)
 ```
 
-### 7.2 Claude Code adapter (deep dive)
+**Behavior under concurrent commits:**
+- Commit A fires hook, acquires lock, starts capture
+- Commit B fires hook 2 seconds later, lock is held, adds B to `.git/g4a/pending.json`
+- B then rechecks the lock (it may have been released while B was writing to the queue):
+
+```python
+def capture_or_queue(commit_sha: str):
+    if acquire_lock():
+        try:
+            run_capture(commit_sha)
+        finally:
+            release_lock()
+    else:
+        add_to_retry_queue(commit_sha)
+        # Recheck: lock holder may have finished and drained queue
+        # before our queue entry was visible
+        time.sleep(0.1)
+        if acquire_lock():
+            try:
+                drain_pending_retries()
+            finally:
+                release_lock()
+```
+
+- Result: both commits get reasoning records, no orphaned queue entries
+
+**Mass rebase protection:** The `G4A_DISABLE=1` env var skips the hook entirely. For interactive rebases involving 50+ commits, the developer can run `G4A_DISABLE=1 git rebase -i` to avoid spawning 50 background processes. After the rebase, the `post-rewrite` hook remaps existing notes to new SHAs.
+
+### 7.2 Transcript detection (settle period)
+
+**The problem:** Claude Code may not have flushed the final tool result to the `.jsonl` transcript by the time the post-commit hook fires (< 50ms after commit). The transcript might be missing the `git commit` tool call that just happened.
+
+**The solution:** The background capture process implements a "settle period" - if the expected commit SHA is not found in the transcript, wait and retry:
+
+```python
+def find_transcript_with_settle(commit_sha: str, repo_root: str,
+                                 max_wait_ms=2000, poll_ms=200) -> Optional[Path]:
+    """Find the transcript, with settle period for write buffering."""
+    project_slug = repo_to_slug(repo_root)
+    transcripts_dir = Path.home() / ".claude" / "projects" / project_slug
+
+    # Strategy: find transcripts modified since the PREVIOUS commit
+    # (not "last 60 seconds" - that's fragile for long sessions)
+    prev_commit_ts = git_parent_timestamp(commit_sha)
+
+    for attempt in range(max_wait_ms // poll_ms):
+        for jsonl in transcripts_dir.glob("*.jsonl"):
+            if jsonl.stat().st_mtime > prev_commit_ts:
+                # Check if this transcript contains our commit SHA
+                # Read from the END of the file (tail) for efficiency
+                if transcript_contains_commit(jsonl, commit_sha):
+                    return jsonl
+
+        # Settle: transcript might not be flushed yet
+        if attempt < (max_wait_ms // poll_ms) - 1:
+            time.sleep(poll_ms / 1000)
+
+    return None  # No transcript found after settle period
+```
+
+**When no transcript is found:** The caller writes a metadata-only record AND queues a retry. The retry will attempt again on the next commit when the transcript may have been flushed. This prevents commits from being permanently stuck as metadata-only just because of a slow flush.
+
+**Key design decisions:**
+- Uses "modified since previous commit timestamp" (not "last 60 seconds") for detection
+- Reads transcript from the **tail** (last ~50 KB) to check for the commit SHA. The commit-producing event is always near the end at capture time (the hook fires immediately after commit). For retries on older commits, a full scan may be needed.
+- Polls with exponential backoff: 50ms, 100ms, 200ms, 400ms, 800ms (total ~1.5s) for faster return in the common case
+- Polls every 200ms for up to 2 seconds total settle time
+- Falls back to metadata-only if transcript never appears
+
+### 7.3 Project slug algorithm
+
+The project slug maps a repo path to a Claude Code transcript directory. This must be stable and unambiguous:
+
+```python
+def repo_to_slug(repo_root: str) -> str:
+    """Convert repo path to Claude Code project slug.
+
+    Matches Claude Code's internal algorithm:
+    - Absolute path with os.sep replaced by '-'
+    - Leading separator becomes leading '-'
+
+    Examples:
+      /Users/lokesh/project  -> -Users-lokesh-project
+      C:\\Users\\lokesh\\proj -> C-Users-lokesh-proj  (Windows)
+      /home/lokesh/project   -> -home-lokesh-project  (Linux)
+    """
+    # Normalize path (resolve symlinks, remove trailing slash)
+    normalized = str(Path(repo_root).resolve())
+    # Replace all separators with '-'
+    slug = normalized.replace(os.sep, "-")
+    # On Windows, also replace drive colon
+    slug = slug.replace(":", "")
+    return slug
+```
+
+**Edge cases:**
+- **Windows drive letters:** `C:\foo` becomes `C-foo` (colon stripped)
+- **WSL paths:** `/mnt/c/foo` becomes `-mnt-c-foo` (standard Linux path handling)
+- **Symlinks:** Resolved before slugging, so `/tmp/mylink -> /home/user/project` uses the real path
+- **Multi-root workspaces:** Each repo has its own slug based on its own `.git` root. g4a operates per-repo.
+
+### 7.4 Agent detection and multi-session capture (POC)
+
+The capture process finds **all** transcripts modified since the previous commit, not just the one containing the commit SHA. This supports the multi-agent scenario (two Claude Code windows working concurrently):
+
+```python
+def find_all_contributing_transcripts(commit_sha: str, repo_root: str) -> List[Path]:
+    """Find all transcripts modified between previous commit and this one."""
+    project_slug = repo_to_slug(repo_root)
+    transcripts_dir = Path.home() / ".claude" / "projects" / project_slug
+    prev_ts = git_parent_timestamp(commit_sha)
+
+    # Find all modified transcripts (multiple agents = multiple transcripts)
+    modified = [
+        jsonl for jsonl in transcripts_dir.glob("*.jsonl")
+        if jsonl.stat().st_mtime > prev_ts
+    ]
+
+    if not modified:
+        return []
+
+    # The transcript containing the commit SHA is the "primary" one
+    # Others are "contributing" (worked in parallel but didn't commit)
+    # All are captured as separate sessions
+    return modified
+```
+
+For each transcript found, g4a creates a separate SessionRecord and SessionLink. The commit record's `contributing_sessions` list has one entry per transcript. `primary_agent` is the agent whose transcript contains the commit SHA.
+
+### 7.5 Claude Code adapter (deep dive)
 
 This is the highest-value adapter. Claude Code's JSONL transcript contains everything g4a needs.
 
@@ -914,8 +1234,8 @@ def capture_session(transcript_path: str, session_id: str) -> SessionRecord:
         if msg.type == "tool_result" and len(msg.content) > 2000:
             msg.content = msg.content[:2000] + "\n[TRUNCATED - full content in original transcript]"
 
-        msg.index = len(session.messages)
-        session.messages.append(msg)
+        msg.index = len(session.events)
+        session.events.append(msg)
 
     session.last_captured_at = now()
     return session
@@ -927,29 +1247,41 @@ A session may contain multiple commits. Each commit record needs to know which m
 
 ```python
 def find_commit_range(session: SessionRecord, commit_sha: str) -> Tuple[int, int]:
-    """Find the message range in the session that produced this commit."""
+    """Find the event range in the session that produced this commit."""
 
-    # Find the message where this commit was made
-    # (a Bash tool_call containing "git commit" that produced this SHA)
-    commit_msg_index = None
-    for msg in reversed(session.messages):
-        if (msg.type == "tool_call" and msg.tool_name == "Bash"
-                and "git commit" in str(msg.tool_input)
-                and is_commit_for_sha(msg, commit_sha)):
-            commit_msg_index = msg.index
-            break
+    # Find the event where this commit was made.
+    # The commit SHA appears in the tool_result FOLLOWING the git commit
+    # tool_call (git outputs the SHA in its stdout). We find the tool_call
+    # whose next tool_result contains the full 40-char SHA.
+    commit_evt_index = None
+    for i, evt in enumerate(session.events):
+        if (evt.type == "tool_call" and evt.tool_name == "Bash"
+                and "git commit" in str(evt.tool_input)):
+            # Check the next event for the SHA in the result
+            if i + 1 < len(session.events):
+                result = session.events[i + 1]
+                if result.type == "tool_result" and commit_sha[:12] in result.content:
+                    commit_evt_index = evt.index
+                    break
+
+    # Also check for "commit" type events (g4a marks these during capture)
+    if commit_evt_index is None:
+        for evt in reversed(session.events):
+            if evt.type == "commit" and commit_sha[:12] in evt.content:
+                commit_evt_index = evt.index
+                break
 
     if commit_msg_index is None:
         # Commit wasn't made through a tool call we can find
         # (e.g. user committed manually) - use all messages since last commit
         return (last_commit_end_index(session, commit_sha) + 1,
-                len(session.messages) - 1)
+                len(session.events) - 1)
 
     # Walk backward to find start of this unit of work
     # Start is whichever comes first:
     #   1. The message after the PREVIOUS commit in this session
     #   2. The first message in the session (if this is the first commit)
-    previous_commits = [m.index for m in session.messages
+    previous_commits = [m.index for m in session.events
                         if m.type == "tool_call"
                         and m.tool_name == "Bash"
                         and "git commit" in str(m.tool_input)
@@ -992,7 +1324,7 @@ def synthesize_reasoning(session: SessionRecord,
                          start: int, end: int) -> CommitRecord:
     """Synthesize a commit summary from ALL messages in the range."""
 
-    messages = session.messages[start:end + 1]
+    messages = session.events[start:end + 1]
 
     # Collect ALL thinking blocks - this is where dead ends and
     # alternatives live
@@ -1055,11 +1387,148 @@ def synthesize_reasoning(session: SessionRecord,
     return record
 ```
 
-### 7.3 Other agents (post-POC)
+### 7.6 Reasoning synthesis heuristics
 
-The POC ships with Claude Code only. The adapter interface (`capture/adapters/base.py`) is designed so new adapters can be added without changing any other component. See [Future adapters](#future-adapters-post-poc) in the architecture overview for the planned roadmap.
+The `extract_intent`, `extract_alternatives`, `extract_risks`, and `detect_dead_ends` functions are pattern-based heuristics. They will be tuned during POC, but here are the initial rules:
 
-When no Claude Code transcript is found for a commit, g4a writes a metadata-only record (SHA, files changed, commit message) so the timeline has no gaps. This is the fallback for any agent without an adapter.
+**extract_intent(thinking + text) -> str:**
+
+```python
+INTENT_PATTERNS = [
+    r"(?:I need to|The goal is|This change will|We should|Let me)\s+(.+?)(?:\.|$)",
+    r"(?:Intent|Purpose|Reason|Why):\s*(.+?)(?:\.|$)",
+    r"(?:to fix|to add|to refactor|to update|to implement)\s+(.+?)(?:\.|$)",
+]
+
+def extract_intent(blocks: List[str]) -> str:
+    # 1. Check the FIRST thinking block - usually states the goal
+    # 2. Check the LAST text block before the commit - usually summarizes
+    # 3. Fall back to the commit message if no patterns match
+    # Combine into 1-3 sentences max
+```
+
+**extract_alternatives(thinking) -> List[Alternative]:**
+
+```python
+ALTERNATIVE_PATTERNS = [
+    r"(?:Option|Approach|Alternative)\s*\d+[.:]\s*(.+)",
+    r"(?:I could also|Another approach|We could)\s+(.+?)(?:\.|$)",
+    r"(.+?)\s*[-:]\s*rejected\s+because\s+(.+)",
+    r"(?:Let me try|I'll try)\s+(.+?)(?:\.|$)",  # Start of an approach
+]
+
+REJECTION_PATTERNS = [
+    r"(?:rejected|abandoned|won't work|doesn't work|too .+)\s+because\s+(.+)",
+    r"(?:This approach|That|It)\s+(?:failed|broke|caused)\s+(.+)",
+]
+```
+
+**extract_risks(thinking + text) -> List[Risk]:**
+
+```python
+RISK_PATTERNS = [
+    r"(?:risk|concern|worry|caution|careful|might break|may not|edge case)\s*[.:]\s*(.+)",
+    r"(?:LOW|MEDIUM|HIGH)\s+confidence\s+(?:on|about|for)\s+(.+)",
+    r"(?:not sure|uncertain|unclear)\s+(?:about|whether|if)\s+(.+)",
+    r"(?:flagged|warning|note)\s*[.:]\s*(.+)",
+]
+
+def extract_risks(blocks: List[str]) -> List[Risk]:
+    # Extract risk text
+    # Assign confidence: explicit mentions ("LOW confidence") take priority
+    # Otherwise, hedging language ("not sure") -> 0.5, "might" -> 0.6, etc.
+```
+
+**detect_dead_ends(tool_calls, thinking) -> List[str]:**
+
+```python
+def detect_dead_ends(events: List[Event]) -> List[str]:
+    """Detect approaches that were tried and abandoned.
+
+    Heuristic: a dead end is a sequence where:
+    1. The agent starts implementing (Edit/Write calls)
+    2. Tests fail or the agent explicitly abandons ("won't work", "let me try X instead")
+    3. The agent then implements a DIFFERENT approach on the same files
+
+    Specifically:
+    - Edit file A -> Bash(test) -> FAIL -> Edit file A (different content) = dead end
+    - Thinking "let me try X" -> Edit -> Thinking "X won't work, try Y" = dead end
+    - Edit -> Edit -> Edit (same file, progressive refinement) = NOT a dead end
+    """
+    dead_ends = []
+    # Walk events, track Edit sequences per file
+    # If an Edit is followed by a test failure and then a different Edit
+    # to the same file, mark the first sequence as dead end
+    # Will be tuned during POC with real session data
+```
+
+**Phase auto-detection:**
+
+```python
+def classify_phase(event: Event) -> str:
+    if event.type == "tool_call":
+        if event.tool_name in ("Read", "Grep", "Glob"):
+            return "exploration"
+        if event.tool_name in ("Edit", "Write"):
+            return "implementation"
+        if event.tool_name == "Bash":
+            cmd = event.tool_input.get("command", "")
+            if any(t in cmd for t in ["pytest", "jest", "npm test", "cargo test", "go test"]):
+                return "testing"
+            return "implementation"  # Other bash commands
+    if event.type == "thinking":
+        return "exploration"  # Thinking is part of exploration
+    return "exploration"  # Default
+```
+
+### 7.7 Large transcript handling
+
+Claude Code transcripts can grow to 100MB+ for long sessions. g4a never loads the full file into memory:
+
+```python
+def read_transcript_tail(path: Path, max_bytes: int = 50_000) -> List[dict]:
+    """Read the last N bytes of a JSONL file. Used for commit SHA detection."""
+    size = path.stat().st_size
+    offset = max(0, size - max_bytes)
+    with open(path, "rb") as f:
+        f.seek(offset)
+        chunk = f.read()
+    # Skip partial first line (we seeked into the middle)
+    lines = chunk.split(b"\n")
+    if offset > 0:
+        lines = lines[1:]  # First line is likely truncated
+    return [json.loads(line) for line in lines if line.strip()]
+
+def stream_transcript(path: Path, start_line: int = 0):
+    """Stream JSONL lines without loading into memory."""
+    with open(path, "r") as f:
+        for i, line in enumerate(f):
+            if i < start_line:
+                continue
+            line = line.strip()
+            if line:
+                yield i, json.loads(line)
+```
+
+### 7.8 Human reasoning via commit trailer
+
+When a human commits without an agent, they can optionally add reasoning via a git trailer:
+
+```bash
+git commit -m "fix: bypass cache for stale sessions
+
+Reasoning: The cache TTL was set to 24h but sessions expire after 1h.
+Users hitting the cache got stale session data. Bypassing the cache
+entirely until we implement proper TTL alignment."
+```
+
+g4a detects the `Reasoning:` trailer and extracts it as the `intent` field in the commit record, upgrading it from `metadata-only` to `partial`.
+
+### 7.9 Other agents (post-POC)
+
+The POC ships with Claude Code only. The adapter interface is designed so new adapters can be added without changing any other component. See [Future adapters](#future-adapters-post-poc) in the architecture overview.
+
+When no transcript is found and no `Reasoning:` trailer exists, g4a writes a metadata-only record so the timeline has no gaps.
 
 ---
 
@@ -1073,12 +1542,16 @@ The most security-critical component. Every string in the reasoning record passe
 Raw reasoning text
         |
         v
+  [Stage 0: Allowlist]
+  Skip known safe high-entropy strings (git SHAs, UUIDs, SRI hashes)
+        |
+        v
   [Stage 1: Known patterns]
-  Regex matching for known secret formats
+  Regex matching for 80+ known secret formats
         |
         v
   [Stage 2: Entropy detection]
-  Shannon entropy analysis for unknown secrets
+  Shannon entropy analysis for unknown secrets (with context requirement)
         |
         v
   [Stage 3: Context-aware detection]
@@ -1092,7 +1565,34 @@ Raw reasoning text
   Masked reasoning text
 ```
 
-### 8.2 Stage 1: Known patterns
+### 8.2 Stage 0: Allowlist (prevent false positives)
+
+High-entropy strings that are NOT secrets. These are skipped before entropy detection:
+
+```python
+ALLOWLIST_PATTERNS = [
+    # Git SHAs - only when preceded by common git context words
+    (r'(?<=commit )[0-9a-f]{40}\b', "git_sha"),
+    (r'(?<=parent )[0-9a-f]{40}\b', "git_sha"),
+    (r'(?<=tree )[0-9a-f]{40}\b', "git_sha"),
+    (r'(?<=index )[0-9a-f]{7,40}\b', "git_sha"),
+    # SHA-256 in lockfiles and SRI hashes
+    (r'sha256-[A-Za-z0-9+/=]{40,}', "sri_hash"),
+    (r'sha512-[A-Za-z0-9+/=]{40,}', "sri_hash"),
+    # UUIDs
+    (r'\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b', "uuid"),
+    # Semantic versions
+    (r'\bv?\d+\.\d+\.\d+(?:-[\w.]+)?\b', "semver"),
+]
+
+def is_allowlisted(s: str) -> bool:
+    """Returns True if the string matches a known safe pattern."""
+    return any(re.fullmatch(p, s) for p in ALLOWLIST_PATTERNS)
+```
+
+This prevents git SHAs, UUIDs, and version strings from being masked, which would make reasoning records unreadable.
+
+### 8.3 Stage 1: Known patterns
 
 Regex patterns for known secret formats. This list is extensive by design - a false positive (masking a non-secret) is harmless, but a false negative (missing a real secret) is a security incident.
 
@@ -1253,7 +1753,7 @@ Masked:   [REDACTED:ANTHROPIC_KEY:sha256=a1b2c3]
 
 The SHA-256 prefix (first 6 chars) allows detecting if the SAME secret appears in multiple records without revealing the secret itself. This helps answer "was the same API key exposed in multiple sessions?" without storing the key.
 
-### 8.3 Stage 2: Entropy detection
+### 8.4 Stage 2: Entropy detection
 
 For secrets that don't match known patterns:
 
@@ -1280,7 +1780,7 @@ def is_likely_secret(s: str) -> bool:
 
 **Context required:** Entropy alone produces false positives (hashes, UUIDs, base64-encoded data). Stage 2 only triggers when the high-entropy string appears near a sensitive context keyword (secret, key, token, password, auth, credential, bearer, api_key).
 
-### 8.4 Stage 3: Context-aware detection
+### 8.5 Stage 3: Context-aware detection
 
 Catches secrets that are low-entropy or short but appear in sensitive positions:
 
@@ -1300,28 +1800,64 @@ def mask_key_value_pairs(text: str) -> str:
     return text
 ```
 
-### 8.5 Stage 4: Path sanitization
+### 8.6 Stage 4: Path sanitization
 
 Absolute paths leak username and directory structure:
 
 ```python
 def sanitize_paths(text: str, repo_root: str) -> str:
-    """Replace absolute paths with repo-relative paths."""
-    # /Users/lokeshbasu/Developer/git4aiagents/src/main.py
-    # becomes: src/main.py
-    text = text.replace(repo_root + "/", "")
-    text = text.replace(repo_root, ".")
+    """Replace absolute paths with repo-relative paths.
 
-    # Also mask home directory references
-    home = os.path.expanduser("~")
-    text = text.replace(home, "~")
+    Uses pathlib for correct prefix matching to avoid partial replacements.
+    e.g., /Users/lokesh should NOT match /Users/lokeshbasu
+    """
+    repo = Path(repo_root).resolve()
+    home = Path.home()
 
+    def replace_path(match: re.Match) -> str:
+        raw = match.group(0)
+        p = Path(raw)
+        try:
+            return str(p.relative_to(repo))
+        except ValueError:
+            pass
+        try:
+            return "~/" + str(p.relative_to(home))
+        except ValueError:
+            pass
+        return raw  # Not under repo or home - leave as-is
+
+    # Match absolute paths (Unix and Windows)
+    text = re.sub(r'(?:/[\w./-]+|[A-Z]:\\[\w.\\-]+)', replace_path, text)
     return text
 ```
 
-### 8.6 Irreversibility guarantee
+### 8.7 Recursive masking for structured data
 
-The masking pipeline is one-way. The original text is never stored, cached, or logged. The pipeline operates on the in-memory representation before any bytes touch disk. There is no "unmask" command. This is by design - if a secret is accidentally captured, it cannot be recovered from `.g4a/` files.
+Tool inputs and results are dicts/lists, not flat strings. The masker recurses:
+
+```python
+def mask_value(value, depth=0):
+    if depth > 10:
+        return "[REDACTED:DEPTH_LIMIT]"
+    if isinstance(value, str):
+        return mask_string(value)  # Runs all 5 stages
+    if isinstance(value, dict):
+        return {k: mask_value(v, depth + 1) for k, v in value.items()}
+    if isinstance(value, list):
+        return [mask_value(v, depth + 1) for v in value]
+    return value  # int, float, bool, None - pass through
+```
+
+**Tool results are masked BEFORE truncation.** A tool result might contain a secret in the first 100 chars. The order is: mask all content first, then truncate to 2000 chars. Never truncate unmasked content.
+
+### 8.8 Irreversibility guarantee
+
+The masking pipeline is one-way. The original text is never stored, cached, or logged. The pipeline operates on the in-memory representation before any bytes touch disk. There is no "unmask" command. This is by design - if a secret is accidentally captured, it cannot be recovered from g4a data.
+
+### 8.9 Timing considerations
+
+Full constant-time masking is impractical (regex and entropy have input-dependent timing). The goal is: **no obviously input-dependent timing that leaks secret existence or structure.** The masking pipeline runs on the entire content regardless of whether secrets are found, so the presence/absence of secrets is not detectable from timing alone. Detailed secret length or position timing is not a practical attack vector for local file processing.
 
 ---
 
@@ -1348,7 +1884,7 @@ text_index:     "decimal"            -> [sha2, sha3, sha5]
   - Rust: `fn foo`, `struct Bar`
 - `text_index`: populated by tokenizing `intent`, `exploration`, `alternatives`, `risks` fields. Stop words removed. Tokens lowercased.
 
-**Index format:** Sorted array of `(term, sha_list)` tuples. Binary search for lookup. CBOR + zstd compressed. Typical size: 50-200 KB for 1,000 commits.
+**Index format:** Sorted array of `(term, sha_list)` tuples serialized as CBOR. Binary search for lookup. Typical size: 50-200 KB for 1,000 commits.
 
 ### 9.2 Query resolution
 
@@ -1433,9 +1969,10 @@ g4a session <id>                   Browse full session: every prompt, dead end, 
 g4a web [--port PORT]              Open visual report in browser
 g4a status                         Show g4a health: pending captures, index stats, session count
 g4a backfill [--since COMMIT]      Re-process past commits (e.g. after fixing a parse bug)
-g4a reindex                        Rebuild search index from .g4a/ files
+g4a reindex                        Rebuild search index from git notes
 g4a config [key] [value]           Get/set configuration
 g4a export <commit> [--format json|md]  Export reasoning as JSON or Markdown
+g4a uninit                         Remove g4a hooks, notes config, and .g4a/ from repo
 ```
 
 ### 10.2 `g4a init` (the most important command)
@@ -1448,35 +1985,78 @@ $ g4a init
   g4a initialized.
 
   Installed:
-    .g4a/schema.json        reasoning record schema
-    .g4a/config.json         configuration
-    .gitattributes           *.g4a marked as binary
-    .git/hooks/post-commit   reasoning capture hook
+    .g4a/schema.json           reasoning record schema
+    .g4a/config.json           g4a configuration
+    .git/hooks/post-commit     reasoning capture hook
+    .git/hooks/post-rewrite    rebase/amend SHA remapping
+    .git/hooks/pre-push        auto-push reasoning notes
+    .git/g4a/                  local index and state
+
+  Configured:
+    git fetch                  now pulls reasoning notes automatically
+    git push                   now pushes reasoning notes via pre-push hook
 
   Detected:
-    Claude Code             direct transcript capture (best quality)
-    Other commits           metadata-only (SHA, files, message)
+    Claude Code               direct transcript capture (best quality)
+    Other commits              metadata-only (SHA, files, message)
 
   Next: use your AI coding agent normally. Reasoning is captured automatically.
   Run "g4a log" after your next commit to see it.
+
+  Note: teammates need to run "g4a init" once to configure note fetching.
 ```
 
 **What `g4a init` does:**
 
 1. Creates `.g4a/` directory with `schema.json` and `config.json`
-2. Appends `*.g4a binary` to `.gitattributes` (creates if needed, does not overwrite)
+2. Creates `.git/g4a/` directory for local state (index, pending, errors)
 3. Installs `.git/hooks/post-commit` hook:
    - If no hook exists: writes the g4a hook
    - If a hook exists: appends g4a invocation to the end (preserves existing hooks)
-4. Auto-detects available agents (Claude Code transcripts, env vars)
-5. Prints summary
+   - Hook always exits 0, never breaks the hook chain
+4. Installs `.git/hooks/post-rewrite` hook (for rebase/amend SHA remapping)
+5. Configures git notes fetch/push:
+   ```
+   git config --add remote.origin.fetch "+refs/notes/g4a-commits:refs/notes/g4a-commits"
+   git config --add remote.origin.fetch "+refs/notes/g4a-sessions:refs/notes/g4a-sessions"
+   git config --add remote.origin.push "+refs/notes/g4a-commits:refs/notes/g4a-commits"
+   git config --add remote.origin.push "+refs/notes/g4a-sessions:refs/notes/g4a-sessions"
+   ```
+6. Auto-detects available agents (Claude Code transcripts)
+7. Prints summary
 
 **What `g4a init` does NOT do:**
 - Ask any questions
 - Require any API keys
 - Create any accounts
 - Make any network requests
-- Modify any existing files (except appending to post-commit hook and .gitattributes)
+
+**`g4a uninit` (clean removal):**
+
+```
+$ g4a uninit
+
+  Removed:
+    .g4a/                    schema and config
+    .git/g4a/                local index and state
+    .git/hooks/post-commit   g4a hook block removed (other hooks preserved)
+    .git/hooks/post-rewrite  g4a hook block removed (other hooks preserved)
+    git config               notes fetch/push config removed
+
+  NOT removed (requires manual deletion):
+    Git notes (refs/notes/g4a-commits, refs/notes/g4a-sessions)
+    Run "git notes --ref=g4a-commits prune" to remove reasoning data.
+```
+
+**Record lifecycle (metadata-only to captured):**
+
+When a capture retry succeeds, the metadata-only commit record is **replaced in-place** by writing a new git note to the same SHA. `g4a log` reflects the current state: if you see "metadata-only (capture pending retry)" now, after retry succeeds it shows "captured" with full reasoning. `g4a status` tracks the lifecycle:
+
+```
+pending retry -> retry succeeds -> metadata-only note overwritten with captured note
+pending retry -> 3 failures    -> moved to .git/g4a/permanent_failures.json
+                                  g4a status shows it, g4a backfill retries it
+```
 
 ### 10.3 `g4a log` output
 
@@ -1638,12 +2218,20 @@ $ g4a show a1b2c3d
 
 ### 11.2 Implementation
 
-- Single static HTML file with embedded CSS/JS (no server required)
-- Commit records embedded as a JSON blob (fast loading)
-- Session traces loaded on-demand via `fetch()` when user expands a timeline (avoids loading 100s of session files upfront)
-- Uses vanilla JavaScript - no framework, no build step
-- Opens with `python -m webbrowser` (stdlib)
-- Optional: `g4a web --serve` starts a local HTTP server for live reload and lazy session loading
+`g4a web` is a two-step process: build then open.
+
+**Build step** (runs `git notes` commands to extract data):
+1. Read all commit notes via `git notes --ref=g4a-commits list`
+2. Deserialize each commit record
+3. Embed as a JSON blob in the HTML
+
+**View step:**
+- **Default (`g4a web`):** Generates a single static HTML file with all commit records embedded. Session traces are NOT included (too large). Opens with `python -m webbrowser`. No server needed. Dead simple.
+- **Full mode (`g4a web --serve`):** Starts a local HTTP server that serves commit records statically and loads session traces on-demand via `fetch()` (the server calls `git notes show` behind the scenes). This enables lazy session loading and the full timeline drill-down.
+
+**Tech:**
+- Vanilla JavaScript, no framework, no build step
+- Commit records in static mode, session traces only in serve mode
 
 ### 11.3 Size budget
 
@@ -1664,8 +2252,8 @@ The HTML report with commit records for 1,000 commits should be < 2 MB. Session 
 | Background: detect agent | 50ms | File stat on ~/.claude/projects/ |
 | Background: parse transcript (Claude Code) | 200-500ms | Stream JSONL, extract window |
 | Background: mask secrets | 100-200ms | Regex + entropy scan |
-| Background: serialize + compress | 50-100ms | CBOR + zstd |
-| Background: write to disk | 10ms | Single file write |
+| Background: serialize | 30-50ms | CBOR encoding |
+| Background: write git notes | 30ms | `git notes add` + `git hash-object` |
 | Background: update index | 50ms | Append to index file |
 | **Total hook latency** | **< 20ms** | Developer never waits |
 | **Total background time** | **< 1s** | Invisible (local file parsing only in POC) |
@@ -1684,7 +2272,7 @@ The HTML report with commit records for 1,000 commits should be < 2 MB. Session 
 
 ### 12.3 How we keep the CLI fast
 
-- **Lazy imports:** `import cbor2` and `import zstandard` only when actually needed, not at CLI startup
+- **Lazy imports:** `import cbor2` only when actually needed, not at CLI startup
 - **No global init:** CLI parses args and dispatches immediately, no database connections or config validation at startup
 - **Memory-mapped index:** The search index is memory-mapped, so the OS handles caching. Second query is near-instant.
 - **Parallel decompression:** When loading multiple records, decompress in parallel using `concurrent.futures.ThreadPoolExecutor`
@@ -1698,10 +2286,10 @@ The HTML report with commit records for 1,000 commits should be < 2 MB. Session 
 | Threat | Mitigation |
 |--------|-----------|
 | Secret leaked into reasoning record | Mandatory masking pipeline, no bypass |
-| .g4a/ files pushed to public repo | Secrets already masked before write. Binary format prevents casual reading. |
-| Reasoning reveals proprietary logic | Same as pushing source code - .g4a/ visibility matches repo visibility |
+| Git notes pushed to public repo | Secrets already masked before write. Binary CBOR format prevents casual reading. Notes are not visible in GitHub web UI. |
+| Reasoning reveals proprietary logic | Same as pushing source code - reasoning notes visibility matches repo visibility |
 | Code sent to external API | POC makes zero network calls (local transcript parsing only). Future inference adapters will require explicit opt-in. |
-| Malicious .g4a/ file in cloned repo | CBOR deserialization with strict mode, size limits, no code execution |
+| Malicious CBOR payload in git notes | CBOR deserialization with strict mode, size limits, no code execution |
 | Hook script injection | Hook is a static shell script, no dynamic content from .g4a/ files |
 | Denial of service via large transcript | Transcript parsing has a 50 MB size limit, timeout of 30 seconds |
 
@@ -1723,10 +2311,10 @@ Secret masking pipeline (4 stages)
 CBOR serialization (structured, typed)
     |
     v
-zstd compression (binary, not human-readable)
+CBOR binary format (not human-readable in raw form)
     |
     v
-Written to .g4a/ (git-tracked, binary-diffed)
+Written to git notes (never touches working tree)
 ```
 
 **Key invariant:** Raw reasoning text NEVER exists on disk. It exists only in memory between capture and masking. If the process crashes during capture, nothing is written. There is no temp file, no log, no cache of unmasked content.
@@ -1771,7 +2359,7 @@ def safe_deserialize(data: bytes) -> dict:
 
 Instead of dropping failed captures silently, g4a writes them to a retry queue. The next successful capture run picks up pending retries automatically. No user action needed.
 
-**Retry queue file:** `.g4a/pending.json`
+**Retry queue file:** `.git/g4a/pending.json`
 
 ```json
 [
@@ -1968,7 +2556,7 @@ $ g4a status
 
 ### 14.5 Error log
 
-`.g4a/errors.log` captures all background processing errors for debugging:
+`.git/g4a/errors.log` captures all background processing errors. This file is local-only (inside `.git/`, never committed or pushed) so it cannot leak PII to the remote:
 
 ```
 2026-03-22T10:15:03Z ERROR capture stage=parse commit=a1b2c3d
@@ -2068,7 +2656,7 @@ License:      CC-BY-4.0
 pip install g4a
 ```
 
-Single command. No extras, no optional dependencies for core functionality. The `zstandard` package includes pre-built wheels for all major platforms (macOS, Linux, Windows, x86_64, ARM64), so no C compiler is needed.
+Single command. No extras, no optional dependencies for core functionality. `cbor2` includes pre-built wheels for all major platforms. No C compiler needed. No zstd dependency - git handles compression natively.
 
 ### 16.2 Homebrew
 
@@ -2082,7 +2670,7 @@ Ships as a day-one installation option alongside pip. The Homebrew formula:
 - Once adoption grows, submit to homebrew-core for `brew install g4a` directly
 - The formula installs the same Python package under the hood via a virtualenv managed by Homebrew
 - Bundles Python 3.12+ as a dependency so users don't need to manage Python themselves
-- Pins the `zstandard` and `cbor2` C extensions to the Homebrew-compiled versions for native performance
+- Pins the `cbor2` C extension to the Homebrew-compiled version for native performance
 
 **Homebrew formula (`Formula/g4a.rb`):**
 
@@ -2100,11 +2688,6 @@ class G4a < Formula
 
   resource "cbor2" do
     url "https://files.pythonhosted.org/packages/source/c/cbor2/cbor2-5.6.5.tar.gz"
-    sha256 "TBD"
-  end
-
-  resource "zstandard" do
-    url "https://files.pythonhosted.org/packages/source/z/zstandard/zstandard-0.23.0.tar.gz"
     sha256 "TBD"
   end
 
@@ -2152,6 +2735,12 @@ g4a/security/patterns/  Secret pattern database
 ## 17. Future extensions
 
 Not in the POC, but designed to be additive:
+
+### 17.0 Schema migration
+
+Schema evolution is **additive only** - new fields are added, old fields are never removed or renamed. Old readers ignore unknown fields. There is no migration needed when reading old records with a new version of g4a.
+
+If a future version needs to restructure records (breaking change), `g4a migrate` will read old records, transform them, and write new records. This is a manual command, never automatic. The old schema version in the record header tells the reader which parser to use.
 
 ### 17.1 Phase 2: GitHub/GitLab integration
 
@@ -2206,7 +2795,7 @@ Environment variables (never committed):
 
 ```
 G4A_DISABLE          Set to "1" to temporarily disable capture
-G4A_DEBUG            Set to "1" for verbose logging to .g4a/errors.log
+G4A_DEBUG            Set to "1" for verbose logging to .git/g4a/errors.log
 ```
 
 Reserved for future adapters (not used in POC):
@@ -2219,36 +2808,71 @@ G4A_MODEL            Model for inference (post-POC)
 
 ---
 
-## Appendix B: Post-commit hook script
+## Appendix B: Hook scripts
+
+### B.1 Post-commit hook (`.git/hooks/post-commit`)
 
 ```bash
 #!/bin/sh
 # g4a reasoning capture hook
-# This hook returns immediately. All work happens in the background.
+# Returns immediately. All work happens in a background process.
+# Reasoning is stored as git notes, never touching the working tree.
 
-# Skip if g4a is disabled
+# Skip if g4a is disabled (useful during mass rebase)
 [ "$G4A_DISABLE" = "1" ] && exit 0
 
-# Get the commit SHA
+# Get the commit SHA and repo root
 SHA=$(git rev-parse HEAD 2>/dev/null) || exit 0
-
-# Get the repo root
 REPO=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 
 # Check g4a is initialized
-[ -d "$REPO/.g4a" ] || exit 0
+[ -f "$REPO/.g4a/config.json" ] || exit 0
 
 # Fork to background and return immediately
-# The background process captures reasoning and writes to .g4a/
 (
-  # Detach from terminal
   exec </dev/null >/dev/null 2>/dev/null
 
-  # Run capture in background
-  python3 -m g4a capture "$SHA" --repo "$REPO" 2>> "$REPO/.g4a/errors.log" || true
+  # Acquire lock (serializes concurrent captures)
+  python3 -m g4a capture "$SHA" --repo "$REPO" \
+    2>> "$REPO/.git/g4a/errors.log" || true
 ) &
 
 # Return immediately - never block the commit
+exit 0
+```
+
+**Hook integration with existing hooks:** If a post-commit hook already exists, `g4a init` appends the g4a block (wrapped in a comment marker) to the end. The existing hook runs first, then g4a. g4a always exits 0 regardless of errors, so it never stops the hook chain.
+
+### B.2 Post-rewrite hook (`.git/hooks/post-rewrite`)
+
+```bash
+#!/bin/sh
+# g4a note remapping hook
+# Fires after git commit --amend and git rebase
+# Remaps reasoning notes from old SHAs to new SHAs
+
+[ "$G4A_DISABLE" = "1" ] && exit 0
+
+REPO=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+[ -f "$REPO/.g4a/config.json" ] || exit 0
+
+while read old_sha new_sha _rest; do
+  # Remap commit record note
+  if git notes --ref=g4a-commits show "$old_sha" >/dev/null 2>&1; then
+    git notes --ref=g4a-commits copy "$old_sha" "$new_sha" 2>/dev/null
+    git notes --ref=g4a-commits remove "$old_sha" 2>/dev/null
+  fi
+
+  # Remap session note if this SHA is a session anchor
+  if git notes --ref=g4a-sessions show "$old_sha" >/dev/null 2>&1; then
+    git notes --ref=g4a-sessions copy "$old_sha" "$new_sha" 2>/dev/null
+    git notes --ref=g4a-sessions remove "$old_sha" 2>/dev/null
+  fi
+done
+
+# Rebuild local index (anchor SHAs changed)
+python3 -m g4a reindex --quiet 2>/dev/null &
+
 exit 0
 ```
 
@@ -2256,7 +2880,7 @@ exit 0
 
 ## Appendix C: Record examples (CBOR, shown as JSON)
 
-### C.1 Commit record (`.g4a/commits/a1b2c3d.g4a`)
+### C.1 Commit record (git note on commit a1b2c3d, ref: g4a-commits)
 
 ```json
 {
@@ -2268,6 +2892,7 @@ exit 0
   "contributing_sessions": [
     {
       "session_id": "542e0ff9",
+      "anchor_sha": "a1b2c3d4e5f6",
       "agent": "claude-code",
       "msg_start": 0,
       "msg_end": 120,
@@ -2340,7 +2965,7 @@ exit 0
 }
 ```
 
-### C.2 Multi-agent commit record (2 agents contributed)
+### C.2 Multi-agent commit record (git note, 2 agents contributed)
 
 ```json
 {
@@ -2352,6 +2977,7 @@ exit 0
   "contributing_sessions": [
     {
       "session_id": "542e0ff9",
+      "anchor_sha": "a1b2c3d4e5f6",
       "agent": "claude-code",
       "msg_start": 121,
       "msg_end": 147,
@@ -2359,6 +2985,7 @@ exit 0
     },
     {
       "session_id": "b2b35939",
+      "anchor_sha": "m3n4o5p6q7r8",
       "agent": "claude-code",
       "msg_start": 0,
       "msg_end": 12,
@@ -2407,7 +3034,7 @@ exit 0
 }
 ```
 
-### C.4 Session trace (`.g4a/sessions/542e0ff9.g4a`, abbreviated)
+### C.4 Session trace (git note on commit a1b2c3d, ref: g4a-sessions, abbreviated)
 
 ```json
 {
