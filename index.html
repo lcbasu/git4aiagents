@@ -4,22 +4,40 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>g4a - the reasoning layer for AI-written code</title>
-<meta name="description" content="Git stores what changed. The reasoning behind it is lost. g4a captures it. Add it to your existing project. Unlock 10x for both humans and AI agents.">
-<meta name="keywords" content="git AI agents, AI code review, agent reasoning, version control AI, agentic coding, developer tools, git4aiagents, Claude Code, AI code trust, LLM agents">
-<meta name="author" content="Lokesh Basu">
-<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
-<meta name="theme-color" content="#0a0a0a">
-<link rel="canonical" href="https://www.git4aiagents.com">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="apple-touch-icon" href="logo.svg">
+<link rel="canonical" href="https://www.git4aiagents.com/">
+<link rel="alternate" hreflang="en" href="https://www.git4aiagents.com/">
+<link rel="alternate" type="text/plain" href="https://www.git4aiagents.com/llms.txt" title="LLM-readable summary">
+<link rel="alternate" type="text/plain" href="https://www.git4aiagents.com/llms-full.txt" title="LLM-readable full content">
 
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://www.git4aiagents.com">
+<!-- General Meta -->
+<meta name="description" content="Git stores what changed. The reasoning behind it is lost. g4a captures it. Add it to your existing project. Unlock 10x for both humans and AI agents.">
+<meta name="keywords" content="git AI agents, AI code review, agent reasoning, version control AI, agentic coding, developer tools, git4aiagents, g4a, Claude Code, AI code trust, LLM agents, autonomous coding, code review bottleneck, multi-agent coordination, semantic version control">
+<meta name="author" content="Lokesh Basu">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<meta name="theme-color" content="#0a0a0a">
+
+<!-- Open Graph -->
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://www.git4aiagents.com/">
 <meta property="og:title" content="g4a - the reasoning layer for AI-written code">
 <meta property="og:description" content="Git stores what changed. The reasoning behind it is lost. g4a captures it. Unlock 10x for humans and AI agents.">
 <meta property="og:image" content="https://www.git4aiagents.com/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:site_name" content="g4a">
+<meta property="article:author" content="https://twitter.com/lcbasu">
+<meta property="article:published_time" content="2026-03-01">
+<meta property="article:modified_time" content="2026-03-22">
+<meta property="article:tag" content="version control">
+<meta property="article:tag" content="AI agents">
+<meta property="article:tag" content="developer tools">
+<meta property="article:tag" content="Git">
+<meta property="article:tag" content="agentic coding">
+<meta property="article:tag" content="AI code review">
 
+<!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@lcbasu">
 <meta name="twitter:creator" content="@lcbasu">
@@ -27,21 +45,140 @@
 <meta name="twitter:description" content="Git stores what changed. The reasoning behind it is lost. g4a captures it.">
 <meta name="twitter:image" content="https://www.git4aiagents.com/og-image.png">
 
+<!-- JSON-LD: WebSite -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
+  "@type": "WebSite",
   "name": "g4a",
-  "description": "The reasoning layer for AI-written code. Git stores what changed. g4a stores why.",
   "url": "https://www.git4aiagents.com",
-  "applicationCategory": "DeveloperApplication",
-  "operatingSystem": "macOS, Linux, Windows",
+  "description": "The reasoning layer for AI-written code. Git stores what changed. g4a stores why.",
+  "author": {
+    "@type": "Person",
+    "name": "Lokesh Basu",
+    "url": "https://twitter.com/lcbasu"
+  }
+}
+</script>
+
+<!-- JSON-LD: TechArticle -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "g4a - the reasoning layer for AI-written code",
+  "description": "Git stores what changed. The reasoning behind it is lost. g4a captures it. Add it to your existing project. Unlock 10x for both humans and AI agents.",
   "author": {
     "@type": "Person",
     "name": "Lokesh Basu",
     "url": "https://twitter.com/lcbasu"
   },
+  "datePublished": "2026-03-01",
+  "dateModified": "2026-03-22",
+  "publisher": {
+    "@type": "Organization",
+    "name": "g4a",
+    "url": "https://www.git4aiagents.com"
+  },
+  "mainEntityOfPage": "https://www.git4aiagents.com/",
+  "keywords": ["version control", "AI agents", "Git", "developer tools", "agentic coding", "code review", "agent reasoning"],
+  "url": "https://www.git4aiagents.com/",
+  "image": "https://www.git4aiagents.com/og-image.png",
+  "inLanguage": "en",
   "license": "https://creativecommons.org/licenses/by/4.0/"
+}
+</script>
+
+<!-- JSON-LD: FAQPage -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is g4a (git4aiagents)?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "g4a is the reasoning layer for AI-written code. It captures the thinking that AI coding agents produce - intent, confidence scores, alternatives considered, files explored, risk assessments - and stores it alongside code in git. Without g4a, all agent reasoning is discarded at commit time."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the reasoning evaporation problem in AI coding?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "When an AI agent writes code, its chain of thought - what it read, what it intended, what alternatives it considered, how confident it was - is discarded the moment the code is committed. Git stores the diff and a commit message. The thinking is gone forever. This makes agent code harder to trust, review, and debug. Review is 3.6x slower for AI code. 46% of developers actively distrust AI output."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does g4a help with code review?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Instead of reverse-engineering intent from diffs, reviewers read the agent's actual reasoning: intent, confidence, alternatives, what was tested, what was flagged as risky. A 25-minute review becomes 3 minutes with higher confidence."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which AI coding agents does g4a support?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "g4a works with all AI coding agents. Claude Code has the deepest integration via direct transcript parsing. Cursor, Codex, Copilot, Windsurf, and Aider are supported through a git hook fallback. Custom agents and frameworks like LangChain and CrewAI work through the same agent-agnostic schema."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does g4a store reasoning data?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "g4a stores reasoning in a .g4a/ directory inside your repo. No external server, no account, no hosting. One file per commit, one file per session. CBOR + zstd compression. Secrets are automatically masked before data hits disk. Roughly 10-50 KB per commit. Clone the repo, get the reasoning."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does g4a help AI agents work better?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Agents read past reasoning from .g4a/ and understand WHY code looks the way it does. They stop duplicating work, coordinate through shared context, and avoid accidentally reverting deliberate choices. The codebase accumulates institutional memory that makes every future agent smarter."
+      }
+    }
+  ]
+}
+</script>
+
+<!-- JSON-LD: SoftwareSourceCode -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "g4a",
+  "description": "The reasoning layer for AI-written code. Captures agent intent, confidence, alternatives, and risk assessments alongside code in git.",
+  "codeRepository": "https://github.com/lcbasu/git4aiagents",
+  "programmingLanguage": "Python",
+  "author": {
+    "@type": "Person",
+    "name": "Lokesh Basu",
+    "url": "https://twitter.com/lcbasu"
+  },
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "url": "https://www.git4aiagents.com/"
+}
+</script>
+
+<!-- JSON-LD: BreadcrumbList -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "g4a",
+      "item": "https://www.git4aiagents.com/"
+    }
+  ]
 }
 </script>
 
@@ -368,6 +505,22 @@
   .footer a { color: var(--accent); text-decoration: none; }
   .footer a:hover { text-decoration: underline; }
 
+  /* --- Blinking cursor --- */
+  .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: var(--accent);
+    margin-left: 4px;
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
   @media (max-width: 640px) {
     .container { padding: 40px 16px 80px; }
     .header .tagline { font-size: 22px; }
@@ -382,7 +535,7 @@
 
   <header class="header">
     <h1>g4a</h1>
-    <div class="tagline">the reasoning layer for AI-written code</div>
+    <div class="tagline">the reasoning layer for AI-written code<span class="cursor"></span></div>
     <p class="sub">Git stores what changed. The reasoning behind it is lost. g4a captures it.</p>
     <p class="sub">Add it to your existing project. Change nothing. Unlock 10x for both humans and AI agents.</p>
   </header>

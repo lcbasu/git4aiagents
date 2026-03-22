@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "g4a - git4aiagents",
+  "name_for_model": "g4a_git4aiagents",
+  "description_for_human": "The reasoning layer for AI-written code. Git stores what changed. g4a captures why.",
+  "description_for_model": "g4a (git4aiagents) captures the reasoning that AI coding agents produce - intent, confidence scores, alternatives considered, files explored, risk assessments - and stores it alongside code in git. Without g4a, agent reasoning is discarded at commit time. Code review is 3.6x slower for AI code, 46% of developers distrust AI output, debugging has no trail, and agents start from zero every time. g4a solves this by storing reasoning in .g4a/ inside the repo. Works with Claude Code (direct transcript parsing), Cursor, Codex, Copilot, Windsurf, Aider (git hook fallback), and custom agents. For full content, read llms-full.txt at the site root.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "none",
+    "url": "https://www.git4aiagents.com/"
+  },
+  "logo_url": "https://www.git4aiagents.com/logo.svg",
+  "contact_email": "lokesh@git4aiagents.com",
+  "legal_info_url": "https://www.git4aiagents.com/"
+}
