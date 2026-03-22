@@ -90,7 +90,7 @@ g4a captures the reasoning that AI agents already produce and stores it alongsid
 
 **How it works:**
 
-1. You install g4a once: `pip install g4a && g4a init`
+1. You install g4a once: `pip install g4a` or `brew install lcbasu/g4a/g4a`, then `g4a init`
 2. You use your AI coding agent normally - nothing changes
 3. g4a silently captures the agent's reasoning as it works
 4. The reasoning is stored in `.g4a/` inside your repo
@@ -135,7 +135,12 @@ Clone the repo, you get the reasoning. Fork it, reasoning forks too. Delete `.g4
 ## Get started
 
 ```
+# install (pick one)
 pip install g4a
+# or
+brew install lcbasu/g4a/g4a
+
+# then
 cd your-project
 g4a init
 # use your AI coding agent normally

@@ -65,7 +65,7 @@ WITH g4a: The reasoning record shows the agent switched from float to Decimal be
 
 g4a captures the reasoning that AI agents already produce and stores it alongside the code in git.
 
-1. pip install g4a && g4a init
+1. pip install g4a (or brew install lcbasu/g4a/g4a), then g4a init
 2. Use your AI coding agent normally - nothing changes
 3. g4a silently captures reasoning in the background
 4. Reasoning stored in .g4a/ inside your repo

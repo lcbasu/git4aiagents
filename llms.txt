@@ -31,7 +31,7 @@ Every AI coding agent thinks deeply while writing code - reading files, consider
 
 ## The solution
 
-g4a captures reasoning from AI agent sessions and stores it in .g4a/ inside your repo. No server, no account, no hosting. Clone the repo, get the reasoning. Works with all AI coding agents - launching first with Claude Code (direct transcript parsing), with git hook fallback for all others.
+g4a captures reasoning from AI agent sessions and stores it in .g4a/ inside your repo. No server, no account, no hosting. Clone the repo, get the reasoning. Install with pip install g4a or brew install lcbasu/g4a/g4a, then g4a init. Works with all AI coding agents - launching first with Claude Code (direct transcript parsing), with git hook fallback for all others.
 
 Full content: https://www.git4aiagents.com/llms-full.txt
 Website: https://www.git4aiagents.com/
