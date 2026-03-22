@@ -4,6 +4,34 @@ Git stores what changed. The reasoning behind it is lost. g4a captures it.
 
 Add g4a to your existing project. Change nothing about your workflow. Unlock 10x for both humans and AI agents.
 
+## Install
+
+**Step 1** - install g4a (one time, global):
+```bash
+brew install lcbasu/g4a/g4a
+```
+
+**Step 2** - initialize in each repo:
+```bash
+cd your-project && g4a init
+```
+
+That's it. Use your AI agent normally, make commits. Reasoning is captured automatically.
+
+## How to use
+
+- `g4a log` - see the full reasoning chain for every commit. Every file the agent read, every approach it tried, every dead end, every decision.
+- `g4a why "auth"` - search the decision trail by file, function, or keyword. Try `g4a why "database migration"` or `g4a why payment.py`.
+- `g4a log --short` - compact summary when you just need the highlights.
+
+## Works for everyone, forever
+
+Everything is stored in git. No external server. No database. No account. No hosting.
+
+Any developer on any system pulls the latest commits and gets the full reasoning history. Any future AI agent reads it before modifying shared code. It works through GitHub, GitLab, Bitbucket, or any internal git host at Google, Amazon, or anywhere else that runs git.
+
+The reasoning travels with the code. Fork the repo, the reasoning forks too. Clone it in 5 years, the reasoning is still there. **Zero external dependencies. Everything lives in git.**
+
 ---
 
 ## The problem
