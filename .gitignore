@@ -19,3 +19,9 @@ dist/
 build/
 *.o
 *.exe
+*.egg-info/
+
+# Python
+.venv/
+__pycache__/
+*.pyc

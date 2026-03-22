@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "g4a"
+version = "0.1.0"
+description = "The reasoning layer for AI-written code"
+requires-python = ">=3.9"
+license = {text = "CC-BY-4.0"}
+authors = [{name = "Lokesh Basu", email = "lokesh@git4aiagents.com"}]
+dependencies = [
+    "click>=8.0",
+]
+
+[project.scripts]
+g4a = "g4a.cli.main:cli"
+
+[tool.setuptools.packages.find]
+include = ["g4a*"]
