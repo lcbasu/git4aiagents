@@ -22,23 +22,24 @@ def relative_time(iso_timestamp):
             return "just now"
         if seconds < 3600:
             m = seconds // 60
-            return f"{m} minute{'s' if m != 1 else ''} ago"
+            return f"{m} min ago"
         if seconds < 86400:
             h = seconds // 3600
-            return f"{h} hour{'s' if h != 1 else ''} ago"
+            return f"{h}h ago"
         d = seconds // 86400
         if d == 1:
             return "yesterday"
         if d < 30:
-            return f"{d} days ago"
-        return f"{d // 30} month{'s' if d // 30 != 1 else ''} ago"
+            return f"{d}d ago"
+        return f"{d // 30}mo ago"
     except Exception:
         return iso_timestamp
 
 
 @click.command("log")
 @click.option("--limit", "-n", default=10, help="Number of commits to show")
-def log_cmd(limit):
+@click.option("--full", is_flag=True, help="Show full reasoning chain")
+def log_cmd(limit, full):
     """Show recent commits with reasoning summaries."""
     try:
         root = get_repo_root()
@@ -59,37 +60,108 @@ def log_cmd(limit):
         agent = record.get("agent")
         message = record.get("commit_message", "")
         intent = record.get("intent")
+        exploration = record.get("exploration")
         total = record.get("total_events", 0)
-        thinking = record.get("thinking_blocks", 0)
         files = record.get("files_changed", [])
         files_read = record.get("files_read", [])
+        files_written = record.get("files_written", [])
         tools = record.get("tools_used", [])
+        user_prompts = record.get("user_prompts", [])
+        commands = record.get("commands_run", [])
+        chain = record.get("reasoning_chain", [])
 
-        # Header line
+        # Header
         if source == "captured" and agent:
-            header = f"  {sha}  {ts}  {agent} ({total} events, {thinking} thinking)"
+            click.echo(f"\n  {sha}  {ts}  {agent} ({total} events)")
         else:
-            header = f"  {sha}  {ts}  {source}"
-
-        click.echo(header)
+            click.echo(f"\n  {sha}  {ts}  {source}")
         click.echo(f"  {message}")
 
-        if intent:
-            # Truncate intent for display
-            display_intent = intent[:200].replace("\n", " ")
-            click.echo(f"  Intent: {display_intent}")
-
-        info_parts = []
-        if files:
-            info_parts.append(f"{len(files)} files changed")
-        if files_read:
-            info_parts.append(f"{len(files_read)} files read")
-        if tools:
-            info_parts.append(f"Tools: {', '.join(tools)}")
-        if info_parts:
-            click.echo(f"  {' | '.join(info_parts)}")
-
         if source == "metadata-only":
-            click.echo("  (no agent reasoning captured)")
+            if files:
+                click.echo(f"  {len(files)} files changed (no agent reasoning captured)")
+            click.echo("  " + "-" * 50)
+            continue
+
+        # User prompts
+        if user_prompts:
+            click.echo(f"  User: \"{user_prompts[0][:150]}\"")
+            if len(user_prompts) > 1:
+                click.echo(f"        (+{len(user_prompts) - 1} more prompts)")
+
+        # Intent / first response
+        if intent:
+            for line in intent.split("\n")[:3]:
+                click.echo(f"  {line[:150]}")
+
+        # Exploration
+        if exploration:
+            click.echo(f"  {exploration}")
+
+        # Files
+        if files_written:
+            click.echo(f"  Wrote: {', '.join(files_written[:8])}" +
+                       (f" (+{len(files_written) - 8} more)" if len(files_written) > 8 else ""))
+
+        # Commands
+        if commands:
+            click.echo(f"  Commands: {len(commands)} run")
+            for cmd in commands[:3]:
+                click.echo(f"    $ {cmd[:120]}")
+            if len(commands) > 3:
+                click.echo(f"    ... +{len(commands) - 3} more")
+
+        # Tools summary
+        if tools:
+            click.echo(f"  Tools: {', '.join(tools)}")
+
+        # Full reasoning chain
+        if full and chain:
+            click.echo("")
+            click.echo("  Reasoning chain:")
+            for i, step in enumerate(chain):
+                stype = step.get("step", "?")
+                if stype == "user_prompt":
+                    click.echo(f"    [{i}] USER: \"{step.get('content', '')[:120]}\"")
+                elif stype == "response":
+                    text = step.get('content', '')
+                    # Show more of reasoning text - it's the most valuable part
+                    lines = text.split('\n')
+                    click.echo(f"    [{i}] AGENT: {lines[0][:150]}")
+                    for extra_line in lines[1:6]:
+                        if extra_line.strip():
+                            click.echo(f"           {extra_line[:150]}")
+                    if len(lines) > 6:
+                        click.echo(f"           ... ({len(lines) - 6} more lines)")
+                elif stype == "thinking":
+                    click.echo(f"    [{i}] THINK: {step.get('content', '')[:120]}")
+                elif stype == "read":
+                    click.echo(f"    [{i}] READ: {step.get('file', '')}")
+                elif stype == "write":
+                    click.echo(f"    [{i}] WRITE: {step.get('file', '')}")
+                elif stype == "command":
+                    desc = step.get("description") or step.get("command", "")
+                    click.echo(f"    [{i}] RUN: {desc[:120]}")
+                elif stype == "search":
+                    click.echo(f"    [{i}] {step.get('tool', 'SEARCH')}: {step.get('pattern', '')[:80]}")
+                elif stype == "agent":
+                    click.echo(f"    [{i}] AGENT-SPAWN: {step.get('description', '')[:80]}")
+                elif stype == "task":
+                    click.echo(f"    [{i}] {step.get('tool', 'TASK')}: {step.get('subject', '')} {step.get('status', '')}")
+                elif stype == "result":
+                    text = step.get('content', '')
+                    lines = text.split('\n')
+                    click.echo(f"    [{i}] RESULT: {lines[0][:150]}")
+                    for extra_line in lines[1:4]:
+                        if extra_line.strip():
+                            click.echo(f"             {extra_line[:150]}")
+                    if len(lines) > 4:
+                        click.echo(f"             ... ({len(lines) - 4} more lines)")
+                elif stype == "error":
+                    click.echo(f"    [{i}] ERROR: {step.get('content', '')[:120]}")
+                elif stype == "truncated":
+                    click.echo(f"    ... {step.get('skipped', 0)} steps skipped ...")
+                else:
+                    click.echo(f"    [{i}] {stype}: {step.get('tool', '')}")
 
         click.echo("  " + "-" * 50)
