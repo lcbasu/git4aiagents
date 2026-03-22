@@ -210,7 +210,8 @@ g4a/
       report.html
       commit.html
   hooks/
-    post-commit            # Shell script installed by g4a init
+    post-commit            # Capture hook, installed by g4a init
+    post-rewrite           # Rebase/amend SHA remapping hook
 ```
 
 ### 3.2 Dependency budget
@@ -940,7 +941,10 @@ def ensure_index_fresh():
             note = git_notes_show(client_ref, sha)
             if note:
                 record = deserialize(note)
-                add_to_index_with_merge(record)  # Replaces existing if higher quality
+                # Merge rules (Section 6.3): if the index already has a record
+                # for this commit_sha, keep the one with higher source quality
+                # (captured > partial > metadata-only). Same quality = keep first.
+                add_to_index_with_merge(record)
 
     write_index_watermark(current_tree)
 ```
@@ -1201,7 +1205,7 @@ def repo_to_slug(repo_root: str) -> str:
 
 ### 7.4 Agent detection and multi-session capture (POC)
 
-The capture process finds **all** transcripts modified since the previous commit, not just the one containing the commit SHA. This supports the multi-agent scenario (two Claude Code windows working concurrently):
+The capture process finds **all** transcripts modified since the last capture (watermark), not just the one containing the commit SHA. This supports the multi-agent scenario (two Claude Code windows working concurrently):
 
 ```python
 def find_all_contributing_transcripts(commit_sha: str, repo_root: str) -> List[Path]:
@@ -1935,9 +1939,8 @@ def mask_key_value_pairs(text: str) -> str:
     """
     for key in SENSITIVE_KEYS:
         # Match: PASSWORD=foo, password: "foo", "password": "foo"
-        # Bounded: stops at quotes, commas, braces, whitespace
-        # Excluded chars: " ' whitespace , } ]
-        pattern = rf'(?i)({key})\s*[=:]\s*["\']?([^"\x27\s,\}}\]]+)["\']?'
+        # Bounded: stops at quotes, commas, braces, brackets, whitespace
+        pattern = rf'(?i)({key})\s*[=:]\s*["\']?([^"\x27\s,\}\]]+)["\']?'
         text = re.sub(pattern, rf'\1=[REDACTED:CONTEXT:{key.upper()}]', text)
     return text
 ```
@@ -1970,6 +1973,8 @@ def sanitize_paths(text: str, repo_root: str) -> str:
         return raw  # Not under repo or home - leave as-is
 
     # Match absolute paths (Unix and Windows)
+    # Known limitation: does not match paths with spaces or Unicode characters.
+    # Paths with spaces are uncommon in codebases; can be extended in POC if needed.
     text = re.sub(r'(?:/[\w./-]+|[A-Z]:\\[\w.\\-]+)', replace_path, text)
     return text
 ```
@@ -2200,7 +2205,6 @@ $ g4a uninit
 ```
 
 Note: `g4a uninit` reads `.git/g4a/client_id` and prints the exact commands with the real client ID **before** deleting `.git/g4a/`. This ensures the user can copy the commands even after uninit completes.
-```
 
 **Record lifecycle (metadata-only to captured):**
 
@@ -2456,7 +2460,7 @@ Agent reasoning (untrusted, may contain secrets)
 [In-memory only - never touches disk in raw form]
     |
     v
-Secret masking pipeline (4 stages)
+Secret masking pipeline (allowlist + 4 stages)
     |
     v
 [Verified clean - all patterns checked]
@@ -2594,17 +2598,34 @@ def capture(commit_sha: str) -> CommitRecord:
     record.commit_message = git_commit_message(commit_sha)
 
     # Stage 1: Find contributing sessions
+    # Step 1a: Find the PRIMARY transcript (contains this commit's SHA)
+    #          Uses settle period (up to 2s polling) for slow flush
+    # Step 1b: Find ALL transcripts modified since watermark
+    #          (catches parallel agent sessions that didn't commit)
     try:
-        session_paths = find_all_contributing_transcripts(commit_sha, repo_root)
+        primary = find_transcript_with_settle(commit_sha, repo_root)
+        if primary:
+            # Primary found: also grab parallel sessions modified since watermark
+            all_transcripts = find_all_contributing_transcripts(commit_sha, repo_root)
+            session_paths = list(set([primary] + all_transcripts))
+        else:
+            # No transcript contains this commit's SHA.
+            # Do NOT use all_transcripts - they may be unrelated sessions
+            # that didn't produce this commit.
+            session_paths = []
     except Exception as e:
         raise CaptureError(f"session lookup: {e}")
 
     if not session_paths:
-        # No agent sessions found - write metadata-only record
+        # No transcripts found at all
         record.source = "metadata-only"
         record.contributing_sessions = []
         record.total_steps = 0
         record.total_agent_sessions = 0
+        # Decide: slow flush or human commit?
+        if should_retry_capture(repo_root):
+            add_to_retry_queue(commit_sha, error="no transcript after settle",
+                               stage="capture")
         return mask_and_write(record)
 
     # Stage 2: Capture sessions and build commit record
@@ -2649,7 +2670,10 @@ def capture(commit_sha: str) -> CommitRecord:
         record.total_thinking_blocks = reasoning.total_thinking_blocks
         record.total_agent_sessions = len(record.contributing_sessions)
         record.agents = list(set(s.agent for s in record.contributing_sessions))
-        record.primary_agent = detect_committing_agent(commit_sha)
+        # primary_agent: the agent whose transcript contained the commit SHA
+        # (i.e., the agent that actually ran "git commit"). This is the
+        # agent from the primary transcript found in Step 1a.
+        record.primary_agent = session_paths[0].stem if primary else None
         record.source = "captured"
 
     except Exception as e:
@@ -2748,9 +2772,10 @@ Claude Code transcript found, parse fails
   -> Full capture queued for retry (up to 3 attempts)
   -> If retry succeeds, metadata-only record is replaced with full record
 
-No Claude Code transcript found
+No Claude Code transcript found (primary is None after settle)
   -> Metadata-only record (commit SHA, files changed, message)
-  -> No retry needed (nothing to retry against)
+  -> If Claude recently active (slow flush): queue retry
+  -> If Claude NOT recently active (human commit): no retry, no error
 
 Masking pipeline fails
   -> Record discarded entirely (security-critical)
@@ -2791,7 +2816,7 @@ Everything fails including error logging
 
 - **Secret corpus:** Maintain a test corpus of 500+ real-world secret patterns. Every CI run verifies 100% detection rate.
 - **Fuzzing:** Fuzz the CBOR deserializer with random bytes, verify no crashes or code execution
-- **Timing attack:** Verify masking pipeline runs in constant time (doesn't leak secret presence via timing)
+- **Timing:** Verify masking pipeline does not exhibit obviously input-dependent timing that would leak secret presence (e.g., no short-circuit on first match - pipeline always runs all stages on all content)
 
 ### 15.4 Performance benchmarks
 
