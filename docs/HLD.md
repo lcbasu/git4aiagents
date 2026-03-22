@@ -688,6 +688,8 @@ def find_contributing_sessions(repo_root: str) -> List[str]:
     return sessions  # Could be 0, 1, or many
 ```
 
+**Implementation note:** The actual capture flow (Section 14.3) uses two functions: `find_transcript_with_settle` (Section 7.2) to locate the primary transcript containing the commit SHA, and `find_all_contributing_transcripts` (Section 7.4) for parallel sessions. The conceptual model above maps to those concrete APIs.
+
 ### 5.5 Schema versioning
 
 The schema version is stored in every record. The `.g4a/schema.json` file in the repo defines the current schema. Older records are always readable - new fields are additive, never breaking. If a field is missing from an older record, queries treat it as `null`.
@@ -730,9 +732,13 @@ your-project/
                                    #   Shared across commits via session_id
 
     g4a/                           # LOCAL ONLY (never synced, never committed)
+      client_id                    #   Stable client identifier for namespaced notes
       index.db                     #   Search index (rebuilt lazily from notes)
+      last_capture_mtime           #   Monotonic watermark for transcript detection
       pending.json                 #   Retry queue
+      permanent_failures.json      #   Commits that exhausted retries
       errors.log                   #   Error log
+      capture.lock                 #   Concurrency lock for capture process
       cache/                       #   Deserialized record cache for faster repeated queries
 ```
 
@@ -873,7 +879,7 @@ while read old_sha new_sha _rest; do
 done
 
 # Rebuild local index (anchor SHAs may have changed)
-python3 -m g4a reindex --quiet 2>/dev/null &
+cd "$REPO" && python3 -m g4a reindex --quiet 2>/dev/null &
 ```
 
 This means reasoning **survives rebases, amends, and squashes** seamlessly. Both commit records and session traces are remapped. The local index is rebuilt in the background since anchor SHAs may have changed.
@@ -1471,7 +1477,7 @@ def synthesize_reasoning(session: SessionRecord,
     # Dead ends: approaches that were tried, produced code/tests, but
     # were then abandoned. Detected by finding Edit/Write tool calls
     # followed by reverts or different approaches
-    record.dead_ends = detect_dead_ends(all_tool_calls, all_thinking)
+    record.dead_ends = detect_dead_ends(messages)  # Needs full event sequence for order
 
     # Risks: from thinking + text
     record.risks = extract_risks(all_thinking + all_text)
@@ -1548,7 +1554,7 @@ def extract_risks(blocks: List[str]) -> List[Risk]:
     # Otherwise, hedging language ("not sure") -> 0.5, "might" -> 0.6, etc.
 ```
 
-**detect_dead_ends(tool_calls, thinking) -> List[str]:**
+**detect_dead_ends(events) -> List[str]:**
 
 ```python
 def detect_dead_ends(events: List[Event]) -> List[str]:
@@ -2106,20 +2112,20 @@ def rank(record: CommitRecord, query: str) -> float:
 ### 10.1 Command reference
 
 ```
-g4a init                           Initialize g4a in current repo
-g4a log [--limit N]                Show recent commits with step counts and agent info
-g4a log --timeline <commit>        Show full step-by-step trace between two commits
-g4a show <commit>                  Show diff + reasoning summary side by side
-g4a show <commit> --full           Show diff + full session trace for this commit
-g4a why <term>                     Decision trail for a file, function, or keyword
-g4a session <id>                   Browse full session: every prompt, dead end, correction
-g4a web [--port PORT]              Open visual report in browser
-g4a status                         Show g4a health: pending captures, index stats, session count
-g4a backfill [--since COMMIT]      Re-process past commits (e.g. after fixing a parse bug)
-g4a reindex                        Rebuild search index from git notes
-g4a config [key] [value]           Get/set configuration
+g4a init                                Initialize g4a in current repo
+g4a log [--limit N]                     Show recent commits with step counts and agent info
+g4a log --timeline <commit>             Show full step-by-step trace between two commits
+g4a show <commit>                       Show diff + reasoning summary side by side
+g4a show <commit> --full                Show diff + full session trace for this commit
+g4a why <term>                          Decision trail for a file, function, or keyword
+g4a session <id>                        Browse full session: every prompt, dead end, correction
+g4a web [--port PORT]                   Open visual report in browser
+g4a status                              Show g4a health: pending captures, index stats
+g4a backfill [--since COMMIT]           Re-process past commits
+g4a reindex                             Rebuild search index from git notes
+g4a config [key] [value]                Get/set configuration
 g4a export <commit> [--format json|md]  Export reasoning as JSON or Markdown
-g4a uninit                         Remove g4a hooks, notes config, and .g4a/ from repo
+g4a uninit                              Remove g4a hooks, notes config, and .g4a/ from repo
 ```
 
 ### 10.2 `g4a init` (the most important command)
@@ -2539,7 +2545,7 @@ def run_capture(commit_sha: str):
     try:
         # 1. Attempt capture for this commit
         record = capture(commit_sha)
-        write_record(record)
+        write_commit_record(record)
 
         # 2. After success, drain the retry queue
         drain_pending_retries()
@@ -2567,7 +2573,7 @@ def drain_pending_retries():
 
         try:
             record = capture(item["commit_sha"])
-            write_record(record)
+            write_commit_record(record)
             # Success - don't re-add to queue
         except Exception:
             item["retry_count"] += 1
@@ -2607,7 +2613,9 @@ def capture(commit_sha: str) -> CommitRecord:
         if primary:
             # Primary found: also grab parallel sessions modified since watermark
             all_transcripts = find_all_contributing_transcripts(commit_sha, repo_root)
-            session_paths = list(set([primary] + all_transcripts))
+            # Preserve order: primary first, then others (deduplicated)
+            seen = {primary}
+            session_paths = [primary] + [t for t in all_transcripts if t not in seen]
         else:
             # No transcript contains this commit's SHA.
             # Do NOT use all_transcripts - they may be unrelated sessions
@@ -2626,6 +2634,7 @@ def capture(commit_sha: str) -> CommitRecord:
         if should_retry_capture(repo_root):
             add_to_retry_queue(commit_sha, error="no transcript after settle",
                                stage="capture")
+        update_capture_watermark()  # Even metadata-only updates the watermark
         return mask_and_write(record)
 
     # Stage 2: Capture sessions and build commit record
@@ -2671,9 +2680,9 @@ def capture(commit_sha: str) -> CommitRecord:
         record.total_agent_sessions = len(record.contributing_sessions)
         record.agents = list(set(s.agent for s in record.contributing_sessions))
         # primary_agent: the agent whose transcript contained the commit SHA
-        # (i.e., the agent that actually ran "git commit"). This is the
-        # agent from the primary transcript found in Step 1a.
-        record.primary_agent = session_paths[0].stem if primary else None
+        record.primary_agent = (record.contributing_sessions[0].agent
+                                if record.contributing_sessions and primary
+                                else None)
         record.source = "captured"
 
     except Exception as e:
@@ -2699,6 +2708,11 @@ def capture(commit_sha: str) -> CommitRecord:
         write_commit_record(record)
     except Exception as e:
         raise CaptureError(f"write failed: {e}")
+
+    # Stage 5: Update watermark
+    # Written after every successful capture (full or metadata-only)
+    # so the next commit only scans transcripts modified after this point.
+    update_capture_watermark()  # Writes time.time() to .git/g4a/last_capture_mtime
 
     return record
 ```
@@ -3069,7 +3083,7 @@ while read old_sha new_sha _rest; do
 done
 
 # Rebuild local index (anchor SHAs may have changed)
-python3 -m g4a reindex --quiet 2>/dev/null &
+cd "$REPO" && python3 -m g4a reindex --quiet 2>/dev/null &
 
 exit 0
 ```
