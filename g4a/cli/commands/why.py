@@ -1,6 +1,6 @@
 import click
 
-from g4a.cli.commands.log import relative_time
+from g4a.cli.commands.log import relative_time, render_chain
 from g4a.git_utils import repo_root as get_repo_root
 from g4a.query.reader import load_all_records
 from g4a.query.search import search_records
@@ -8,8 +8,8 @@ from g4a.query.search import search_records
 
 @click.command()
 @click.argument("term")
-@click.option("--full", is_flag=True, help="Show full reasoning chain")
-def why(term, full):
+@click.option("--short", is_flag=True, help="Show compact summary only (no reasoning chain)")
+def why(term, short):
     """Show the decision trail for a file, function, or keyword."""
     try:
         root = get_repo_root()
@@ -50,11 +50,11 @@ def why(term, full):
         click.echo(f"  {message}")
 
         if user_prompts:
-            click.echo(f"  User: \"{user_prompts[0][:150]}\"")
+            click.echo(f"  User: \"{user_prompts[0][:200]}\"")
 
         if intent:
             for line in intent.split("\n")[:3]:
-                click.echo(f"  {line[:150]}")
+                click.echo(f"  {line[:200]}")
 
         if exploration:
             click.echo(f"  {exploration}")
@@ -76,51 +76,10 @@ def why(term, full):
         if tools:
             click.echo(f"  Tools: {', '.join(tools)}")
 
-        if full and chain:
+        # Full reasoning chain (default, unless --short)
+        if not short and chain:
             click.echo("")
             click.echo("  Reasoning chain:")
-            for i, step in enumerate(chain):
-                stype = step.get("step", "?")
-                if stype == "user_prompt":
-                    click.echo(f"    [{i}] USER: \"{step.get('content', '')[:120]}\"")
-                elif stype == "response":
-                    text = step.get('content', '')
-                    lines = text.split('\n')
-                    click.echo(f"    [{i}] AGENT: {lines[0][:150]}")
-                    for extra_line in lines[1:6]:
-                        if extra_line.strip():
-                            click.echo(f"           {extra_line[:150]}")
-                    if len(lines) > 6:
-                        click.echo(f"           ... ({len(lines) - 6} more lines)")
-                elif stype == "thinking":
-                    click.echo(f"    [{i}] THINK: {step.get('content', '')[:120]}")
-                elif stype == "read":
-                    click.echo(f"    [{i}] READ: {step.get('file', '')}")
-                elif stype == "write":
-                    click.echo(f"    [{i}] WRITE: {step.get('file', '')}")
-                elif stype == "command":
-                    desc = step.get("description") or step.get("command", "")
-                    click.echo(f"    [{i}] RUN: {desc[:120]}")
-                elif stype == "search":
-                    click.echo(f"    [{i}] {step.get('tool', 'SEARCH')}: {step.get('pattern', '')[:80]}")
-                elif stype == "agent":
-                    click.echo(f"    [{i}] AGENT-SPAWN: {step.get('description', '')[:80]}")
-                elif stype == "task":
-                    click.echo(f"    [{i}] {step.get('tool', 'TASK')}: {step.get('subject', '')} {step.get('status', '')}")
-                elif stype == "result":
-                    text = step.get('content', '')
-                    lines = text.split('\n')
-                    click.echo(f"    [{i}] RESULT: {lines[0][:150]}")
-                    for extra_line in lines[1:4]:
-                        if extra_line.strip():
-                            click.echo(f"             {extra_line[:150]}")
-                    if len(lines) > 4:
-                        click.echo(f"             ... ({len(lines) - 4} more lines)")
-                elif stype == "error":
-                    click.echo(f"    [{i}] ERROR: {step.get('content', '')[:120]}")
-                elif stype == "truncated":
-                    click.echo(f"    ... {step.get('skipped', 0)} steps skipped ...")
-                else:
-                    click.echo(f"    [{i}] {stype}: {step.get('tool', '')}")
+            render_chain(chain)
 
     click.echo("")
