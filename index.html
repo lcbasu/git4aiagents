@@ -3,625 +3,603 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>git4aiagents: Your AI Agents Are 1000x Capable. Git Caps Them at 2x. One Missing Layer Unblocks Everything.</title>
-<link rel="icon" type="image/svg+xml" href="logo.svg">
-<link rel="apple-touch-icon" href="logo.svg">
-<link rel="canonical" href="https://www.git4aiagents.com/">
-<link rel="alternate" hreflang="en" href="https://www.git4aiagents.com/">
+<title>g4a - the reasoning layer for AI-written code</title>
+<meta name="description" content="Git stores what changed. The reasoning behind it is lost. g4a captures it. Add it to your existing project. Unlock 10x for both humans and AI agents.">
+<meta name="keywords" content="git AI agents, AI code review, agent reasoning, version control AI, agentic coding, developer tools, git4aiagents, Claude Code, AI code trust, LLM agents">
+<meta name="author" content="Lokesh Basu">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="canonical" href="https://www.git4aiagents.com">
 
-<!-- Open Graph -->
-<meta property="og:type" content="article">
-<meta property="og:url" content="https://www.git4aiagents.com/">
-<meta property="og:title" content="Your AI Agents Are 1000x Capable. Git Caps Them at 2x. One Missing Layer Unblocks Everything.">
-<meta property="og:description" content="Six structural ceilings block the path from 2x to 1000x. They're stacked, multiplicative, and they all start with the one thing Git never stored: reasoning.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.git4aiagents.com">
+<meta property="og:title" content="g4a - the reasoning layer for AI-written code">
+<meta property="og:description" content="Git stores what changed. The reasoning behind it is lost. g4a captures it. Unlock 10x for humans and AI agents.">
 <meta property="og:image" content="https://www.git4aiagents.com/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:site_name" content="git4aiagents">
-<meta property="article:author" content="https://twitter.com/lcbasu">
-<meta property="article:published_time" content="2026-03-01">
-<meta property="article:modified_time" content="2026-03-21">
-<meta property="article:tag" content="version control">
-<meta property="article:tag" content="AI agents">
-<meta property="article:tag" content="developer tools">
-<meta property="article:tag" content="Git">
-<meta property="article:tag" content="agentic coding">
-<meta property="article:tag" content="AI code review">
+<meta property="og:site_name" content="g4a">
 
-<!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@lcbasu">
 <meta name="twitter:creator" content="@lcbasu">
-<meta name="twitter:title" content="Your AI Agents Are 1000x Capable. Git Caps Them at 2x. One Missing Layer Unblocks Everything.">
-<meta name="twitter:description" content="Six structural ceilings block the path from 2x to 1000x. They're stacked, multiplicative, and they all start with the one thing Git never stored: reasoning.">
+<meta name="twitter:title" content="g4a - the reasoning layer for AI-written code">
+<meta name="twitter:description" content="Git stores what changed. The reasoning behind it is lost. g4a captures it.">
 <meta name="twitter:image" content="https://www.git4aiagents.com/og-image.png">
 
-<!-- General Meta -->
-<meta name="description" content="AI agents are 1000x capable but Git caps them at 2x. Six structural ceilings - reasoning, semantic understanding, coordination, policies, trust, planning - block the path. They're stacked and multiplicative. One missing layer in Git unblocks them all. The 1000x unlock starts here.">
-<meta name="keywords" content="git AI agents, AI code review, agent reasoning, version control AI, agentic coding, semantic version control, developer tools, git4aiagents, Claude Code, AI code trust, LLM agents, autonomous coding, code review bottleneck, multi-agent coordination">
-<meta name="author" content="Lokesh Basu">
-<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-<meta name="theme-color" content="#0c0c0c">
-<link rel="alternate" type="text/plain" href="https://www.git4aiagents.com/llms.txt" title="LLM-readable summary">
-<link rel="alternate" type="text/plain" href="https://www.git4aiagents.com/llms-full.txt" title="LLM-readable full content">
-
-<!-- JSON-LD Structured Data: WebSite -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "git4aiagents",
+  "@type": "SoftwareApplication",
+  "name": "g4a",
+  "description": "The reasoning layer for AI-written code. Git stores what changed. g4a stores why.",
   "url": "https://www.git4aiagents.com",
-  "description": "AI agents are 1000x capable but Git caps them at 2x. Six structural ceilings block the path. One missing layer unblocks them all.",
-  "author": {
-    "@type": "Person",
-    "name": "Lokesh Basu",
-    "url": "https://twitter.com/lcbasu"
-  }
-}
-</script>
-
-<!-- JSON-LD Structured Data: Article -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "TechArticle",
-  "headline": "Your AI Agents Are 1000x Capable. Git Caps Them at 2x. One Missing Layer Unblocks Everything.",
-  "description": "Six structural ceilings block the path from 2x to 1000x. They're stacked, multiplicative, and they all start with the one thing Git never stored: reasoning.",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS, Linux, Windows",
   "author": {
     "@type": "Person",
     "name": "Lokesh Basu",
     "url": "https://twitter.com/lcbasu"
   },
-  "datePublished": "2026-03-01",
-  "dateModified": "2026-03-21",
-  "publisher": {
-    "@type": "Organization",
-    "name": "git4aiagents",
-    "url": "https://www.git4aiagents.com"
-  },
-  "mainEntityOfPage": "https://www.git4aiagents.com/",
-  "keywords": ["version control", "AI agents", "Git", "developer tools", "semantic version control", "agentic coding", "code review", "agent reasoning"],
-  "url": "https://www.git4aiagents.com/",
-  "image": "https://www.git4aiagents.com/og-image.png",
-  "inLanguage": "en",
   "license": "https://creativecommons.org/licenses/by/4.0/"
 }
 </script>
 
-<!-- JSON-LD Structured Data: FAQPage -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "Why are AI agents capped at 2-3x developer productivity?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Six structural ceilings limit what agents are allowed to do, regardless of what they're capable of. The first: agent reasoning (intent, confidence, alternatives) is discarded at commit time. Without it, humans can't verify agent decisions, so they limit agents to small, safe tasks. The ceilings are: reasoning evaporation, no semantic code understanding, no cross-agent awareness, no policy enforcement, no earned trust, and no intelligent work decomposition."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What is the reasoning evaporation problem in AI coding?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "When an AI agent writes code, its chain of thought - what it read, what it intended, what alternatives it considered, how confident it was - is discarded the moment the code is committed. Git stores the diff and a commit message. The thinking is gone forever. This makes agent code untrusted, unreviewable, and undebuggable. Review is 3.6x slower for AI code. 46% of developers actively distrust AI output."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do you get from 2x to 1000x with AI agents?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "By removing six stacked ceilings in order. Each multiplies the effect of the previous: bigger tasks (5-10x) times semantic safety (20-50x) times parallel agents (100-200x) times automated policy gating (200-500x) times earned trust (500-800x) times intelligent scheduling (1000x). The ceilings are dependent - each requires the ones below it. The reasoning layer is the keystone."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Why is captured reasoning the keystone for AI agent productivity?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Every other ceiling depends on it. Semantic understanding needs agent-declared context reads. Coordination needs shared intent. Policies need confidence scores. Trust scoring needs reasoning quality over time. Planning needs all of the above. Without captured reasoning, you cannot build any of the other layers. With it, each becomes a solvable engineering problem."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Why can't Git handle AI agent code at scale?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Git tracks lines and files, not functions and dependencies. It stores diffs and commit messages, not reasoning. When agents change shared code, Git sees no semantic conflict. It has no concept of agent intent, confidence, or alternatives considered. At human speed these gaps were tolerable. At agent speed - hundreds of agents modifying the same codebase - they collapse."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do multiple AI agents coordinate on the same codebase?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Today they don't - every platform shipped multi-agent in Feb 2026, but agents are blind to each other. The practical ceiling is 5-7 concurrent agents before chaos. Solving this requires captured reasoning (so agents understand each other's intent) plus a semantic dependency graph (so the system knows who to notify when shared code changes). With both, 50-200 concurrent agents become viable."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What is the AI code review bottleneck?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Code review takes 3.6x longer for AI code than human code because reviewers must reverse-engineer intent from diffs alone. PR volume is up 98% on AI-heavy teams. Review time is up 91%. Senior engineers spend 40% of their time reviewing code whose reasoning they must reconstruct. The review queue is undifferentiated - every change gets the same human attention regardless of risk."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do you build trust in AI-generated code?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Trust requires visibility into reasoning, not just outputs. Phase 1: capture agent intent, confidence, alternatives, and context at commit time. Phase 4: enforce human-defined policies at write-time. Phase 5: score trust based on track record - validation pass rate, rollback frequency, policy compliance, reasoning quality over time. Proven agents earn expanded scope. New agents start sandboxed."
-      }
-    }
-  ]
-}
-</script>
-
-<!-- JSON-LD: SoftwareSourceCode -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareSourceCode",
-  "name": "git4aiagents",
-  "description": "The missing layer between Git and AI agents. Six structural ceilings cap agents at 2x. Removing them in order unlocks 1000x.",
-  "codeRepository": "https://github.com/lcbasu/git4aiagents",
-  "programmingLanguage": "Conceptual / Language-agnostic",
-  "author": {
-    "@type": "Person",
-    "name": "Lokesh Basu",
-    "url": "https://twitter.com/lcbasu"
-  },
-  "license": "https://creativecommons.org/licenses/by/4.0/",
-  "url": "https://www.git4aiagents.com/"
-}
-</script>
-
-<!-- JSON-LD: BreadcrumbList -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "git4aiagents",
-      "item": "https://www.git4aiagents.com/"
-    }
-  ]
-}
-</script>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0c0c0c;
+    --bg: #0a0a0a;
     --fg: #e0e0e0;
-    --green: #39ff14;
-    --dim-green: #1a7a0a;
-    --orange: #ff6600;
-    --cyan: #00e5ff;
-    --red: #ff3d00;
-    --dim: #2a2a2a;
-    --gray: #666;
-    --comment: #555;
-    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --dim: #888;
+    --accent: #10b981;
+    --accent2: #3b82f6;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --border: #222;
+    --code-bg: #141414;
+    --max-w: 720px;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
 
   body {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
     background: var(--bg);
     color: var(--fg);
-    font-family: var(--mono);
-    font-size: 0.9rem;
-    overflow-x: hidden;
     line-height: 1.7;
-    font-weight: 300;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
   }
 
-  body::after {
-    content: '';
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
-    pointer-events: none;
-    z-index: 9999;
+  .container {
+    max-width: var(--max-w);
+    margin: 0 auto;
+    padding: 60px 24px 120px;
   }
 
-  ::selection { background: var(--green); color: var(--bg); }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--dim); }
-  ::-webkit-scrollbar-thumb:hover { background: var(--gray); }
+  .header { margin-bottom: 64px; }
 
-  .hero {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 4rem 6vw;
-    position: relative;
+  .header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 16px;
+    letter-spacing: -0.3px;
+  }
+
+  .header .tagline {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+
+  .header .sub { color: var(--dim); font-size: 15px; }
+
+  section { margin-bottom: 64px; }
+
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 24px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+    margin-top: 32px;
+  }
+
+  p { margin-bottom: 16px; color: var(--fg); }
+  strong { color: #fff; font-weight: 600; }
+  code { background: var(--code-bg); padding: 2px 6px; font-size: 13px; color: var(--accent); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin: 32px 0;
+  }
+
+  .stat {
+    border-left: 3px solid var(--red);
+    padding: 16px 20px;
+    background: var(--code-bg);
+  }
+
+  .stat .number {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .stat .label { color: var(--dim); font-size: 13px; line-height: 1.5; }
+
+  /* --- Scenario --- */
+  .scenario {
+    margin: 32px 0;
+    border: 1px solid var(--border);
     overflow: hidden;
   }
-  @media (max-width: 768px) {
-    .hero { min-height: auto; padding: 3rem 5vw; padding-bottom: 8rem; justify-content: flex-start; padding-top: 4rem; }
-  }
-  .hero::before {
-    content: '';
-    position: absolute;
-    top: -30%; right: -20%;
-    width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(57,255,20,0.04) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .logo-row {
-    display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;
-  }
-  .logo-icon { width: 36px; height: 36px; flex-shrink: 0; filter: hue-rotate(60deg) saturate(2); }
-  .hero-label { font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green); }
-  .hero h1 {
-    font-size: clamp(2rem, 5vw, 3.8rem); line-height: 1.15; font-weight: 700; max-width: 860px;
-  }
-  .hero h1 em { font-style: normal; color: var(--green); text-shadow: 0 0 20px rgba(57,255,20,0.3); }
-  .hero h1 .dim-text { color: var(--gray); font-weight: 400; }
-  .hero h1::after { content: '\2588'; animation: blink 1s step-end infinite; color: var(--green); font-weight: 400; margin-left: 0.1em; }
 
-  .hero-sub {
-    font-size: 0.8rem; color: var(--gray); margin-top: 2.5rem; max-width: 640px; line-height: 1.9;
-    border-left: 2px solid var(--dim); padding-left: 1.5rem;
-  }
-  .hero-sub strong { color: var(--orange); font-weight: 500; }
-  .hero-version {
-    position: absolute; bottom: 3rem; right: 6vw; font-size: 0.65rem; color: var(--comment); letter-spacing: 0.15em;
-  }
-  .hero-version::before { content: '// '; color: var(--dim-green); }
-  .scroll-indicator {
-    position: absolute; bottom: 3rem; left: 6vw; font-size: 0.6rem; letter-spacing: 0.2em; color: var(--comment);
-    display: flex; align-items: center; gap: 0.8rem;
-  }
-  .scroll-indicator::before { content: ''; width: 30px; height: 1px; background: var(--dim-green); animation: pulse 2s ease infinite; }
-  @media (max-width: 768px) {
-    .scroll-indicator { display: none; }
-    .hero-version { display: none; }
+  .scenario-header {
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
 
-  .epoch {
-    padding: 5rem 6vw; border-top: 1px solid var(--dim);
-    display: grid; grid-template-columns: 220px 1fr; gap: 3rem;
+  .scenario-git .scenario-header {
+    background: #1a1a1a;
+    color: var(--dim);
   }
-  @media (max-width: 768px) { .epoch { grid-template-columns: 1fr; gap: 1.5rem; } }
-  .epoch-label { font-size: 0.6rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim-green); padding-top: 0.3rem; }
-  .epoch-label::before { content: '$ '; color: var(--green); }
-  .epoch-content h2 { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 600; line-height: 1.3; margin-bottom: 2rem; }
-  .epoch-content h2 em { font-style: normal; color: var(--cyan); text-shadow: 0 0 15px rgba(0,229,255,0.2); }
-  .epoch-content p { font-size: 0.88rem; color: #999; max-width: 680px; margin-bottom: 1.3rem; font-weight: 300; line-height: 1.8; }
-  .epoch-content p strong { color: var(--fg); font-weight: 500; }
 
-  .ceiling-unlock { font-size: 0.75rem; color: var(--green); letter-spacing: 0.1em; margin-top: 1.5rem; padding: 0.6rem 1rem; background: rgba(57,255,20,0.05); border: 1px solid rgba(57,255,20,0.15); border-radius: 3px; display: inline-block; }
-  .ceiling-requires { font-size: 0.75rem; color: var(--cyan); margin-top: 0.8rem; }
-
-  .pain-list { list-style: none; padding: 0; margin: 0 0 1.3rem 0; }
-  .pain-list li { font-size: 0.85rem; color: #999; padding: 0.3rem 0; padding-left: 1.5rem; position: relative; line-height: 1.7; }
-  .pain-list li::before { content: ''; position: absolute; left: 0; top: 0.75rem; width: 6px; height: 6px; border-radius: 50%; }
-  .pain-list li.pain::before { background: var(--red); box-shadow: 0 0 6px rgba(255,61,0,0.4); }
-  .pain-list li.gain::before { background: var(--green); box-shadow: 0 0 6px rgba(57,255,20,0.4); }
-
-  .design { padding: 5rem 6vw; border-top: 1px solid var(--dim); }
-  .design-header { display: grid; grid-template-columns: 220px 1fr; gap: 3rem; margin-bottom: 3rem; }
-  @media (max-width: 768px) { .design-header { grid-template-columns: 1fr; gap: 1rem; } }
-  .design-header h2 { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 600; }
-  .design-header h2 em { font-style: normal; color: var(--cyan); text-shadow: 0 0 15px rgba(0,229,255,0.2); }
-  .design-intro { font-size: 0.85rem; color: #999; max-width: 680px; margin-bottom: 2.5rem; font-weight: 300; line-height: 1.7; margin-left: calc(220px + 3rem); border-left: 2px solid var(--dim); padding-left: 1.5rem; }
-  @media (max-width: 768px) { .design-intro { margin-left: 0; } }
-  .design-item { display: grid; grid-template-columns: 220px 1fr; gap: 3rem; padding: 2.5rem 0; border-bottom: 1px dashed var(--dim); }
-  @media (max-width: 768px) { .design-item { grid-template-columns: 1fr; gap: 1rem; } }
-  .design-item-name { font-size: 0.65rem; letter-spacing: 0.15em; color: var(--cyan); text-transform: uppercase; padding-top: 0.3rem; }
-  .design-item-name::before { content: '> '; color: var(--green); }
-  .design-item-content h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.2rem; line-height: 1.3; color: var(--fg); }
-  .design-item-content p { font-size: 0.85rem; color: #999; max-width: 680px; margin-bottom: 1.2rem; font-weight: 300; line-height: 1.7; }
-  .design-item-content p strong { color: var(--fg); font-weight: 500; }
-  .design-item-content code { font-size: 0.8rem; background: rgba(57,255,20,0.08); padding: 0.15em 0.4em; border-radius: 2px; color: var(--green); border: 1px solid rgba(57,255,20,0.15); }
-
-  .compare { padding: 5rem 6vw; border-top: 1px solid var(--dim); }
-  .compare-header { display: grid; grid-template-columns: 220px 1fr; gap: 3rem; margin-bottom: 3rem; }
-  @media (max-width: 768px) { .compare-header { grid-template-columns: 1fr; gap: 1rem; } }
-  .compare-header h2 { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 600; }
-  .compare table { width: 100%; border-collapse: collapse; font-size: 0.8rem; border: 1px solid var(--dim); }
-  .compare th { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; text-align: left; padding: 0.8rem 1.2rem; border-bottom: 1px solid var(--dim); color: var(--comment); font-weight: 400; background: rgba(255,255,255,0.02); }
-  .compare th:last-child { color: var(--green); }
-  .compare td { padding: 0.7rem 1.2rem; border-bottom: 1px solid #1a1a1a; color: #777; font-weight: 300; }
-  .compare td:last-child { color: var(--fg); font-weight: 400; }
-
-  .dep-graph {
-    margin: 2rem 0;
-    padding: 1.5rem 2rem;
-    background: #050505;
-    border: 1px solid #1a1a1a;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    line-height: 1.8;
-    max-width: 520px;
-    color: var(--gray);
+  .scenario-g4a .scenario-header {
+    background: #0d1f17;
+    color: var(--accent);
   }
-  .dep-graph .dep-arrow { color: var(--dim-green); }
-  .dep-graph .dep-ceiling { color: var(--cyan); }
-  .dep-graph .dep-highlight { color: var(--green); font-weight: 500; }
 
-  .status-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; border: 1px solid var(--dim); max-width: 680px; margin-top: 1.5rem; }
-  .status-table td { padding: 0.6rem 1rem; border-bottom: 1px solid #1a1a1a; color: #777; font-weight: 300; }
-  .status-table .status-unsolved { color: var(--red); font-weight: 500; }
-  .status-table .status-partial { color: var(--orange); font-weight: 400; }
-  .status-table .status-new { color: var(--cyan); font-weight: 400; }
+  .scenario-body {
+    padding: 16px 20px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
 
-  .cta-section { padding: 6rem 6vw; border-top: 1px solid var(--dim); text-align: center; position: relative; overflow: hidden; }
-  .cta-section::before { content: ''; position: absolute; bottom: -40%; left: 50%; transform: translateX(-50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(57,255,20,0.04) 0%, transparent 70%); pointer-events: none; }
-  .cta-section h2 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 700; margin-bottom: 1.5rem; line-height: 1.2; }
-  .cta-section h2 em { font-style: normal; color: var(--green); text-shadow: 0 0 20px rgba(57,255,20,0.3); }
-  .cta-section p { font-size: 0.85rem; color: var(--gray); max-width: 520px; margin: 0 auto 3rem; font-weight: 300; line-height: 1.7; }
-  .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-  .btn { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.1em; padding: 0.9rem 2rem; border: 1px solid var(--dim); color: var(--fg); background: transparent; text-decoration: none; cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; }
-  .btn:hover { border-color: var(--green); color: var(--green); box-shadow: 0 0 15px rgba(57,255,20,0.1); }
-  .btn--primary { border-color: var(--green); color: var(--green); }
-  .btn--primary:hover { background: var(--green); color: var(--bg); box-shadow: 0 0 20px rgba(57,255,20,0.3); }
+  .scenario-git .scenario-body {
+    background: #111;
+    color: var(--dim);
+  }
 
-  footer { padding: 2.5rem 6vw; border-top: 1px solid var(--dim); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-  footer span { font-size: 0.6rem; color: var(--comment); letter-spacing: 0.15em; }
+  .scenario-g4a .scenario-body {
+    background: #0a1510;
+    color: var(--fg);
+  }
 
-  @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
-  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-  .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease, transform 0.5s ease; }
-  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .scenario-g4a .field {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .scenario-g4a .risk {
+    color: var(--amber);
+    font-weight: 600;
+  }
+
+  .scenario-divider {
+    text-align: center;
+    padding: 12px;
+    color: var(--dim);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: var(--bg);
+  }
+
+  /* --- Outcome --- */
+  .outcome {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    margin: 24px 0;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .outcome-bad, .outcome-good {
+    padding: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .outcome-bad {
+    background: #1a0a0a;
+    border-right: 1px solid var(--border);
+  }
+
+  .outcome-good {
+    background: #0a1510;
+  }
+
+  .outcome-bad .outcome-title {
+    color: var(--red);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .outcome-good .outcome-title {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .outcome-bad p, .outcome-good p { font-size: 13px; color: var(--dim); }
+
+  /* --- Value sections --- */
+  .value-grid {
+    display: grid;
+    gap: 16px;
+    margin: 24px 0;
+  }
+
+  .value-item {
+    padding: 16px;
+    background: var(--code-bg);
+  }
+
+  .value-item.human { border-left: 3px solid var(--accent2); }
+  .value-item.agent { border-left: 3px solid var(--accent); }
+
+  .value-title { color: #fff; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .value-desc { color: var(--dim); font-size: 13px; line-height: 1.6; }
+
+  /* --- Code blocks --- */
+  .codeblock {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin: 16px 0;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-x: auto;
+    color: var(--dim);
+  }
+
+  .codeblock .cmd { color: var(--accent); }
+  .codeblock .comment { color: #555; }
+
+  /* --- Agent list --- */
+  .agents { margin: 24px 0; }
+
+  .agent {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .agent:last-child { border-bottom: none; }
+
+  .agent-name {
+    color: var(--accent2);
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .agent-name .tag {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--accent);
+    background: #0d1f17;
+    padding: 2px 8px;
+    margin-left: 8px;
+    border: 1px solid #1a3a2a;
+  }
+
+  .agent-name .tag-dim {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--dim);
+    background: #1a1a1a;
+    padding: 2px 8px;
+    margin-left: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .agent-desc { color: var(--dim); font-size: 13px; }
+
+  /* --- Storage --- */
+  .storage-grid { display: grid; gap: 12px; margin: 24px 0; }
+
+  .storage-item {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 12px;
+    font-size: 13px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .storage-item .key { color: var(--accent); font-weight: 600; }
+  .storage-item .val { color: var(--dim); }
+
+  /* --- CTA --- */
+  .cta {
+    margin: 40px 0;
+    padding: 24px;
+    border: 1px solid var(--accent);
+    background: #0d1f17;
+    text-align: center;
+  }
+
+  .cta a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .cta a:hover { text-decoration: underline; }
+  .cta .sub { color: var(--dim); font-size: 13px; margin-top: 8px; }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding-top: 32px;
+    margin-top: 64px;
+    color: var(--dim);
+    font-size: 13px;
+  }
+
+  .footer a { color: var(--accent); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 640px) {
+    .container { padding: 40px 16px 80px; }
+    .header .tagline { font-size: 22px; }
+    .outcome { grid-template-columns: 1fr; }
+    .outcome-bad { border-right: none; border-bottom: 1px solid var(--border); }
+    .storage-item { grid-template-columns: 1fr; gap: 4px; }
+  }
 </style>
 </head>
 <body>
+<div class="container">
 
-<main>
+  <header class="header">
+    <h1>g4a</h1>
+    <div class="tagline">the reasoning layer for AI-written code</div>
+    <p class="sub">Git stores what changed. The reasoning behind it is lost. g4a captures it.</p>
+    <p class="sub">Add it to your existing project. Change nothing. Unlock 10x for both humans and AI agents.</p>
+  </header>
 
-<!-- HERO -->
-<header class="hero">
-  <div class="logo-row">
-    <img src="logo.svg" alt="git4aiagents logo" class="logo-icon" width="36" height="36">
-    <div class="hero-label">// the missing layer in Git</div>
-  </div>
-  <h1>Your AI agents are <em>1000x</em> capable.<br>Git caps them at <em>2x.</em><br><span class="dim-text">One missing layer unblocks everything.</span></h1>
-  <p class="hero-sub">
-    Claude Code scores 80.9% on SWE-bench. Codex handles 40-file refactors. The capability is here. But nobody lets agents do that. Teams hand them 5-file tasks because they can't verify the reasoning behind anything bigger. The thinking dies at commit time. Every time. By every tool. <strong>Six structural ceilings stand between 2x and 1000x. They're stacked, multiplicative, and they all start with the one thing Git never stored: the reasoning behind the code.</strong>
-  </p>
-  <div class="scroll-indicator">SCROLL TO READ</div>
-  <div class="hero-version">GIT4AIAGENTS / v0.2 / MARCH 2026</div>
-</header>
+  <!-- The Problem -->
+  <section>
+    <h2>The problem</h2>
+    <p>Every AI coding agent thinks before it writes. Claude Code reads 20 files, considers 3 approaches, rejects 2, tests edge cases, and picks the best path. Cursor explores your codebase, reasons about patterns, and adapts. Codex plans multi-file changes before executing them.</p>
+    <p>Then at commit time, <strong>all of that thinking is thrown away.</strong></p>
+    <p>This happens with every agent, every commit, every tool. The reasoning is generated, used once, and discarded. The most valuable artifact of the development process - the WHY behind every decision - is lost forever.</p>
+  </section>
 
-<!-- THE 1000X UNLOCK -->
-<article class="epoch reveal">
-  <div class="epoch-label">00 / The 1000x Unlock</div>
-  <div class="epoch-content">
-    <h2>Six ceilings. <em>Stacked.</em> Multiplicative.</h2>
-    <p>AI agents write code now. 65% of developers use them weekly. 51% daily. Claude Code scores 80.9% on SWE-bench Verified. Codex handles complex multi-file refactors. The raw capability is here.</p>
-    <p>But the output of the global AI agent ecosystem is roughly <strong>2-3x a single developer.</strong> Not 10x. Not 100x. 2-3x.</p>
-    <p>The reason is not that agents write bad code. The reason is six structural ceilings that sit between capability and permission. Each one limits what agents are <strong>allowed</strong> to do, regardless of what they're <strong>capable</strong> of doing.</p>
-    <p>And here's what matters: <strong>they're multiplicative.</strong> Bigger tasks x semantic safety x parallel agents x automated gating x earned autonomy x intelligent scheduling. That multiplication is what produces 1000x. The ceilings must fall in order. Every path starts at ceiling 1.</p>
-  </div>
-</article>
-
-<!-- CEILING 1 -->
-<article class="epoch reveal">
-  <div class="epoch-label">01 / Ceiling 1</div>
-  <div class="epoch-content">
-    <h2>Agent reasoning <em>evaporates</em></h2>
-    <p><strong>The keystone. Everything else depends on this.</strong></p>
-    <p>When an AI agent writes code, its chain of thought - what it read, what it intended, what alternatives it considered, how confident it was - is discarded at commit time. The thinking dies. Only the output survives in Git.</p>
-    <p><strong>The pain is measurable.</strong></p>
-    <ul class="pain-list">
-      <li class="pain">Review is 3.6x slower for AI code (4.3 min vs 1.2 min per change)</li>
-      <li class="pain">46% of developers actively distrust AI output - only 3% highly trust it</li>
-      <li class="pain">AWS lost 13 hours debugging an agent decision nobody could reconstruct</li>
-      <li class="pain">70% say agents boost personal productivity, but only 17% say they help team collaboration</li>
-      <li class="pain">Salesforce had to rebuild their entire review infrastructure because "reconstructing intent by scanning diffs sequentially fractured"</li>
-    </ul>
-    <p><strong>What's capped.</strong> Teams limit agents to 1-5 file tasks. Nobody delegates "refactor the payments module" because verifying 40 files of opaque decisions is impossible. Agent capability far exceeds what teams allow. The trust deficit is the governor.</p>
-    <p><strong>What removing it unlocks.</strong> Agents explain every decision. Reviewers assess intent, not just diffs. Trust becomes calibratable. Debugging has a trail. Delegation scope expands from "write this function" to "build this feature across 10-50 files."</p>
-    <div class="ceiling-unlock">UNLOCK: 2x &rarr; 5-10x</div>
-  </div>
-</article>
-
-<!-- CEILING 2 -->
-<article class="epoch reveal">
-  <div class="epoch-label">02 / Ceiling 2</div>
-  <div class="epoch-content">
-    <h2>No semantic understanding of <em>code structure</em></h2>
-    <p>Git tracks lines and files, not functions and dependencies. When an agent changes a function signature, nothing in the system knows that 14 callers across 8 files are now broken. Git sees no conflict. CI finds the breakage 20 minutes later. Three other agents have already built on the broken state.</p>
-    <p><strong>What's capped.</strong> Agents can only safely modify isolated code. Cross-cutting changes - refactors, API migrations, shared library updates - are too risky because nobody can trace the blast radius.</p>
-    <p><strong>What removing it unlocks.</strong> The codebase becomes queryable as a structure. "What depends on process_payment?" has an instant answer. Impact analysis happens before committing, not after CI fails.</p>
-    <div class="ceiling-requires">Requires ceiling 1 - agent-declared context reads are a key signal for the dependency graph.</div>
-    <div class="ceiling-unlock">UNLOCK: 5-10x &rarr; 20-50x</div>
-  </div>
-</article>
-
-<!-- CEILING 3 -->
-<article class="epoch reveal">
-  <div class="epoch-label">03 / Ceiling 3</div>
-  <div class="epoch-content">
-    <h2>Agents are <em>blind</em> to each other</h2>
-    <p>Every major platform shipped multi-agent in February 2026. But agents can't see each other. Claude Code warns: "Two teammates editing the same file leads to overwrites." Codex runs agents in isolated containers. Cross-tool coordination doesn't exist.</p>
-    <p><strong>What's capped.</strong> Practical ceiling: 5-7 concurrent agents before conflict dominates. The human becomes the scheduler and conflict resolver. More agents = more overhead, not more throughput.</p>
-    <p><strong>What removing it unlocks.</strong> Agents subscribe to dependency changes. Conflicts detected at write-time. 50-200 concurrent agents become viable on a single codebase.</p>
-    <div class="ceiling-requires">Requires ceilings 1 + 2 - coordination needs shared reasoning (intent) plus the dependency graph (who to notify).</div>
-    <div class="ceiling-unlock">UNLOCK: 20-50x &rarr; 100-200x</div>
-  </div>
-</article>
-
-<!-- CEILING 4 -->
-<article class="epoch reveal">
-  <div class="epoch-label">04 / Ceiling 4</div>
-  <div class="epoch-content">
-    <h2>Humans are the only <em>policy engine</em></h2>
-    <p>The only way to ensure agent code meets quality, security, and architectural standards is human review. Every change - CSS formatting fix to security-critical auth - waits in the same queue for the same human attention. No way to express "auto-approve low-risk, flag high-risk."</p>
-    <p><strong>What's capped.</strong> 50 agents generating 200 changes per day with 3 reviewers = permanent backlog. Adding more agents just grows the queue. Throughput limited by human review-hours, not agent capacity.</p>
-    <p><strong>What removing it unlocks.</strong> Human-defined policies enforced at write-time. Architectural boundaries, security policies, quality thresholds - all enforced continuously. Routine work flows automatically. Humans focus on architecture and exceptions.</p>
-    <div class="ceiling-requires">Requires ceilings 1 + 2 + 3 - policies need reasoning (confidence), semantic understanding (boundaries), and coordination (real-time enforcement).</div>
-    <div class="ceiling-unlock">UNLOCK: 100-200x &rarr; 200-500x</div>
-  </div>
-</article>
-
-<!-- CEILING 5 -->
-<article class="epoch reveal">
-  <div class="epoch-label">05 / Ceiling 5</div>
-  <div class="epoch-content">
-    <h2>No earned trust - every agent <em>starts from zero</em></h2>
-    <p>Every agent gets identical permissions regardless of track record. A proven agent with zero rollbacks is treated the same as one deployed five minutes ago. The system has no memory of competence.</p>
-    <p><strong>What's capped.</strong> The system is permanently conservative. Agents can't earn the right to work independently on critical modules. Every session is a cold start.</p>
-    <p><strong>What removing it unlocks.</strong> Trust scored on track record - validation pass rate, rollback frequency, policy compliance, reasoning quality over time. Proven agents earn expanded scope. Bad agents get constrained automatically. The best agents operate near-autonomously on well-tested modules.</p>
-    <div class="ceiling-requires">Requires ceilings 1 + 4 - trust scoring needs reasoning trails (decision quality) and policy enforcement (defining good behavior).</div>
-    <div class="ceiling-unlock">UNLOCK: 200-500x &rarr; 500-800x</div>
-  </div>
-</article>
-
-<!-- CEILING 6 -->
-<article class="epoch reveal">
-  <div class="epoch-label">06 / Ceiling 6</div>
-  <div class="epoch-content">
-    <h2>Humans are the <em>planning bottleneck</em></h2>
-    <p>Humans manually break objectives into tasks and assign them to agents. This works for 5-10 tasks. At 100+ tasks across 50 agents, no human can hold the dependency graph in their head. The planning bottleneck replaces the review bottleneck.</p>
-    <p><strong>What's capped.</strong> "Throw 200 agents at this codebase" is a fantasy without a planning system that understands the code structure, the dependency graph, and the task ordering.</p>
-    <p><strong>What removing it unlocks.</strong> Human states an objective. The system decomposes it into a task DAG, schedules across 200+ agents, matches trust and capability to task requirements. Humans define goals and review outcomes - not individual code changes.</p>
-    <div class="ceiling-requires">Requires all five ceilings below.</div>
-    <div class="ceiling-unlock">UNLOCK: 500-800x &rarr; 1000x</div>
-  </div>
-</article>
-
-<!-- THE KEYSTONE -->
-<article class="epoch reveal">
-  <div class="epoch-label">07 / The Keystone</div>
-  <div class="epoch-content">
-    <h2>Why <em>reasoning</em> is the foundation</h2>
-    <p>Every ceiling requires the one below it. But ceiling 1 is uniquely foundational - it's required by every other ceiling, directly or transitively.</p>
-    <div class="dep-graph">
-      <div><span class="dep-highlight">Ceiling 1 (reasoning)</span> <span class="dep-arrow">&larr;</span> <span class="dep-ceiling">required by ALL</span></div>
-      <div><span class="dep-ceiling">Ceiling 2 (semantic)</span> <span class="dep-arrow">&larr;</span> needs agent-declared context reads</div>
-      <div><span class="dep-ceiling">Ceiling 3 (coordination)</span> <span class="dep-arrow">&larr;</span> agents must read each other's intent</div>
-      <div><span class="dep-ceiling">Ceiling 4 (policies)</span> <span class="dep-arrow">&larr;</span> policies evaluate confidence + intent</div>
-      <div><span class="dep-ceiling">Ceiling 5 (trust)</span> <span class="dep-arrow">&larr;</span> trust scored on reasoning quality</div>
-      <div><span class="dep-ceiling">Ceiling 6 (planning)</span> <span class="dep-arrow">&larr;</span> needs all five</div>
+  <!-- What this causes -->
+  <section>
+    <h2>What this causes</h2>
+    <div class="stats">
+      <div class="stat">
+        <span class="number">3.6x slower code review</span>
+        <span class="label">Reviewers stare at diffs and reverse-engineer intent. "Why did the agent change the auth middleware order?" has no answer. AI-generated changes take 4.3 minutes to review vs 1.2 minutes for human-written changes.</span>
+      </div>
+      <div class="stat">
+        <span class="number">46% actively distrust AI code</span>
+        <span class="label">Not because the code is bad - because they can't see the reasoning. Only 3% highly trust it. When the thinking is invisible, distrust is rational.</span>
+      </div>
+      <div class="stat">
+        <span class="number">Debugging is terrifying</span>
+        <span class="label">When agent code breaks in production, there's no trail. The agent is gone. Its reasoning is gone. You're reverse-engineering intent from diffs while the clock is ticking.</span>
+      </div>
+      <div class="stat">
+        <span class="number">70% individual gain, 17% team gain</span>
+        <span class="label">Reasoning lives in private sessions and dies there. Your teammate's agent made a smart architectural choice yesterday. The next agent that touches that code will undo it - because it doesn't know the choice was deliberate.</span>
+      </div>
+      <div class="stat">
+        <span class="number">AI agents start from zero, every time</span>
+        <span class="label">Every agent re-discovers the same things. Every rejected alternative is re-explored. Every deliberate tradeoff is invisible. The codebase has no memory of the decisions that shaped it.</span>
+      </div>
     </div>
-    <p>Remove any layer and the ones above it hit a wall. Many agents without semantic understanding = many conflicts. Policies without reasoning = policies that only check syntax. Trust scoring without reasoning = scoring on pass/fail only. Planning without coordination = 200 agents colliding.</p>
-    <p><strong>Without ceiling 1, you cannot build any of the others. With it, each becomes a solvable engineering problem.</strong></p>
+  </section>
+
+  <!-- Real Example -->
+  <section>
+    <h2>What this looks like in practice</h2>
+
+    <p>Your agent refactors the payment processing module. The commit says:</p>
+
+    <div class="scenario scenario-git">
+      <div class="scenario-header">What the reviewer sees in the PR</div>
+      <div class="scenario-body">
+        <p><strong style="color:#fff">refactor: Update payment calculation to use Decimal</strong></p>
+        <p>8 files changed. Float replaced with Decimal in checkout, billing, refunds, and settlement. Some rounding logic changed. Tests updated.</p>
+        <p style="margin-top:16px">Why? No idea. Was it a precision bug? A compliance requirement? Did the agent know about the nightly settlement job? Did it test batch operations?</p>
+        <p style="margin-top:12px">The reviewer spends 25 minutes reading 8 diffs, checking rounding logic, and ultimately approves because the tests pass and they're behind on 14 other PRs.</p>
+      </div>
+    </div>
+
+    <div class="scenario-divider">three weeks later</div>
+
+    <div class="scenario scenario-git">
+      <div class="scenario-body">
+        <p style="color:var(--red)"><strong>The nightly settlement job is off by $0.03 on 10,000 transactions. $300 missing. Finance escalates.</strong></p>
+        <p>Someone runs git blame. Finds the refactor commit. Reads "Update payment calculation to use Decimal." Now what? The agent session is gone. Its reasoning is gone. All that's left is 8 diffs and a commit message.</p>
+      </div>
+    </div>
+
+    <div class="scenario-divider">same commit, with g4a</div>
+
+    <div class="scenario scenario-g4a">
+      <div class="scenario-header">What g4a captured</div>
+      <div class="scenario-body">
+        <p><span class="field">Intent:</span> Switch from float to Decimal for currency precision. After testing with 10,000 simulated transactions, float arithmetic drifted by $0.03 while Decimal was exact.</p>
+        <p><span class="field">Exploration:</span> Read checkout.py, billing.py, refunds.py, settlement.py. Found 14 call sites. Ran test with 10,000 simulated transactions. Checked batch_settlement_job.py - it calls calculate_total() which now returns Decimal.</p>
+        <p><span class="field">Alternatives:</span> (1) Keep float + round at the end - rejected, error accumulates across batch ops. (2) Integer cents - rejected, existing APIs expect decimal format, would touch 23 files. (3) Decimal everywhere - chosen, cleanest path, 8 files.</p>
+        <p><span class="risk">Risk:</span> batch_settlement_job.py CSV export on line 47 uses f-string formatting that may truncate Decimal. <span class="risk">Flagged LOW confidence.</span></p>
+        <p><span class="field">Confidence:</span> 0.85 overall, 0.6 on CSV export formatting</p>
+        <p><span class="field">Files read:</span> checkout.py, billing.py, refunds.py, settlement.py, batch_settlement_job.py, tests/</p>
+      </div>
+    </div>
+
+    <div class="outcome">
+      <div class="outcome-bad">
+        <div class="outcome-title">Without g4a</div>
+        <p>25-minute review, missed risk, $300 settlement error three weeks later, hours of debugging with no trail.</p>
+      </div>
+      <div class="outcome-good">
+        <div class="outcome-title">With g4a</div>
+        <p>3-minute review, spotted the LOW confidence flag on CSV export, fixed the one line, approved. Settlement works perfectly. The reasoning is in the repo forever.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it helps humans -->
+  <section>
+    <h2>How g4a helps humans</h2>
+    <div class="value-grid">
+      <div class="value-item human">
+        <div class="value-title">PR reviews go from guessing to reading</div>
+        <div class="value-desc">Instead of reverse-engineering intent from diffs, reviewers read the agent's actual reasoning. Intent, confidence, alternatives, what was tested, what was flagged as risky. A 25-minute review becomes 3 minutes with higher confidence.</div>
+      </div>
+      <div class="value-item human">
+        <div class="value-title">Debugging has a trail</div>
+        <div class="value-desc">When something breaks, <code>g4a why settlement_job</code> gives you the complete decision history. Every change, every agent, what they intended, what they were worried about. No more "who changed this and why?"</div>
+      </div>
+      <div class="value-item human">
+        <div class="value-title">Trust is earned, not assumed</div>
+        <div class="value-desc">Every AI-generated change carries a confidence score and full explanation. Low-confidence changes get scrutiny. High-confidence changes with thorough exploration can be approved faster. Trust becomes data-driven.</div>
+      </div>
+      <div class="value-item human">
+        <div class="value-title">Onboarding is instant</div>
+        <div class="value-desc">New developer joins the team. Instead of weeks figuring out why the codebase looks this way, they run <code>g4a why &lt;module&gt;</code> and read the decision history. The codebase documents itself.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it helps AI agents -->
+  <section>
+    <h2>How g4a helps AI agents</h2>
+    <div class="value-grid">
+      <div class="value-item agent">
+        <div class="value-title">Agents understand past decisions</div>
+        <div class="value-desc">A new agent reads .g4a/ and immediately knows: this was changed to Decimal because of precision drift in batch settlements. Integer cents was rejected because it would touch 23 files. The agent doesn't re-explore. It doesn't accidentally revert a deliberate choice.</div>
+      </div>
+      <div class="value-item agent">
+        <div class="value-title">Agents stop duplicating work</div>
+        <div class="value-desc">Without g4a, every agent re-discovers the same things. Agent A found that the payment module has a tricky dependency on the settlement job. Agent B comes along the next day and has to discover that from scratch. With g4a, Agent B starts where Agent A left off.</div>
+      </div>
+      <div class="value-item agent">
+        <div class="value-title">Agents coordinate through shared context</div>
+        <div class="value-desc">Agent A is refactoring payments with Decimal. Agent B is building new billing features. Agent B reads Agent A's reasoning, sees the Decimal migration, and writes its code with Decimal from the start instead of creating a conflict.</div>
+      </div>
+      <div class="value-item agent">
+        <div class="value-title">Your codebase gets smarter over time</div>
+        <div class="value-desc">The .g4a/ directory is institutional memory. Every decision, every rejected alternative, every risk assessment - accumulated over months. The longer g4a runs, the more context every future agent has.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- The Solution -->
+  <section>
+    <h2>The solution</h2>
+    <p>g4a captures the reasoning that AI agents already produce and stores it alongside the code in git. Add it to your existing project. Change nothing about your workflow.</p>
+    <div class="codeblock">
+<span class="comment"># install once</span>
+<span class="cmd">pip install g4a</span>
+<span class="cmd">cd your-project</span>
+<span class="cmd">g4a init</span>
+
+<span class="comment"># use your AI coding agent normally - nothing changes</span>
+<span class="comment"># reasoning is captured automatically in the background</span>
+
+<span class="comment"># when you want to see the reasoning:</span>
+<span class="cmd">g4a log</span>                    <span class="comment"># recent commits with reasoning</span>
+<span class="cmd">g4a why process_payment</span>   <span class="comment"># decision trail for a function</span>
+<span class="cmd">g4a show HEAD</span>             <span class="comment"># diff + reasoning side by side</span>
+<span class="cmd">g4a web</span>                    <span class="comment"># visual report in browser</span>
+    </div>
+  </section>
+
+  <!-- All agents -->
+  <section>
+    <h2>Designed for all AI coding agents</h2>
+    <p>g4a is not tied to any single agent. It's a universal reasoning layer that works with every tool that writes code.</p>
+    <div class="agents">
+      <div class="agent">
+        <div class="agent-name">Claude Code <span class="tag">launching first</span></div>
+        <div class="agent-desc">Deepest integration. Claude Code already saves full session transcripts with every file read, tool call, and reasoning statement. g4a parses these directly - no API call needed, no workflow change. The reasoning is already there. g4a just captures it before it's lost.</div>
+      </div>
+      <div class="agent">
+        <div class="agent-name">Cursor, Codex, Copilot, Windsurf, Aider <span class="tag-dim">git hook fallback</span></div>
+        <div class="agent-desc">g4a installs a standard git post-commit hook. When any agent commits code, g4a reads the diff and context, then infers reasoning. Labeled "inferred" vs "captured" - weaker than direct integration, but dramatically better than nothing.</div>
+      </div>
+      <div class="agent">
+        <div class="agent-name">Custom agents and frameworks <span class="tag-dim">agent-agnostic schema</span></div>
+        <div class="agent-desc">The reasoning record schema is the same regardless of which agent produced it. LangChain, CrewAI, custom pipelines - any tool that writes code through git can have its reasoning captured.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Storage -->
+  <section>
+    <h2>How it stores data</h2>
+    <p>Reasoning lives in <code>.g4a/</code> inside your repo. No external server. No account. No hosting.</p>
+    <div class="storage-grid">
+      <div class="storage-item">
+        <span class="key">Format</span>
+        <span class="val">One file per commit, one file per session. CBOR + zstd compression. Binary in git diffs.</span>
+      </div>
+      <div class="storage-item">
+        <span class="key">Security</span>
+        <span class="val">Credentials, API keys, passwords, and tokens are detected and masked before any data hits disk. Irreversible.</span>
+      </div>
+      <div class="storage-item">
+        <span class="key">Size</span>
+        <span class="val">10-50 KB per commit. 1,000 commits = 10-50 MB. Within every hosting platform's limits.</span>
+      </div>
+      <div class="storage-item">
+        <span class="key">Portability</span>
+        <span class="val">Clone the repo, get the reasoning. Fork it, reasoning forks too. Delete .g4a/, still a valid git repo. Always additive.</span>
+      </div>
+      <div class="storage-item">
+        <span class="key">Schema</span>
+        <span class="val">Self-describing JSON Schema in the repo. Any future tool can parse every record without knowing g4a.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta">
+    <a href="https://github.com/lcbasu/git4aiagents">github.com/lcbasu/git4aiagents</a>
+    <div class="sub">Open source. CC-BY-4.0.</div>
   </div>
-</article>
 
-<!-- WHERE WE ARE -->
-<article class="epoch reveal">
-  <div class="epoch-label">08 / March 2026</div>
-  <div class="epoch-content">
-    <h2>Where things <em>stand</em></h2>
-    <table class="status-table">
-      <tr><td>1. Reasoning</td><td class="status-unsolved">UNSOLVED - no tool captures agent reasoning and links it to Git</td></tr>
-      <tr><td>2. Semantic understanding</td><td class="status-partial">PARTIAL - Augment, Qodo have graphs, disconnected from reasoning</td></tr>
-      <tr><td>3. Cross-agent awareness</td><td class="status-new">JUST ARRIVED - within-tool only, 6 weeks old</td></tr>
-      <tr><td>4. Policy enforcement</td><td class="status-unsolved">UNSOLVED</td></tr>
-      <tr><td>5. Earned trust</td><td class="status-unsolved">UNSOLVED</td></tr>
-      <tr><td>6. Intelligent decomposition</td><td class="status-unsolved">UNSOLVED</td></tr>
-    </table>
-    <p style="margin-top: 2rem;"><strong>The entire stack is blocked at the foundation.</strong></p>
-  </div>
-</article>
+  <footer class="footer">
+    <p>g4a - the reasoning layer for AI-written code</p>
+    <p>Git stores what changed. g4a stores why. Add it to your existing project and unlock 10x for both humans and AI agents.</p>
+    <p style="margin-top: 16px">Started March 2026 by <a href="https://twitter.com/lcbasu">Lokesh Basu</a></p>
+  </footer>
 
-<!-- THE SOLUTION -->
-<section class="design reveal">
-  <div class="design-header">
-    <div class="epoch-label">09 / The Solution</div>
-    <h2>Six phases. Each built on the <em>last.</em></h2>
-  </div>
-  <div class="design-intro"><p>Every phase solves one ceiling and enables the next. The full vision is Phase 6, not Phase 1. Phase 1 is the keystone that makes everything else possible.</p></div>
-
-  <div class="design-item"><div class="design-item-name">Phase 1 / Reasoning</div><div class="design-item-content">
-    <h3>Capture reasoning at commit time</h3>
-    <p>Build the layer every other ceiling depends on. Capture agent intent, confidence, alternatives, context reads, and risk assessment at generation time. Link it to Git commits. Not replacing Git - adding the layer that's missing from all tools.</p>
-    <p>Works with every major agent (Claude Code, Cursor, Codex, Aider, custom agents) and every Git platform (GitHub, GitLab, local). Cross-agent and cross-platform from day one.</p>
-    <p><strong>Immediate value:</strong> "Why was this function changed?" has an answer. Review guided by intent, not just diffs. Low-confidence changes flagged automatically. Debugging has a decision trail.</p>
-  </div></div>
-
-  <div class="design-item"><div class="design-item-name">Phase 2 / Semantic Graph</div><div class="design-item-content">
-    <h3>Make the codebase queryable as a structure</h3>
-    <p>Parse every file with tree-sitter. Extract functions, classes, types, interfaces. Map dependencies from imports, symbol references, and agent-declared context reads from Phase 1. "What depends on this function?" gets an instant answer. Impact analysis before committing, not after CI fails.</p>
-  </div></div>
-
-  <div class="design-item"><div class="design-item-name">Phase 3 / Coordination</div><div class="design-item-content">
-    <h3>Let agents see each other</h3>
-    <p>Real-time subscriptions on dependency changes. Conflict detection at write-time, not merge-time. Shared reasoning that agents read before modifying related code. This is where the 5-7 agent ceiling breaks and 50-200 concurrent agents become viable.</p>
-  </div></div>
-
-  <div class="design-item"><div class="design-item-name">Phase 4 / Policies</div><div class="design-item-content">
-    <h3>Replace the human gate with human-defined rules</h3>
-    <p>Policies evaluated at write-time against reasoning metadata, dependency context, and coordination state. <code>"auto-approve if confidence > 0.9 AND trust > 0.8"</code> <code>"changes to auth require human approval"</code>. This is where the review bottleneck breaks.</p>
-  </div></div>
-
-  <div class="design-item"><div class="design-item-name">Phase 5 / Trust</div><div class="design-item-content">
-    <h3>Let agents earn autonomy</h3>
-    <p>Track record per agent. Graduated permissions. Automatic scope expansion for proven agents. Automatic constraint for unreliable ones. Trust scored on reasoning quality over time, not just pass/fail.</p>
-  </div></div>
-
-  <div class="design-item"><div class="design-item-name">Phase 6 / Planning</div><div class="design-item-content">
-    <h3>Human says "build this." 200 agents execute.</h3>
-    <p>Objective decomposition into task DAGs. Capability-matched scheduling. Dependency-aware parallel execution across 200+ agents. This is the full vision - not the starting point. It's earned through solving each ceiling in order.</p>
-  </div></div>
-</section>
-
-<!-- COMPARISON TABLE -->
-<section class="compare reveal">
-  <div class="compare-header">
-    <div class="epoch-label">10 / Contrast</div>
-    <h2>Git vs. what comes next</h2>
-  </div>
-  <table>
-    <thead><tr><th>Dimension</th><th>Git (2005-2025)</th><th>git4aiagents (2026+)</th></tr></thead>
-    <tbody>
-      <tr><td>Reasoning</td><td>Commit message (a summary of a summary)</td><td>Full reasoning trace linked to every change</td></tr>
-      <tr><td>Code model</td><td>Lines and files</td><td>Functions, dependencies, and interfaces</td></tr>
-      <tr><td>Coordination</td><td>Branch + merge</td><td>SSI + semantic dependency graph</td></tr>
-      <tr><td>Conflict detection</td><td>After the fact (merge/rebase)</td><td>At write-time (real-time)</td></tr>
-      <tr><td>Validation</td><td>CI pipeline (minutes later)</td><td>Continuous (per-transaction)</td></tr>
-      <tr><td>Review</td><td>Human gate (PR)</td><td>Policy-driven + human oversight</td></tr>
-      <tr><td>Trust</td><td>Same permissions for everyone</td><td>Earned autonomy based on track record</td></tr>
-      <tr><td>Human role</td><td>Writer + reviewer</td><td>Governor + architect</td></tr>
-      <tr><td>Optimized for</td><td>1-20 humans</td><td>10-1000 agents + humans</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- CTA -->
-<section class="cta-section reveal">
-  <h2>The stack is blocked at <em>ceiling 1.</em></h2>
-  <p>Captured reasoning is the keystone. With it, each ceiling becomes a solvable engineering problem. Without it, the entire 1000x is stuck at 2x. We're building the missing layer.</p>
-  <div class="cta-buttons">
-    <a href="https://github.com/lcbasu/git4aiagents" class="btn btn--primary" target="_blank" rel="noopener">git clone git4aiagents</a>
-    <a href="https://twitter.com/intent/tweet?text=Your%20AI%20agents%20are%201000x%20capable.%20Git%20caps%20them%20at%202x.%20Six%20structural%20ceilings%20block%20the%20path.%20One%20missing%20layer%20unblocks%20everything%3A&url=https%3A%2F%2Fwww.git4aiagents.com&via=lcbasu" class="btn" target="_blank" rel="noopener">Share on X</a>
-  </div>
-</section>
-
-</main>
-
-<footer>
-  <span style="display:flex;align-items:center;gap:0.6rem;"><img src="logo.svg" alt="" width="16" height="16" style="filter:hue-rotate(60deg) saturate(2)"> GIT4AIAGENTS // OPEN SOURCE // CC-BY-4.0</span>
-  <span>// MARCH 2026</span>
-</footer>
-
-<script>
-  // Reveal on scroll
-  const observer = new IntersectionObserver(function(entries) {
-    entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
-  }, { threshold: 0.1 });
-  document.querySelectorAll('.reveal').forEach(function(el) { observer.observe(el); });
-</script>
-
+</div>
 </body>
 </html>

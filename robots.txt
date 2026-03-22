@@ -2,10 +2,9 @@ User-agent: *
 Allow: /
 Sitemap: https://www.git4aiagents.com/sitemap.xml
 
-# AI agent discovery
+# LLM discovery
 # llms.txt: https://www.git4aiagents.com/llms.txt
 # llms-full.txt: https://www.git4aiagents.com/llms-full.txt
-# ai-plugin: https://www.git4aiagents.com/.well-known/ai-plugin.json
 
 # AI crawlers welcome
 User-agent: GPTBot
@@ -27,9 +26,6 @@ User-agent: anthropic-ai
 Allow: /
 
 User-agent: PerplexityBot
-Allow: /
-
-User-agent: Bytespider
 Allow: /
 
 User-agent: CCBot

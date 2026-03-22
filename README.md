@@ -1,243 +1,146 @@
-# git4aiagents
+# g4a - the reasoning layer for AI-written code
 
-**Your AI agents are 1000x capable. Git caps them at 2x. One missing layer unblocks everything.**
+Git stores what changed. The reasoning behind it is lost. g4a captures it.
 
-AI agents score 80.9% on SWE-bench. They handle 40-file refactors. But teams hand them 5-file tasks because they can't verify the reasoning behind anything bigger. The thinking dies at commit time. Every time. By every tool.
-
-Six structural ceilings block the path from 2x to 1000x. They're stacked, multiplicative, and they all start with the one thing Git never stored: reasoning.
+Add g4a to your existing project. Change nothing about your workflow. Unlock 10x for both humans and AI agents.
 
 ---
 
-## The 1000x unlock - six ceilings, one path
+## The problem
 
-AI agents write code now. 65% of developers use them weekly. 51% daily. Claude Code scores 80.9% on SWE-bench. Codex handles complex multi-file refactors. The raw capability is here.
+Every AI coding agent thinks before it writes. Claude Code reads 20 files, considers 3 approaches, rejects 2, tests edge cases, and picks the best path. Cursor explores your codebase, reasons about patterns, and adapts. Codex plans multi-file changes before executing them.
 
-But the output of the global AI agent ecosystem is roughly 2-3x a single developer. Not 10x. Not 100x. 2-3x.
+Then at commit time, all of that thinking is thrown away.
 
-The reason is not that agents write bad code. The reason is six ceilings that sit between capability and permission. Each one limits what agents are *allowed* to do, regardless of what they're *capable* of doing.
+This happens with every agent, every commit, every tool. The reasoning is generated, used once, and discarded. The most valuable artifact of the development process - the WHY behind every decision - is lost forever.
 
-And here's what matters: they're multiplicative. Bigger tasks x semantic safety x parallel agents x automated gating x earned autonomy x intelligent scheduling. That multiplication is what produces 1000x.
+## What this causes
 
----
+**Code review takes 3.6x longer.** Reviewers stare at diffs and reverse-engineer intent. "Why did the agent change the auth middleware order?" has no answer. They have to guess, or ask, or just approve and hope. AI-generated changes take an average of 4.3 minutes to review vs 1.2 minutes for human-written changes.
 
-### Ceiling 1: Agent reasoning evaporates
-**The keystone. Everything else depends on this.**
+**46% of developers actively distrust AI-written code.** Not because the code is bad - because they can't see the reasoning. Only 3% highly trust it. Trust requires transparency. When the thinking is invisible, distrust is rational.
 
-When an agent writes code, its chain of thought - what it read, what it intended, what alternatives it considered, how confident it was - is discarded at commit time. The thinking dies. Only the output survives in Git.
+**Debugging is terrifying.** When agent code breaks in production, there's no trail. The agent that wrote the code is gone. Its reasoning is gone. All that's left is a diff and a commit message. You're reverse-engineering intent from output, and the clock is ticking.
 
-**The pain is measurable.**
-- Review is 3.6x slower for AI code (4.3 min vs 1.2 min per change)
-- 46% of developers actively distrust AI output. Only 3% highly trust it.
-- AWS lost 13 hours debugging an agent decision nobody could reconstruct
-- 70% say agents boost personal productivity, but only 17% say they help team collaboration - a 4x gap
-- Salesforce had to rebuild their entire review infrastructure because "reconstructing intent by scanning diffs sequentially fractured"
+**Teams don't benefit.** 70% of developers say AI agents boost their personal productivity. Only 17% say agents help team collaboration. That's a 4x gap. Reasoning lives in private sessions and dies there. Your teammate's agent made a smart architectural choice yesterday. Nobody on the team knows why. The next agent that touches that code will undo it.
 
-**What's capped.** Teams limit agents to 1-5 file tasks. Nobody delegates "refactor the payments module" because verifying 40 files of opaque decisions is impossible. Agent capability far exceeds what teams allow. The trust deficit is the governor.
+**AI agents can't learn from previous decisions.** When an agent starts working on your codebase, it reads the code but has zero context about WHY the code looks the way it does. Every past decision, every rejected alternative, every tradeoff - invisible. The agent re-explores territory that was already explored. It considers approaches that were already tried and rejected. It might even undo a deliberate choice because it doesn't know the choice was deliberate.
 
-**What removing it unlocks.** Agents explain every decision. Reviewers assess intent, not just diffs. Trust becomes calibratable. Debugging has a trail. Delegation scope expands from "write this function" to "build this feature across 10-50 files."
+## A real example of what this looks like
 
-**Unlock: 2x to 5-10x.**
+Your agent refactors the payment processing module. The commit says:
 
----
+> refactor: Update payment calculation to use Decimal
 
-### Ceiling 2: No semantic understanding of code structure
+Here's what the reviewer sees in the PR: 8 files changed across checkout, billing, refunds, and settlement. Float replaced with Decimal everywhere. Some rounding logic changed. Tests updated.
 
-Git tracks lines and files, not functions and dependencies. When an agent changes a function signature, nothing in the system knows that 14 callers across 8 files are now broken. Git sees no conflict. CI finds the breakage 20 minutes later. Three other agents have already built on the broken state.
+The reviewer has no idea why. Was this a performance issue? A precision bug? A compliance requirement? Did the agent test edge cases? What about the batch settlement job that runs nightly - did the agent even know about it?
 
-**What's capped.** Agents can only safely modify isolated code. Cross-cutting changes - refactors, API migrations, shared library updates - are too risky because nobody can trace the blast radius.
+The reviewer spends 25 minutes reading 8 diffs, checking if the rounding changes are correct, wondering if the settlement job handles Decimal, and ultimately approves because the tests pass and they're behind on 14 other PRs.
 
-**What removing it unlocks.** The codebase becomes queryable as a structure. "What depends on process_payment?" has an instant answer. Impact analysis happens before committing, not after CI fails.
+Three weeks later, the nightly settlement job is off by $0.03 on a batch of 10,000 transactions. That's $300 missing. The finance team escalates. Someone looks at git blame, finds the refactor commit, reads "Update payment calculation to use Decimal," and now has to figure out: what was the agent thinking? Why did it change the rounding mode in settlement? Did it know about the nightly job? Nobody knows. The agent session is gone.
 
-**Requires ceiling 1.** Agent-declared context reads (from captured reasoning) are a key signal for building an accurate dependency graph.
+**With g4a, the reasoning record for that commit would show:**
 
-**Unlock: 5-10x to 20-50x.**
+- **Intent:** Switch from float to Decimal for currency precision because batch settlements accumulate floating-point errors. After 500 operations on a test dataset, float arithmetic drifted by $0.03 vs Decimal which was exact.
+- **Exploration:** Read checkout.py, billing.py, refunds.py, settlement.py. Found 14 call sites. Ran test with 10,000 simulated transactions - float accumulated $0.03 error, Decimal was exact. Checked batch_settlement_job.py - it calls calculate_total() which now returns Decimal.
+- **Alternatives considered:** (1) Keep float + round at the end - rejected because error accumulates across batch operations. (2) Use integer cents - rejected because existing APIs expect decimal format and migration would touch 23 files. (3) Decimal everywhere - chosen, cleanest migration path, 8 files.
+- **Risk assessment:** batch_settlement_job.py calls calculate_total() which now returns Decimal instead of float. The job's comparison operators and database writes were tested and work correctly with Decimal. However, the job's CSV export on line 47 uses f-string formatting that may truncate Decimal - flagged as LOW confidence.
+- **Confidence:** 0.85 overall, 0.6 on CSV export formatting in settlement job
 
----
+The reviewer reads this in 3 minutes. They see the agent tested with 10,000 transactions. They see it found 14 call sites. They see the LOW confidence flag on CSV export - they check that one line, find the formatting issue, fix it, and approve. Instead of 25 minutes of guessing, it's 3 minutes of reading and one targeted check.
 
-### Ceiling 3: No cross-agent awareness
-
-Every major platform shipped multi-agent in February 2026. But agents are blind to each other. Claude Code warns: "Two teammates editing the same file leads to overwrites." Codex runs agents in isolated containers. Cross-tool coordination doesn't exist.
-
-**What's capped.** Practical ceiling: 5-7 concurrent agents before conflict dominates. The human becomes the scheduler and conflict resolver. More agents = more overhead, not more throughput.
-
-**What removing it unlocks.** Agents subscribe to dependency changes. Conflicts detected at write-time. 50-200 concurrent agents become viable.
-
-**Requires ceilings 1 + 2.** Coordination needs shared reasoning (intent) plus the dependency graph (who to notify).
-
-**Unlock: 20-50x to 100-200x.**
+Three weeks later, the settlement job works perfectly. The $0.03 error that would have appeared never happens. The reasoning is in the repo for the next person - or the next agent - who touches that code.
 
 ---
 
-### Ceiling 4: No policy enforcement at write-time
+## How g4a helps humans
 
-The only policy engine is human review. Every change - CSS fix to security-critical auth - waits in the same queue for the same human attention. No way to express "auto-approve low-risk, flag high-risk."
+**PR reviews go from guessing to reading.** Instead of reverse-engineering intent from diffs, reviewers read the agent's actual reasoning. Intent, confidence, alternatives, what was tested, what was flagged as risky. A 25-minute review becomes a 3-minute review with higher confidence. Multiply that across every PR in your team.
 
-**What's capped.** 50 agents generating 200 changes/day with 3 reviewers = permanent backlog. Adding more agents just grows the queue.
+**Debugging has a trail.** When something breaks, `g4a why settlement_job` gives you the complete decision history. Every change, every agent that touched it, what they intended, what they were worried about. No more reading diffs and guessing. No more "who changed this and why?"
 
-**What removing it unlocks.** Human-defined policies enforced at write-time. Routine work flows automatically. Humans focus on architecture and exceptions.
+**Trust is earned, not assumed.** Every AI-generated change carries a confidence score and a full explanation. Low-confidence changes get extra scrutiny. High-confidence changes with thorough exploration can be approved faster. Trust becomes data-driven, not gut-feel.
 
-**Requires ceilings 1 + 2 + 3.** Policies need reasoning (confidence), semantic understanding (boundaries), and coordination (real-time enforcement).
+**Onboarding is instant.** A new developer joins the team. Instead of spending weeks figuring out why the codebase looks the way it does, they run `g4a why <module>` and read the decision history. "Why is this Decimal and not float?" - there's an answer. "Why does the middleware run in this order?" - there's an answer. The codebase documents itself.
 
-**Unlock: 100-200x to 200-500x.**
+## How g4a helps AI agents
 
----
+**Agents understand past decisions.** When a new agent starts working on your codebase, it reads `.g4a/` and immediately knows: this was changed from float to Decimal because of precision drift in batch settlements. The nightly job's CSV export was flagged as a risk. Integer cents was considered and rejected because it would touch 23 files. The agent doesn't re-explore. It doesn't accidentally revert a deliberate choice. It builds on top of documented reasoning.
 
-### Ceiling 5: No earned trust
+**Agents stop duplicating work.** Without g4a, every agent re-discovers the same things. Agent A explored the codebase and learned that the payment module has a tricky dependency on the settlement job. Agent B comes along the next day and has to discover that from scratch. With g4a, Agent B reads Agent A's exploration trail and starts from where Agent A left off.
 
-Every agent gets identical permissions regardless of track record. A proven agent with zero rollbacks is treated the same as one deployed five minutes ago.
+**Agents coordinate through shared context.** When multiple agents work on the same codebase, they can read each other's reasoning. Agent A is refactoring payments. Agent B is building a new billing feature. Agent B reads Agent A's reasoning, sees the Decimal migration in progress, and writes its new code with Decimal from the start instead of using float and creating a conflict.
 
-**What's capped.** The system is permanently conservative. Agents can't earn the right to work independently on critical modules.
-
-**What removing it unlocks.** Trust scored on track record. Proven agents earn expanded scope. Bad agents get constrained. The best agents operate near-autonomously on well-tested modules.
-
-**Requires ceilings 1 + 4.** Trust scoring needs reasoning trails (decision quality) and policy enforcement (defining good behavior).
-
-**Unlock: 200-500x to 500-800x.**
+**Agents get smarter over time on your codebase.** The `.g4a/` directory is an institutional memory for your codebase. Every decision, every rejected alternative, every risk assessment - accumulated over months and years. The longer g4a runs, the more context every future agent has. Your codebase goes from being a collection of files to being a documented history of decisions.
 
 ---
 
-### Ceiling 6: No intelligent work decomposition
+## The solution
 
-Humans manually break objectives into tasks and assign them. Works for 5-10 tasks. At 100+ tasks across 50 agents, no human can hold the dependency graph in their head. The planning bottleneck replaces the review bottleneck.
+g4a captures the reasoning that AI agents already produce and stores it alongside the code in git. Add it to your existing project. Change nothing about your workflow. The reasoning layer starts working immediately.
 
-**What's capped.** "Throw 200 agents at it" is a fantasy without a planning system.
+**How it works:**
 
-**What removing it unlocks.** Human states an objective. The system decomposes it, schedules across 200+ agents, matches trust and capability to task requirements. Humans define goals and review outcomes.
+1. You install g4a once: `pip install g4a && g4a init`
+2. You use your AI coding agent normally - nothing changes
+3. g4a silently captures the agent's reasoning as it works
+4. The reasoning is stored in `.g4a/` inside your repo
+5. When you push to GitHub/GitLab/Bitbucket, the reasoning travels with the code
 
-**Requires all five ceilings below.**
+**What you can then do:**
 
-**Unlock: 500-800x to 1000x.**
-
----
-
-## Why the reasoning layer is the keystone
-
-Every ceiling requires the one below it. But ceiling 1 is uniquely foundational - it's required by every other ceiling, directly or transitively:
-
-- **Semantic understanding** needs reasoning because agent-declared context reads are a key signal for the dependency graph
-- **Coordination** needs reasoning because agents must read each other's intent to coordinate
-- **Policies** need reasoning because meaningful policies evaluate confidence and intent, not just syntax
-- **Trust** needs reasoning because trust is scored on reasoning quality over time, not just pass/fail
-- **Planning** needs all five
-
-Without ceiling 1, you cannot build any of the others. With it, each becomes a solvable engineering problem.
+- `g4a log` - see recent commits with the reasoning behind each one
+- `g4a why process_payment` - get the full decision trail for any function
+- `g4a show HEAD` - see a commit's diff side-by-side with the reasoning that produced it
+- `g4a web` - open a visual report in your browser
 
 ---
 
-## The compound math
+## Designed for all AI coding agents
 
-Remove any layer and the ones above it hit a wall:
+g4a is not tied to any single agent. It's a universal reasoning layer that works with every tool that writes code.
 
-- Many agents without semantic understanding = many conflicts
-- Policies without reasoning = policies that only check syntax
-- Trust scoring without reasoning = scoring on pass/fail only
-- Planning without coordination = 200 agents colliding
+**Claude Code (launching first):** Deepest integration. Claude Code already saves full session transcripts with every file read, every tool call, every reasoning statement. g4a parses these transcripts directly - no API call needed, no workflow change. The reasoning is already there. g4a just captures it before it's lost.
 
-The ceilings must fall in order. The order starts with reasoning.
+**Every other agent (Cursor, Codex, Copilot, Windsurf, Aider, custom agents):** g4a installs a standard git post-commit hook. When any agent commits code, g4a reads the diff and surrounding context, then uses AI to infer the most likely reasoning. The result is labeled "inferred" (vs "captured" for agents with direct integration). Inferred reasoning is weaker than captured, but dramatically better than nothing.
 
----
-
-## Where things stand (March 2026)
-
-| Ceiling | Status |
-|---|---|
-| 1. Reasoning | **UNSOLVED** - no tool captures agent reasoning and links it to Git commits |
-| 2. Semantic understanding | PARTIALLY SOLVED - Augment Code, Qodo have graphs, but disconnected from reasoning |
-| 3. Cross-agent awareness | JUST ARRIVED - within-tool only, 6 weeks old |
-| 4. Policy enforcement | UNSOLVED |
-| 5. Earned trust | UNSOLVED |
-| 6. Intelligent decomposition | UNSOLVED |
-
-The entire stack is blocked at the foundation.
+**Custom agents and frameworks:** The reasoning record schema is the same regardless of which agent produced it. LangChain, CrewAI, custom pipelines - any tool that writes code through git can have its reasoning captured. The storage format is open, documented, and designed for future agents that don't exist yet.
 
 ---
 
-## The solution - six phases, each built on the last
+## How it stores data
 
-### Phase 1: Capture reasoning (the keystone)
+g4a stores reasoning in a `.g4a/` directory inside your repo. No external server. No account. No hosting.
 
-Build the layer every other ceiling depends on: a system that captures agent reasoning at generation time and makes it persistent, searchable, and linked to code changes.
+- **One file per commit** (`.g4a/commits/{sha}.g4a`) - the reasoning behind that specific change
+- **One file per session** (`.g4a/sessions/{id}.g4a`) - the full interaction chain including exploration, dead ends, and corrections
+- **Binary format** - CBOR + zstd compression. Git sees "binary files differ" in diffs. The reasoning is only readable through g4a tools.
+- **Secret masking** - credentials, API keys, passwords, and tokens are automatically detected and masked before any data hits disk. Irreversible by design.
+- **Compact** - roughly 10-50 KB per commit compressed. 1,000 commits = 10-50 MB. Well within every hosting platform's limits.
+- **Self-describing schema** - `.g4a/schema.json` in the repo tells any future tool how to parse the records
 
-**What a reasoning record contains:**
-- Intent: what the agent was trying to accomplish
-- Confidence: how certain the agent was (0.0 to 1.0)
-- Context read: what parts of the codebase the agent examined
-- Alternatives considered: what other approaches were evaluated and rejected
-- Risk assessment: what the agent believes could go wrong
-
-**Where it lives:** linked to Git commits. Not replacing Git. Adding the layer that's missing from all tools.
-
-**How it's captured:** an MCP server that agents connect to, or a hook alongside the agent's normal Git workflow. The agent does its normal work and reasoning is captured as a side effect.
-
-**What it must work with:** every major agent tool (Claude Code, Cursor, Codex, Aider, custom agents) and every Git platform (GitHub, GitLab, local). Cross-agent and cross-platform from day one.
-
-### Phase 2: Build the semantic graph
-
-Parse every file with tree-sitter. Extract functions, classes, types, interfaces. Map dependencies from imports, symbol references, and agent-declared context reads. Make the codebase queryable as a structure.
-
-### Phase 3: Enable cross-agent coordination
-
-Real-time subscriptions on dependency changes. Conflict detection at write-time. Shared reasoning that agents read before modifying related code. This is where the 5-7 agent ceiling breaks.
-
-### Phase 4: Policy engine
-
-Human-defined rules evaluated at write-time against reasoning metadata, dependency context, and coordination state. This is where the review bottleneck breaks.
-
-### Phase 5: Trust scoring
-
-Track record per agent. Graduated permissions. Automatic scope expansion for proven agents. Automatic constraint for unreliable ones.
-
-### Phase 6: Intelligent decomposition
-
-Objective decomposition into task DAGs. Capability-matched scheduling. Dependency-aware parallel execution across 200+ agents. This is the full vision - not the starting point.
+Clone the repo, you get the reasoning. Fork it, reasoning forks too. Delete `.g4a/`, you still have a perfectly valid git repo. g4a is additive. Always.
 
 ---
 
-## The 9 Principles
+## Get started
 
-1. **Code is data, not files**: The codebase is a structured, queryable, transactional data store. Files are a projection, not the truth.
-2. **Write-level atomicity**: Every mutation is an atomic transaction with ACID guarantees. No partial states.
-3. **Fine-grained coordination**: Lock at the function or symbol level, not the file.
-4. **Real-time subscriptions**: When agent A modifies a function signature, agent B knows instantly and can adapt.
-5. **Continuous validation**: Lint, format, typecheck, test on every transaction. Not in a CI pipeline 20 minutes later.
-6. **Captured reasoning**: Every mutation carries intent, alternatives, context, confidence. The version history becomes a decision graph.
-7. **Policy, not process**: Humans define rules. The system enforces them continuously. The human role shifts from reviewer to governor.
-8. **Full replayability**: Any codebase state, including the reasoning that produced it, can be reconstructed at any point.
-9. **Human-legible views**: The underlying store is agent-optimized. Humans interact through projections: IDE plugins, dashboards, NL queries.
-
----
-
-## Git vs. what comes next
-
-| Dimension | Git (2005-2025) | git4aiagents (2026+) |
-|---|---|---|
-| Storage | Filesystem + DAG of snapshots | Transactional database |
-| Unit of work | Commit (batch of diffs) | Transaction (atomic mutation) |
-| Coordination | Branch + merge | SSI + semantic dependency graph |
-| Conflict resolution | After the fact (merge/rebase) | At write-time (real-time) |
-| Validation | CI pipeline (minutes later) | Continuous (per-transaction) |
-| Review | Human gate (PR) | Continuous automated + policy |
-| History | Diff log + commit messages | Decision graph + reasoning traces |
-| Human role | Writer + reviewer | Governor + architect |
-| Optimized for | 1-20 humans | 10-1000 agents + humans |
+```
+pip install g4a
+cd your-project
+g4a init
+# use your AI coding agent normally
+# reasoning is captured automatically
+g4a log          # see commits with reasoning
+g4a why <term>   # decision trail for any function
+g4a web          # visual side-by-side report
+```
 
 ---
 
-## What's still open
+## About
 
-- Cross-repo dependencies in a database-native model?
-- Offline work and forking (the things that made Git great for open source)?
-- Livelock at scale beyond priority ordering?
-- Testing when the test suite itself is being modified concurrently?
+g4a is open source (CC-BY-4.0). Started March 2026 by [Lokesh Basu](https://twitter.com/lcbasu).
 
-## Help build this
-
-Steelman Git. Build a POC of any single layer. Share how agent-scale code is breaking your workflow today.
-
-CC-BY-4.0
-
----
-
-*Started March 2026 by [Lokesh Basu](https://twitter.com/lcbasu)*
-
-**Website:** [www.git4aiagents.com](https://www.git4aiagents.com)
+Git stores what changed. g4a stores why. Add it to your existing project and unlock 10x for both humans and AI agents.

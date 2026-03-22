@@ -1,139 +1,21 @@
-HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
-.vscode/
-/.env
-
-### File Uploads (Never commit uploaded files) ###
-uploads/
-**/uploads/
-*.pdf
-*.png
-!og-image.png
-*.jpg
-*.jpeg
-!**/src/main/**/*.pdf
-!**/src/main/**/*.png
-!**/src/main/**/*.jpg
-!**/src/main/**/*.jpeg
-.env.*
-
-
-# ======================================
-# OS files
-# ======================================
+# OS
 .DS_Store
 Thumbs.db
-Desktop.ini
 
+# IDE
+.idea/
+.vscode/
+*.iml
 
-# --- Binaries and Tooling ---
-# Compiled export archives
-*.a
-*.o
-
-# Executables
-# (If you build your API as 'server' or 'app', add those names specifically)
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-bin/
-dist/
-out/
-
-# --- Dependencies ---
-# It is generally recommended to check in go.mod and go.sum.
-# Vendor directory is optional; uncomment if you don't want to check it in.
-# vendor/
-
-# --- Environment & Secrets ---
-# Crucial for APIs: Never check in credentials
+# Environment
 .env
 *.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 *.secret
 *.pem
 *.key
 
-# --- Testing & Coverage ---
-# Coverage reports
-*.out
-*.test
-*.prof
-coverage.txt
-
-# --- Operating System Files ---
-.DS_Store
-Thumbs.db
-*.swp
-
-# --- IDEs and Editors ---
-# VS Code
-.vscode/
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# JetBrains (GoLand)
-.idea/
-
-# --- API Documentation ---
-# If using Swag/Swagger, you may want to exclude generated docs
-# if you prefer generating them at build time.
-# docs/
-
-
-# --- Database & Migrations ---
-# Goose specific (if using the binary instead of go run)
-goose
-*.db
-*.db-journal
-*.db-shm
-*.db-wal
-
-# Atlas specific
-.atlas/
-
-# General Migration/DB artifacts
-# Ignore local development databases (SQLite, etc.)
-*.sqlite
-*.sqlite3
-
-# If your migration tool generates a specific binary for the project
-migrate
-
+# Build artifacts
+dist/
+build/
+*.o
+*.exe

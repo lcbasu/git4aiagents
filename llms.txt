@@ -1,35 +1,36 @@
-# git4aiagents
+# g4a - the reasoning layer for AI-written code
 
-> Your AI agents are 1000x capable. Git caps them at 2x. One missing layer unblocks everything.
+> Git stores what changed. The reasoning behind it is lost. g4a captures it. Add it to your existing project. Unlock 10x for both humans and AI agents.
 
-AI agents score 80.9% on SWE-bench. They handle 40-file refactors. But teams hand them 5-file tasks because they can't verify the reasoning behind anything bigger. The thinking dies at commit time. Six structural ceilings block the path from 2x to 1000x. They're stacked, multiplicative, and they all start with the one thing Git never stored: reasoning.
+## The problem
 
-## The six ceilings
+Every AI coding agent thinks deeply while writing code - reading files, considering alternatives, testing approaches. Then at commit time, all of that thinking is thrown away. The commit message is a 10-word summary of 100 steps of reasoning. This happens with every agent, every commit, every tool.
 
-1. **Reasoning evaporates** (UNSOLVED) - Agent intent, confidence, alternatives, and context are discarded at commit time. Review is 3.6x slower. 46% distrust AI output. Teams limit agents to 1-5 file tasks. Unlock: 2x to 5-10x.
+## What this causes
 
-2. **No semantic understanding** (PARTIAL) - Git tracks lines, not functions and dependencies. Agent changes a function signature, 14 callers break, Git sees no conflict. Unlock: 5-10x to 20-50x. Requires ceiling 1.
+- Code review is 3.6x slower for AI-generated changes (4.3 min vs 1.2 min)
+- 46% of developers actively distrust AI-written code, only 3% highly trust it
+- Debugging is terrifying - no trail of WHY agent decisions were made
+- 70% individual productivity gain, only 17% team collaboration gain
+- AI agents start from zero every time - no memory of past decisions, rejected alternatives, or tradeoffs
 
-3. **No cross-agent awareness** (JUST ARRIVED) - Agents are blind to each other. Practical ceiling: 5-7 concurrent agents. Unlock: 20-50x to 100-200x. Requires ceilings 1+2.
+## How g4a helps humans
 
-4. **No policy enforcement** (UNSOLVED) - Humans are the only policy engine. Every change waits in the same review queue. Unlock: 100-200x to 200-500x. Requires ceilings 1+2+3.
+- PR reviews go from 25 minutes of guessing to 3 minutes of reading with full reasoning, confidence scores, and risk flags
+- Debugging has a trail: g4a why <function> shows the complete decision history
+- Trust becomes data-driven: low-confidence changes get scrutiny, high-confidence flows faster
+- Onboarding is instant: new developers read the decision history instead of guessing from diffs
 
-5. **No earned trust** (UNSOLVED) - Every agent gets identical permissions regardless of track record. Unlock: 200-500x to 500-800x. Requires ceilings 1+4.
+## How g4a helps AI agents
 
-6. **No intelligent decomposition** (UNSOLVED) - Humans manually break objectives into tasks. Planning bottleneck replaces review bottleneck. Unlock: 500-800x to 1000x. Requires all five.
+- Agents read past reasoning and understand WHY code looks the way it does
+- Agents stop duplicating work - they start where the previous agent left off
+- Agents coordinate through shared context instead of colliding blindly
+- The codebase accumulates institutional memory that makes every future agent smarter
 
-## Why reasoning is the keystone
+## The solution
 
-Every ceiling depends on ceiling 1. Semantic understanding needs agent-declared context reads. Coordination needs shared intent. Policies need confidence scores. Trust needs reasoning quality over time. Planning needs all of the above. Without captured reasoning, you cannot build any of the other layers.
-
-## Solution phases
-
-Phase 1: Capture reasoning at commit time (the keystone)
-Phase 2: Build the semantic dependency graph (tree-sitter + reasoning traces)
-Phase 3: Enable cross-agent coordination (real-time subscriptions)
-Phase 4: Policy engine (human-defined rules at write-time)
-Phase 5: Trust scoring (track record, graduated permissions)
-Phase 6: Intelligent decomposition (task DAGs, 200+ agent scheduling)
+g4a captures reasoning from AI agent sessions and stores it in .g4a/ inside your repo. No server, no account, no hosting. Clone the repo, get the reasoning. Works with all AI coding agents - launching first with Claude Code (direct transcript parsing), with git hook fallback for all others.
 
 Full content: https://www.git4aiagents.com/llms-full.txt
 Website: https://www.git4aiagents.com/
