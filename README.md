@@ -16,15 +16,23 @@ This happens with every agent, every commit, every tool. The reasoning is genera
 
 ## What this causes
 
-**Code review takes 3.6x longer.** Reviewers stare at diffs and reverse-engineer intent. "Why did the agent change the auth middleware order?" has no answer. They have to guess, or ask, or just approve and hope. AI-generated changes take an average of 4.3 minutes to review vs 1.2 minutes for human-written changes.
+**PR review time increased 91%.** Teams using AI merge 98% more PRs that are 154% larger, but review time increased 91%. Reviewers stare at diffs and reverse-engineer intent. "Why did the agent change the auth middleware order?" has no answer. They have to guess, or ask, or just approve and hope.
+> Source: [Faros AI, "AI Productivity Paradox Report" 2025](https://www.faros.ai/blog/ai-software-engineering) - 10,000+ developers across 1,255 teams.
 
 **46% of developers actively distrust AI-written code.** Not because the code is bad - because they can't see the reasoning. Only 3% highly trust it. Trust requires transparency. When the thinking is invisible, distrust is rational.
+> Source: [Stack Overflow 2025 Developer Survey](https://survey.stackoverflow.co/2025/ai) - 49,000+ respondents across 177 countries.
 
-**Debugging is terrifying.** When agent code breaks in production, there's no trail. The agent that wrote the code is gone. Its reasoning is gone. All that's left is a diff and a commit message. You're reverse-engineering intent from output, and the clock is ticking.
+**66% waste time on "almost right" AI code.** The biggest frustration: AI solutions that are close but not quite. Debugging AI-generated code is more time-consuming than writing it yourself - because the reasoning behind it is invisible.
+> Source: [Stack Overflow 2025 Developer Survey](https://survey.stackoverflow.co/2025/ai) - 49,000+ respondents.
 
 **Teams don't benefit.** 70% of developers say AI agents boost their personal productivity. Only 17% say agents help team collaboration. That's a 4x gap. Reasoning lives in private sessions and dies there. Your teammate's agent made a smart architectural choice yesterday. Nobody on the team knows why. The next agent that touches that code will undo it.
+> Source: [Stack Overflow 2025 Developer Survey, AI Agents section](https://survey.stackoverflow.co/2025/ai).
 
-**AI agents can't learn from previous decisions.** When an agent starts working on your codebase, it reads the code but has zero context about WHY the code looks the way it does. Every past decision, every rejected alternative, every tradeoff - invisible. The agent re-explores territory that was already explored. It considers approaches that were already tried and rejected. It might even undo a deliberate choice because it doesn't know the choice was deliberate.
+**AI agents start from zero, every time.** "Each Claude Code session begins with a fresh context window." Every agent re-discovers the same things. Every rejected alternative is re-explored. Every deliberate tradeoff is invisible. The codebase has no memory of the decisions that shaped it.
+> Source: [Anthropic, Claude Code Memory docs](https://docs.anthropic.com/en/docs/claude-code/memory).
+
+**Salesforce already hit this wall.** They rebuilt their entire review infrastructure because "traditional pull request review assumes reviewers can reconstruct intent by scanning diffs sequentially" - and that assumption broke under AI code volume. Code grew 30%, PRs expanded beyond 20 files and 1,000+ lines, and review latency rose quarter over quarter.
+> Source: [Salesforce Engineering Blog, January 2026](https://engineering.salesforce.com/scaling-code-reviews-adapting-to-a-surge-in-ai-generated-code/).
 
 ## A real example of what this looks like
 
@@ -66,13 +74,13 @@ Three weeks later, the settlement job works perfectly. The $0.03 error that woul
 
 ## How g4a helps AI agents
 
-**Agents understand past decisions.** When a new agent starts working on your codebase, it reads `.g4a/` and immediately knows: this was changed from float to Decimal because of precision drift in batch settlements. The nightly job's CSV export was flagged as a risk. Integer cents was considered and rejected because it would touch 23 files. The agent doesn't re-explore. It doesn't accidentally revert a deliberate choice. It builds on top of documented reasoning.
+**Every future agent will have context.** The `.g4a/` directory is institutional memory. A new agent reads it and immediately knows: this was changed from float to Decimal because of precision drift in batch settlements. The nightly job's CSV export was flagged as a risk. Integer cents was considered and rejected because it would touch 23 files. No re-exploration. No accidentally reverting a deliberate choice.
 
 **Agents stop duplicating work.** Without g4a, every agent re-discovers the same things. Agent A explored the codebase and learned that the payment module has a tricky dependency on the settlement job. Agent B comes along the next day and has to discover that from scratch. With g4a, Agent B reads Agent A's exploration trail and starts from where Agent A left off.
 
-**Agents coordinate through shared context.** When multiple agents work on the same codebase, they can read each other's reasoning. Agent A is refactoring payments. Agent B is building a new billing feature. Agent B reads Agent A's reasoning, sees the Decimal migration in progress, and writes its new code with Decimal from the start instead of using float and creating a conflict.
+**Agent coordination becomes possible.** When multiple agents work on the same codebase, they need shared context to avoid conflicts. g4a provides the foundation: captured reasoning that any agent can read before modifying shared code. As agent-to-agent coordination matures, the reasoning is already there.
 
-**Agents get smarter over time on your codebase.** The `.g4a/` directory is an institutional memory for your codebase. Every decision, every rejected alternative, every risk assessment - accumulated over months and years. The longer g4a runs, the more context every future agent has. Your codebase goes from being a collection of files to being a documented history of decisions.
+**Your codebase compounds intelligence.** Every decision, every rejected alternative, every risk assessment - accumulated over months and years. The longer g4a runs, the more context every future agent has. Your codebase goes from being a collection of files to being a documented history of decisions.
 
 ---
 
@@ -115,7 +123,7 @@ g4a stores reasoning in a `.g4a/` directory inside your repo. No external server
 
 - **One file per commit** (`.g4a/commits/{sha}.g4a`) - the reasoning behind that specific change
 - **One file per session** (`.g4a/sessions/{id}.g4a`) - the full interaction chain including exploration, dead ends, and corrections
-- **Binary format** - CBOR + zstd compression. Git sees "binary files differ" in diffs. The reasoning is only readable through g4a tools.
+- **Binary format** - CBOR ([IETF RFC 8949](https://www.rfc-editor.org/rfc/rfc8949)) + zstd compression. An internet standard, not a proprietary format. Git sees "binary files differ" in diffs. The reasoning is only readable through g4a tools.
 - **Secret masking** - credentials, API keys, passwords, and tokens are automatically detected and masked before any data hits disk. Irreversible by design.
 - **Compact** - roughly 10-50 KB per commit compressed. 1,000 commits = 10-50 MB. Well within every hosting platform's limits.
 - **Self-describing schema** - `.g4a/schema.json` in the repo tells any future tool how to parse the records
@@ -139,8 +147,24 @@ g4a web          # visual side-by-side report
 
 ---
 
+## Sources
+
+Every claim on this page is backed by primary research:
+
+| Claim | Source | Link |
+|-------|--------|------|
+| PR review time up 91%, 98% more PRs, 154% larger PRs, 9% more bugs/dev | Faros AI, "AI Productivity Paradox Report" 2025 (10,000+ devs, 1,255 teams) | [faros.ai](https://www.faros.ai/blog/ai-software-engineering) |
+| 46% distrust AI code, only 3% highly trust | Stack Overflow 2025 Developer Survey (49,000+ respondents, 177 countries) | [survey.stackoverflow.co](https://survey.stackoverflow.co/2025/ai) |
+| 66% frustrated by "almost right" AI code | Stack Overflow 2025 Developer Survey | [survey.stackoverflow.co](https://survey.stackoverflow.co/2025/ai) |
+| 70% individual gain, 17% team collaboration gain | Stack Overflow 2025 Developer Survey, AI Agents section | [survey.stackoverflow.co](https://survey.stackoverflow.co/2025/ai) |
+| "Each session begins with a fresh context window" | Anthropic, Claude Code Memory documentation | [docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code/memory) |
+| Salesforce rebuilt review infra, "reconstruct intent by scanning diffs" quote, 30% code growth, PRs beyond 20 files / 1,000+ lines | Salesforce Engineering Blog, January 2026 | [engineering.salesforce.com](https://engineering.salesforce.com/scaling-code-reviews-adapting-to-a-surge-in-ai-generated-code/) |
+| CBOR binary format (IETF standard) | IETF RFC 8949 | [rfc-editor.org](https://www.rfc-editor.org/rfc/rfc8949) |
+
+---
+
 ## About
 
 g4a is open source (CC-BY-4.0). Started March 2026 by [Lokesh Basu](https://twitter.com/lcbasu).
 
-Git stores what changed. g4a stores why. Add it to your existing project and unlock 10x for both humans and AI agents.
+Git stores what changed. g4a stores why. 10x from reasoning alone. The path to 1000x starts here.
