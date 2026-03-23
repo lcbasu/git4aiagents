@@ -234,6 +234,12 @@ footer{border-top:1px solid var(--border);padding:3rem 2rem;max-width:var(--max-
     g4a captures it. No server, no database, everything in git.
   </p>
 
+  <div style="display:flex;gap:1.5rem;margin-top:1.5rem;flex-wrap:wrap;justify-content:center;animation:fadeUp .8s var(--ease) .35s both">
+    <span style="font-family:var(--font-mono);font-size:.78rem;color:var(--accent);padding:.4rem .9rem;border:1px solid rgba(74,222,128,.25);border-radius:100px;background:rgba(74,222,128,.06)">Faster PR reviews</span>
+    <span style="font-family:var(--font-mono);font-size:.78rem;color:var(--amber);padding:.4rem .9rem;border:1px solid rgba(251,191,36,.25);border-radius:100px;background:rgba(251,191,36,.06)">Fearless debugging</span>
+    <span style="font-family:var(--font-mono);font-size:.78rem;color:var(--blue);padding:.4rem .9rem;border:1px solid rgba(96,165,250,.25);border-radius:100px;background:rgba(96,165,250,.06)">Earned trust</span>
+  </div>
+
   <div class="hero-install">
     <div class="install-step">
       <span class="step-num">1</span>
@@ -318,6 +324,48 @@ footer{border-top:1px solid var(--border);padding:3rem 2rem;max-width:var(--max-
       <div class="benefit-icon" style="font-size:.9rem;">AI</div>
       <h3>Future AI agents read it too</h3>
       <p>Any agent reads the reasoning before modifying shared code. No re-exploration. No accidentally reverting deliberate choices. The codebase compounds intelligence.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- WHY IT MATTERS -->
+<section class="section">
+  <div class="section-label reveal">Why it matters</div>
+  <h2 class="section-title reveal">Faster reviews. Fearless debugging. Earned trust.</h2>
+  <p class="section-desc reveal">When the reasoning is visible, everything changes - for humans reviewing AI code and for AI agents building on each other's work.</p>
+
+  <div class="benefits-grid">
+    <div class="benefit-card reveal">
+      <div class="benefit-icon">PR</div>
+      <h3>PR reviews: 25 min to 3 min</h3>
+      <p>Instead of reading 8 diffs and guessing why the auth middleware order changed, reviewers read the agent's actual reasoning: what it intended, what alternatives it rejected, and what it flagged as risky. Low-confidence changes get scrutiny. High-confidence changes flow faster.</p>
+    </div>
+    <div class="benefit-card reveal reveal-delay-1">
+      <div class="benefit-icon">DB</div>
+      <h3>Debugging has a trail</h3>
+      <p>When agent code breaks in production, there is no trail. The agent is gone. With g4a, <code>g4a why settlement_job</code> gives you every change, every agent's intent, every dead end it explored, every risk it flagged. No more reverse-engineering meaning from diffs at 2am.</p>
+    </div>
+    <div class="benefit-card reveal reveal-delay-2">
+      <div class="benefit-icon">HU</div>
+      <h3>Humans trust what they can see</h3>
+      <p>46% of developers distrust AI code - not because it is bad, but because the reasoning is invisible. g4a makes every AI change carry a confidence score, full explanation, and list of alternatives considered. Trust becomes data-driven, not gut-feel.</p>
+    </div>
+    <div class="benefit-card reveal reveal-delay-3">
+      <div class="benefit-icon">AI</div>
+      <h3>AI agents trust each other's work</h3>
+      <p>Agent B reads Agent A's reasoning and immediately knows: this was changed to Decimal because of precision drift. Integer cents was rejected because it would touch 23 files. No re-exploration. No accidentally reverting a deliberate choice. Agents build on documented decisions instead of guessing.</p>
+    </div>
+    <div class="benefit-card reveal">
+      <div class="benefit-icon">ON</div>
+      <h3>Onboarding in minutes, not weeks</h3>
+      <p>New developer joins the team. Instead of spending weeks figuring out why the codebase looks this way, they run <code>g4a why auth</code> and read the decision history. "Why is this Decimal and not float?" - there is an answer. The codebase documents itself.</p>
+    </div>
+    <div class="benefit-card reveal reveal-delay-1">
+      <div class="benefit-icon">TM</div>
+      <h3>Team knowledge stops dying</h3>
+      <p>70% individual productivity gain, only 17% team gain. The gap exists because reasoning lives in private sessions and dies there. g4a makes every agent's exploration, every rejected alternative, every architectural decision visible to the entire team - forever.</p>
     </div>
   </div>
 </section>
@@ -423,9 +471,18 @@ window.addEventListener('scroll',()=>nav.classList.toggle('scrolled',window.scro
 
 function copyCmd(el,text){
   navigator.clipboard.writeText(text).then(()=>{
-    const orig=el.style.borderColor;
     el.style.borderColor='var(--accent)';
-    setTimeout(()=>el.style.borderColor=orig,1500);
+    el.style.boxShadow='0 0 20px var(--accent-glow)';
+    var hint=el.parentElement.querySelector('.copy-feedback');
+    if(!hint){
+      hint=document.createElement('span');
+      hint.className='copy-feedback';
+      hint.style.cssText='display:inline-block;font-family:var(--font-mono);font-size:.72rem;color:var(--accent);margin-left:.75rem;opacity:0;transition:opacity .2s;vertical-align:middle;';
+      el.parentElement.insertBefore(hint,el.nextSibling);
+    }
+    hint.textContent='Copied!';
+    hint.style.opacity='1';
+    setTimeout(()=>{hint.style.opacity='0';el.style.borderColor='';el.style.boxShadow='';},1500);
   });
 }
 
