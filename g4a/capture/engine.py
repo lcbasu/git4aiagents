@@ -1,6 +1,6 @@
 import time
 
-from g4a.capture.transcript import find_transcript, parse_transcript, find_commit_in_transcript
+from g4a.capture.transcript import find_transcript, parse_transcript, find_commit_in_transcript, is_event_relevant_to_repo
 from g4a.git_utils import run_git, run_git_ok
 from g4a.security.masker import mask_secrets, mask_dict
 from g4a.storage.notes import write_note
@@ -39,7 +39,7 @@ def run_capture(commit_sha, repo_root):
             change_type = {"M": "modified", "A": "added", "D": "deleted", "R": "renamed"}.get(parts[0][0], parts[0])
             files_changed.append({"path": parts[-1], "change_type": change_type})
 
-    transcript_path = find_transcript(repo_root)
+    transcript_path, is_parent_transcript = find_transcript(repo_root)
 
     if not transcript_path:
         record = build_metadata_only(full_sha, parent_sha, timestamp, message, author, files_changed)
@@ -60,8 +60,22 @@ def run_capture(commit_sha, repo_root):
                     prev_boundary = i + 1
                     break
         relevant_events = events[prev_boundary:commit_idx + 1]
+    elif is_parent_transcript:
+        # Commit not found in parent's transcript - don't grab unrelated events.
+        # Fall back to metadata-only instead of blindly taking last 200 events.
+        record = build_metadata_only(full_sha, parent_sha, timestamp, message, author, files_changed)
+        write_note(notes_ref, full_sha, record, repo=repo_root)
+        update_watermark(repo_root)
+        return
     else:
         relevant_events = events[-200:] if len(events) > 200 else events
+
+    # Filter out events that reference files outside this repo
+    resolved_root = os.path.abspath(repo_root)
+    relevant_events = [
+        evt for evt in relevant_events
+        if is_event_relevant_to_repo(evt, resolved_root)
+    ]
 
     session_id = transcript_path.stem
 

@@ -23,12 +23,17 @@ def _newest_transcript(transcripts_dir):
 
 
 def find_transcript(repo_root):
+    """Find the most recent transcript for this repo.
+
+    Returns (path, is_parent_transcript). is_parent_transcript is True when
+    the transcript comes from a parent repo's session directory.
+    """
     # First check for transcripts under this repo's own slug
     slug = repo_to_slug(repo_root)
     transcripts_dir = Path.home() / ".claude" / "projects" / slug
     result = _newest_transcript(transcripts_dir)
     if result:
-        return result
+        return result, False
 
     # If this is a sub-repo, also check the parent repo's transcript dir.
     # Claude Code sessions typically run from the root repo, so the transcript
@@ -37,9 +42,11 @@ def find_transcript(repo_root):
     if parent:
         parent_slug = repo_to_slug(parent)
         parent_dir = Path.home() / ".claude" / "projects" / parent_slug
-        return _newest_transcript(parent_dir)
+        result = _newest_transcript(parent_dir)
+        if result:
+            return result, True
 
-    return None
+    return None, False
 
 
 def parse_transcript(path):
@@ -127,6 +134,41 @@ def parse_transcript(path):
                             })
 
     return events
+
+
+def is_event_relevant_to_repo(evt, repo_path):
+    """Check if an event references files/paths within repo_path."""
+    etype = evt["type"]
+
+    # Non-tool events: thinking, text, user_prompt, tool_result
+    if etype != "tool_call":
+        return True
+
+    tool_name = evt.get("tool_name", "")
+    tool_input = evt.get("tool_input") or {}
+
+    if tool_name in ("Read", "Edit", "Write"):
+        fp = tool_input.get("file_path", "")
+        if fp:
+            return fp.startswith(repo_path)
+        return False
+    elif tool_name == "Bash":
+        cmd = tool_input.get("command", "")
+        if repo_path in cmd:
+            return True
+        # Commands with absolute paths to other repos are not relevant
+        if cmd.startswith("/") or "/-" in cmd or cmd.startswith("cd /"):
+            return False
+        # Short commands without paths (git status, npm test, etc.) - keep them
+        return True
+    elif tool_name in ("Grep", "Glob"):
+        path = tool_input.get("path", "")
+        if path:
+            return path.startswith(repo_path)
+        # No path specified means cwd, which could be anything - keep it
+        return True
+
+    return True
 
 
 SHA_PATTERN = re.compile(r'\[.*? ([0-9a-f]{7,40})\]')
