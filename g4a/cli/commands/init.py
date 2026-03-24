@@ -6,7 +6,7 @@ import time
 
 import click
 
-from g4a.git_utils import repo_root, run_git, run_git_ok, generate_client_id
+from g4a.git_utils import repo_root, run_git, run_git_ok, generate_client_id, find_sub_repos
 
 POST_COMMIT_MARKER_START = "# --- g4a start ---"
 POST_COMMIT_MARKER_END = "# --- g4a end ---"
@@ -33,15 +33,8 @@ exit 0
 """.strip()
 
 
-@click.command()
-def init():
-    """Initialize g4a in the current repo."""
-    try:
-        root = repo_root()
-    except RuntimeError:
-        click.echo("Error: not inside a git repository.", err=True)
-        raise SystemExit(1)
-
+def init_single_repo(root, quiet=False):
+    """Initialize g4a in a single repo. Returns the client_id."""
     g4a_dir = os.path.join(root, ".g4a")
     git_g4a_dir = os.path.join(root, ".git", "g4a")
     hooks_dir = os.path.join(root, ".git", "hooks")
@@ -84,11 +77,14 @@ def init():
         python=python_path,
     )
 
+    hook_existed = False
     if os.path.exists(hook_path):
         with open(hook_path) as f:
             existing = f.read()
         if POST_COMMIT_MARKER_START in existing:
-            click.echo("  post-commit hook already has g4a block.")
+            hook_existed = True
+            if not quiet:
+                click.echo("  post-commit hook already has g4a block.")
         else:
             with open(hook_path, "a") as f:
                 f.write("\n" + hook_block + "\n")
@@ -108,7 +104,21 @@ def init():
         run_git_ok("config", "--add", "remote.origin.fetch",
                    "+refs/notes/g4a-sessions/*:refs/notes/g4a-sessions/*", repo=root)
 
-    # 5. Print summary
+    return client_id
+
+
+@click.command()
+def init():
+    """Initialize g4a in the current repo and any sub-repos."""
+    try:
+        root = repo_root()
+    except RuntimeError:
+        click.echo("Error: not inside a git repository.", err=True)
+        raise SystemExit(1)
+
+    client_id = init_single_repo(root)
+
+    # Print summary for root repo
     click.echo("")
     click.echo("  g4a initialized.")
     click.echo("")
@@ -117,6 +127,17 @@ def init():
     click.echo(f"    .git/g4a/client_id         {client_id}")
     click.echo(f"    .git/hooks/post-commit     reasoning capture hook")
     click.echo(f"    git fetch config           notes auto-fetch enabled")
+
+    # Always scan for sub-repos
+    sub_repos = find_sub_repos(root)
+    if sub_repos:
+        click.echo("")
+        click.echo(f"  Sub-repos ({len(sub_repos)}):")
+        for sub in sub_repos:
+            rel = os.path.relpath(sub, root)
+            sub_client_id = init_single_repo(sub, quiet=True)
+            click.echo(f"    {rel}/  ready (client_id: {sub_client_id})")
+
     click.echo("")
     click.echo("  How it works:")
     click.echo("    1. Use your AI coding agent normally (Claude Code, etc.)")

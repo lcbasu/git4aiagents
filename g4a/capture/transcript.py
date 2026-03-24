@@ -3,6 +3,8 @@ import os
 import re
 from pathlib import Path
 
+from g4a.git_utils import find_parent_repo
+
 
 def repo_to_slug(repo_root):
     normalized = str(Path(repo_root).resolve())
@@ -11,15 +13,33 @@ def repo_to_slug(repo_root):
     return slug
 
 
-def find_transcript(repo_root):
-    slug = repo_to_slug(repo_root)
-    transcripts_dir = Path.home() / ".claude" / "projects" / slug
+def _newest_transcript(transcripts_dir):
     if not transcripts_dir.exists():
         return None
     jsonl_files = list(transcripts_dir.glob("*.jsonl"))
     if not jsonl_files:
         return None
     return max(jsonl_files, key=lambda f: f.stat().st_mtime)
+
+
+def find_transcript(repo_root):
+    # First check for transcripts under this repo's own slug
+    slug = repo_to_slug(repo_root)
+    transcripts_dir = Path.home() / ".claude" / "projects" / slug
+    result = _newest_transcript(transcripts_dir)
+    if result:
+        return result
+
+    # If this is a sub-repo, also check the parent repo's transcript dir.
+    # Claude Code sessions typically run from the root repo, so the transcript
+    # will be stored under the parent's slug even when commits happen in sub-repos.
+    parent = find_parent_repo(repo_root)
+    if parent:
+        parent_slug = repo_to_slug(parent)
+        parent_dir = Path.home() / ".claude" / "projects" / parent_slug
+        return _newest_transcript(parent_dir)
+
+    return None
 
 
 def parse_transcript(path):
